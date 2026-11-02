@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-18 |
-| Versión | 1.1.0 |
+| Versión | 1.2.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
@@ -112,22 +112,41 @@ el pasajero y el conductor sepan que los cobros se están guardando en local
 ### 4.3 Pantalla de configuración Wi-Fi (firmware 9)
 
 Cuando el validador abre su punto de acceso temporal, la pantalla deja el panel
-de reposo y muestra la vista `VISTA_CONFIG`, con el mismo lienzo y la misma
-cabecera azul:
+de reposo y muestra la vista `VISTA_CONFIG`. **No lleva cabecera, tarifa, cola
+ni latido**: solo el dato que el chofer necesita en ese momento. La vista tiene
+dos estados que se alternan según los teléfonos unidos al AP
+(`PORTAL,clientes=N`).
+
+**Estado 1 — nadie conectado: código QR.**
 
 | Franja | Contenido |
 | --- | --- |
-| Cabecera (0–30) | Logotipo BLINK y unidad/placa, sin latido (el enlace es el propio AP) |
-| Título (y 54) | `CONFIGURAR WIFI` en azul, 2× |
-| Red (y 88–102) | `Red del equipo:` en gris y el nombre del AP (`BLINK-XXXX`) en blanco, 2× |
-| Dirección (y 140–152) | `Abre el navegador en` en gris y `192.168.4.1` en verde, 2× |
-| Ayuda (y 178) | `y elige tu red Wi-Fi` en gris |
-| Cuenta (y 206) | `quedan N min` en ámbar; se repinta solo esta línea para no hacer parpadear el resto |
+| QR (y 12–197) | Matriz de 29×29 módulos (versión 3, `ECC_LOW`) con 4 módulos de silencio y 5 px por módulo: 185×185 px, centrada en x=27, módulos negros sobre blanco |
+| Llamada (y 205) | `ESCANEA` en blanco, 2× |
+| Ayuda (y 230) | `con la camara del telefono` en gris, 1× |
 
-Mientras la vista está activa el refresco de estado de 3 s no repinta, para no
-pisar el mensaje. Al cerrar la ventana la pantalla vuelve al panel de reposo.
-La lógica de provisión está en BLINK-DOC-06 §6.1 y la prueba en BLINK-DOC-07
-§4.11.
+El contenido es `WIFI:T:nopass;S:BLINK-XXXX;P:;;`: el teléfono propone unirse
+a la red con un toque, sin teclear el nombre. La matriz se genera en RAM
+(búfer fijo de 112 B) con la biblioteca QrBlink; si no cupiera, la pantalla
+muestra `ERROR QR` con el nombre de la red y la consola informa
+`PANTALLA,qr=error,datos=…`. Al pintar se registra `PANTALLA,qr=1,modulos=29,px=185`.
+
+**Estado 2 — al menos un teléfono unido: instrucciones.**
+
+| Franja | Contenido |
+| --- | --- |
+| Título (y 44) | `YA CONECTADO` en verde, 2× |
+| Dirección (y 92–106) | `Abre en el navegador` en gris y `192.168.4.1` en blanco, 2× |
+| Ayuda (y 138) | `y elige tu red Wi-Fi` en gris, 1× |
+| Cuenta (y 198) | `quedan N min` en ámbar, 1×; se repinta solo esta línea cada segundo |
+
+Al entrar el primer cliente se repinta la vista completa; al salir el último
+(`PORTAL,clientes=0`) vuelve el QR. Mientras `VISTA_CONFIG` está activa el
+refresco de estado de 3 s no repinta, para no pisar el mensaje. Al cerrar la
+ventana la pantalla vuelve al panel de reposo. La lógica de provisión está en
+BLINK-DOC-06 §6.1 y las pruebas en BLINK-DOC-07 §4.11; el QR se verificó
+decodificando la misma matriz fuera del equipo, pero la lectura con la cámara
+de un teléfono aún no se ha comprobado en hardware.
 
 ## 5. Transacción aprobada (2,5 s)
 
@@ -288,8 +307,12 @@ de 6×8 px queda por debajo del umbral y se registra como brecha (B-25).
 | 2026-10-31 23:31 | `PANTALLA_TEST` con lienzo en RAM | `ms=39 vista=ok`, `ms=40 vista=no`, `ms=95 vista=panel` |
 | 2026-10-31 | Sondeo de reloj SPI (compilación de prueba) | 24 MHz: 57 ms de relleno; 32 MHz: 46 ms; 40 MHz: 34 ms |
 | 2026-11-01 | Compilación del firmware 9 (portal Wi-Fi) | 1 265 479 bytes (96 %), 52 636 bytes de RAM (16 %) |
-| 2026-11-01 | Apertura del portal desde el equipo | `PORTAL,abierto,red=BLINK-948C,ip=192.168.4.1,min=5` y vista `VISTA_CONFIG` activa |
-| Pendiente | Mirar la pantalla durante la ventana de configuración | Ver `CONFIGURAR WIFI`, `BLINK-XXXX`, `192.168.4.1` y la cuenta de minutos sin que la pise el refresco de estado |
+| 2026-11-01 | Apertura del portal desde el equipo | `PORTAL,abierto,red=BLINK-948C,ip=192.168.4.1,min=5,qr=WIFI:T:nopass;S:BLINK-948C;P:;;` y vista `VISTA_CONFIG` activa |
+| 2026-11-01 | Compilación con la pantalla QR | 1 271 599 bytes (97 %) y arranque limpio (`READY,BLINK,9,…`) |
+| 2026-11-01 | Dibujo del QR | `PANTALLA,qr=1,modulos=29,px=185` (185 px, 5 px por módulo, 4 de silencio) |
+| 2026-11-01 | Teléfono unido y retirado | `PORTAL,clientes=1` cambia a `YA CONECTADO` con `192.168.4.1`; `PORTAL,clientes=0` vuelve a pintar el QR |
+| 2026-11-01 | Decodificación del QR | La misma matriz generada en el host con QrBlink devuelve `WIFI:T:nopass;S:BLINK-948C;P:;;` con `cv2.QRCodeDetector` a 1:1 y a 0,5× |
+| Pendiente | Escanear el QR con la cámara de un teléfono | Que el sistema proponga unirse a `BLINK-948C` y que la pantalla cambie sola a las instrucciones |
 | Pendiente | Toque real con la maestra | Ver el verde con `ISO-00` y volver al panel a los 2,5 s |
 | Pendiente | Toque sin saldo | Ver el rojo con `SALDO INSUFICIENTE` durante 3 s |
 | Pendiente | Apagar el router y mirar la banda | Amarillo `SIN CONEXION A INTERNET` persistente |

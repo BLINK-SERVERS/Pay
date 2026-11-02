@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-06 |
-| Versión | 1.7.0 |
+| Versión | 1.8.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 12207 (operación y mantenimiento) |
@@ -475,9 +475,9 @@ página propia; el chofer lo hace desde su teléfono.
 
 | Paso | Qué hace el operador | Qué hace el equipo |
 | --- | --- | --- |
-| 1 | Enciende el validador. | Sin red guardada, a los 2 s abre la ventana y la pantalla muestra **CONFIGURAR WIFI**, `BLINK-XXXX` y `192.168.4.1`. Con red guardada pero sin enlace, la abre a los 20 s. |
-| 2 | En el teléfono, se une a `BLINK-XXXX` (abierta, sin clave). | Levanta el AP y el portal cautivo (`DNSServer` + `WebServer` en 192.168.4.1). |
-| 3 | Acepta «sin Internet» si el teléfono avisa y espera la página; si no aparece, abre `192.168.4.1`. | Sirve la página de configuración; cualquier otra ruta redirige a `/`. |
+| 1 | Enciende el validador. | Sin red guardada, a los 2 s abre la ventana y la pantalla muestra un **código QR** (29×29 módulos, 185 px) con `ESCANEA` debajo: lleva `WIFI:T:nopass;S:BLINK-XXXX;P:;;`. Con red guardada pero sin enlace, lo muestra a los 20 s. |
+| 2 | Apunta la cámara del teléfono al QR y acepta unirse a `BLINK-XXXX` (o se une a mano: red abierta, sin clave). | Levanta el AP y el portal cautivo (`DNSServer` + `WebServer` en 192.168.4.1); registra `PORTAL,clientes=1` al entrar el teléfono y repinta la pantalla. |
+| 3 | Lee en la pantalla `YA CONECTADO`, abre el navegador en `192.168.4.1` y acepta «sin Internet» si el teléfono avisa. | Sirve la página de configuración; cualquier otra ruta redirige a `/`. La vista de instrucciones no lleva la barra de BLINK ni la tarifa; si el teléfono se desconecta (`PORTAL,clientes=0`) vuelve el QR. |
 | 4 | Pulsa «Buscar redes» (o escribe el SSID), pone la clave y **Guardar y conectar**. | Guarda en NVS, reaplica `WiFi.begin()`, registra `PORTAL,guardado,red=…` y baja el AP 2,5 s después. |
 | 5 | Espera la pantalla **CONECTADA** con IP. | Entra en modo estación, pide hora por NTP y sincroniza. |
 
@@ -498,6 +498,27 @@ Prueba en banco (2026-11-01, unidad MAC `1C:60:8B:DF:94:8C`): AP
 `BLINK-948C` visible, `/` y `/redes` respondiendo, guardado contra un hotspot
 temporal, unión automática en segundos, y tras reiniciar `INFO` con
 `red=conectada,ip=10.42.0.89,sync=…` y `SYNC,ok=1`.
+
+El QR se verificó generando la misma matriz en el host con la biblioteca
+QrBlink y decodificándola con OpenCV: devuelve
+`WIFI:T:nopass;S:BLINK-948C;P:;;` a tamaño 1:1 (185 px) y a la mitad. La
+lectura física con la cámara de un teléfono queda como comprobación pendiente.
+
+### 6.2 Diseño de la pantalla de configuración
+
+Ninguna de las dos vistas de este modo dibuja la cabecera de BLINK, la tarifa
+ni la cola: el chofer solo necesita el dato del momento.
+
+| Vista | Cuándo se pinta | Contenido (240×240) |
+| --- | --- | --- |
+| QR | Ventana abierta y ningún teléfono unido | QR blanco sobre negro de 185 px con 4 módulos de silencio y 5 px por módulo, desde y=12; `ESCANEA` en blanco 2× (y=205) y `con la camara del telefono` en gris 1× (y=230) |
+| Instrucciones | Al menos un teléfono unido (`PORTAL,clientes≥1`) | `YA CONECTADO` en verde 2× (y=44), `Abre en el navegador` gris 1× (y=92), `192.168.4.1` blanco 2× (y=106), `y elige tu red Wi-Fi` gris 1× (y=138) y `quedan N min` ámbar 1× (y=198) |
+
+La vista de instrucciones se repinta entera al entrar el primer cliente y solo
+se refresca la línea de minutos cada segundo; con el último cliente fuera
+vuelve el QR. Si la matriz no cupiera, la pantalla muestra `ERROR QR` con el
+nombre de la red y la consola registra `PANTALLA,qr=error,datos=…` (ver
+BLINK-DOC-18 §4.3).
 
 ## 7. Monitoreo y alertas
 

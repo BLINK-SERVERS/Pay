@@ -3,11 +3,11 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-00 |
-| Versión | 1.14.0 |
+| Versión | 1.15.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
-| Revisión | 14 |
+| Revisión | 15 |
 | Normas de referencia | ISO 9001:2015 §7.5 · ISO/IEC/IEEE 12207:2017 · ISO/IEC/IEEE 26511/26512/26513/26514/26515 · ISO/IEC 25010 · ISO/IEC 27001:2022 |
 
 ## 1. Propósito
@@ -113,6 +113,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | 1.12.0 | 2026-11-01 | Nuevo BLINK-DOC-19: motor tarifario por pasajes (migraciones `0019` y `0020`, `bt_recargar_pasajes`, desglose contable y ADR-16 a ADR-20); el portal deja de aceptar montos libres; B-27 a B-31 abiertas; DOC-01 a DOC-10 actualizados. | Equipo BLINK |
 | 1.13.0 | 2026-11-01 | Nuevo BLINK-DOC-20: términos `LEG-TER-001` en el portal, separación entre pasaje y tasa administrativa en el recibo, veredicto de la Gaceta 43.335 y hallazgo B-32 (500 Bs frente a la referencia nacional de 100 Bs), más B-33 (descuentos no implementados) y R-14/R-15; ADR-21 a ADR-23; DOC-01, DOC-02, DOC-07, DOC-08 y DOC-09 actualizados. | Equipo BLINK |
 | 1.14.0 | 2026-11-01 | Firmware 9: configuración del Wi-Fi del validador desde el teléfono (AP `BLINK-XXXX` + portal cautivo en 192.168.4.1, ventana de 5 minutos); B-29 cerrada y R-16 abierta; DOC-06 §6.1, DOC-07 §4.11, DOC-08 §2.2, DOC-18 §4.3 y DOC-09 1.10.0. | Equipo BLINK |
+| 1.15.0 | 2026-11-01 | El validador arranca la ventana de configuración con un **código QR** (`WIFI:T:nopass;S:BLINK-XXXX;P:;;`) y solo muestra las instrucciones cuando detecta un teléfono unido; sin cabecera de BLINK ni tarifa. DOC-06 §6.1 y nuevo §6.2, DOC-07 §4.11 (pruebas 12–16), DOC-08 §2.2 y DOC-18 §4.3. | Equipo BLINK |
 
 Reglas de mantenimiento:
 

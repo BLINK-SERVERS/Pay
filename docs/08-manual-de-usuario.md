@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-08 |
-| Versión | 1.7.0 |
+| Versión | 1.8.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26511 · 26512 |
@@ -125,13 +125,16 @@ por USB a la estación del back-office cuando hay que enrolar tarjetas nuevas.
 ### 2.2 Conectar el validador a un Wi-Fi (hotspot del teléfono)
 
 1. Enciende el validador. Si nunca se configuró (o la red guardada no aparece),
-   a los pocos segundos la pantalla muestra **CONFIGURAR WIFI** con un nombre
-   tipo `BLINK-948C` y la dirección `192.168.4.1`.
-2. En el teléfono, abre los ajustes de Wi-Fi y únete a esa red `BLINK-XXXX`.
-   No tiene contraseña; si el teléfono dice «sin Internet», elige quedarte
+   a los pocos segundos la pantalla muestra un **código QR** con la palabra
+   `ESCANEA`: es el atajo para unirse a la red del equipo (`BLINK-948C` en la
+   unidad de pruebas).
+2. Apunta la cámara del teléfono al QR y acepta el aviso de unirse a
+   `BLINK-XXXX`. También puedes hacerlo a mano en los ajustes de Wi-Fi: la red
+   no tiene contraseña. Si el teléfono dice «sin Internet», elige quedarte
    conectado igual.
-3. La página de configuración se abre sola. Si no, escribe `192.168.4.1` en el
-   navegador.
+3. La pantalla cambia sola a `YA CONECTADO` y te dice que abras `192.168.4.1`
+   en el navegador. La página se abre automáticamente; si no, escribe esa
+   dirección.
 4. Pulsa **Buscar redes** y elige tu hotspot (o escribe su nombre), pon la
    contraseña y pulsa **Guardar y conectar**.
 5. Vuelve a la pantalla del validador: cuando dice **CONECTADA** ya está en
