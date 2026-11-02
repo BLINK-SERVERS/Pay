@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-07 |
-| Versión | 1.10.0 |
+| Versión | 1.11.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26513 · ISO/IEC 25010 |
@@ -449,6 +449,35 @@ La hoja es un resumen operativo y no sustituye la revisión de un abogado
 (BLINK-DOC-09 R-15). La tarifa de Bs 500 se muestra como la aplicada en la
 tarjeta, no como tarifa nacional oficial, porque la Gaceta 43.335 fija una
 referencia de Bs 100 y la competencia es municipal (B-32).
+
+### 4.11 Configuración Wi-Fi desde el teléfono (firmware 9, 2026-11-01)
+
+Prueba en la unidad física (ESP32-D0WD-V3, MAC `1C:60:8B:DF:94:8C`,
+`/dev/ttyUSB0`), compilada en 1 265 479 B (96 % de la partición por defecto) y
+verificada por hash al flashear. El banco se armó con un hotspot temporal del
+portátil (`BLINK-PRUEBA`) y el puerto serie se abrió con DTR y RTS en bajo para
+leer los registros.
+
+| # | Prueba | Resultado |
+| --- | --- | --- |
+| 1 | Arranque sin credenciales | A los ~2 s la unidad registra `PORTAL,abierto,red=BLINK-948C,ip=192.168.4.1,min=5` y la pantalla pasa a **CONFIGURAR WIFI** |
+| 2 | Punto de acceso | `nmcli` lo ve abierto (sin seguridad, señal 92); el portátil obtiene 192.168.4.2 y conserva Internet por la interfaz cableada |
+| 3 | Portal cautivo | `/` devuelve 200 con la página; `/generate_204` (sondeo de Android) responde 302 a `http://192.168.4.1/` |
+| 4 | Buscar redes | `/redes` lista 5–7 redes deduplicadas y ordenadas por señal, en 2–4 s; el registro confirma `PORTAL,redes=7` |
+| 5 | Guardar | `POST /guardar` con SSID y clave responde 200 con el aviso «Guardado»; el equipo registra `PORTAL,guardado,red=BLINK-PRUEBA` y baja el AP 2,5 s después |
+| 6 | Unión inmediata | El punto de acceso del portátil ve al cliente `8c:94:df:8b:60:1c` con IP 10.42.0.89 |
+| 7 | Persistencia al reiniciar | Tras reiniciar, `INFO` muestra `red=conectada,ip=10.42.0.89,token=1` sin intervención, y la sincronización automática devuelve `SYNC,ok=1,enviados=0,…` (la cola de 10 cobros se subió en esa pasada) |
+| 8 | Arranque con red guardada inalcanzable | La ventana se abre a los 20 s de seguir «buscando», una sola vez por arranque |
+| 9 | Olvidar red | `OLVIDAR_WIFI` deja `red=sin-wifi` y la ventana vuelve a abrirse sola |
+| 10 | Comandos de consola | `CONFIGURAR_WIFI` → `OK,portal=1,red=BLINK-948C`; `CERRAR_PORTAL` → `PORTAL,cerrado` / `OK,portal=0` |
+| 11 | Estabilidad de la ventana | A los 75 s de abierto el AP seguía anunciándose y `/` respondía 200, sin reinicios ni caída del servidor web |
+| 12 | Pantalla | No se pudo verificar visualmente desde el banco (sin cámara): la vista `VISTA_CONFIG` repinta cabecera, nombre de red, IP y minutos restantes, y congela el refresco de estado. Pendiente la confirmación del operador. |
+
+El AP de configuración es abierto (R-16 en BLINK-DOC-09) y la ventana dura
+5 minutos; ambas condiciones están en la página y en el manual de operación
+(BLINK-DOC-06 §6.1). El barrido de redes necesitó un reintento: con la estación
+insistiendo a una red inexistente el controlador rechazaba `scanNetworks()` y
+la lista salía vacía; la corrección pausa el intento 350 ms y repite.
 
 ## 5. Prueba de la tarjeta virtual (ID-1 / CR80)
 

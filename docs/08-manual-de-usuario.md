@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-08 |
-| Versión | 1.6.0 |
+| Versión | 1.7.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26511 · 26512 |
@@ -122,7 +122,25 @@ por USB a la estación del back-office cuando hay que enrolar tarjetas nuevas.
 4. Nunca apagues el equipo con la cola de viajes pendientes si puedes evitarlo;
    si se apaga, los conserva en memoria al arrancar.
 
-### 2.2 Usar el lector en la estación
+### 2.2 Conectar el validador a un Wi-Fi (hotspot del teléfono)
+
+1. Enciende el validador. Si nunca se configuró (o la red guardada no aparece),
+   a los pocos segundos la pantalla muestra **CONFIGURAR WIFI** con un nombre
+   tipo `BLINK-948C` y la dirección `192.168.4.1`.
+2. En el teléfono, abre los ajustes de Wi-Fi y únete a esa red `BLINK-XXXX`.
+   No tiene contraseña; si el teléfono dice «sin Internet», elige quedarte
+   conectado igual.
+3. La página de configuración se abre sola. Si no, escribe `192.168.4.1` en el
+   navegador.
+4. Pulsa **Buscar redes** y elige tu hotspot (o escribe su nombre), pon la
+   contraseña y pulsa **Guardar y conectar**.
+5. Vuelve a la pantalla del validador: cuando dice **CONECTADA** ya está en
+   línea y empieza a subir los cobros.
+
+La ventana dura 5 minutos. Si se cierra antes de guardar, apaga y enciende el
+equipo para repetir. Más detalle en BLINK-DOC-06 §6.1.
+
+### 2.3 Usar el lector en la estación
 
 1. Conecta el lector al puerto USB de la computadora del back-office.
 2. En la pantalla **Estación**, toca **Conectar lector** y elige el puerto serie

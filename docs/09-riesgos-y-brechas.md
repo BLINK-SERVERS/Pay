@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-09 |
-| Versión | 1.9.0 |
+| Versión | 1.10.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 12207 (riesgos) · ISO/IEC 27001 (A.5.7) |
@@ -30,6 +30,7 @@ Escalas: probabilidad e impacto **A**lta / **M**edia / **B**aja. Estado:
 | R-13 | El excedente de redondeo se guarda por recarga pero no se concilia contra una cuenta contable. | B | M | Sumarlo en el cierre diario antes de tratarlo como ingreso; no hay cuenta de destino en el esquema. | **Abierto** |
 | R-14 | Publicar los términos con una tarifa que no está homologada por la autoridad municipal expone a observaciones por cobro indebido o por publicidad engañosa, y a la obligación de devolver la diferencia si la alcaldía fija otro monto. | M | A | Los términos declaran que la tarifa la homologa el municipio (art. 178.2 CRBV), muestran el monto vigente tomado de la tarjeta y no lo presentan como tarifa nacional oficial; la Gaceta 43.335 se cita como referencia y exhorto. Falta obtener el decreto o acta de homologación (B-32) antes de operar con público. | **Abierto** |
 | R-15 | La hoja legal es un resumen operativo redactado por el equipo, no una pieza revisada por un abogado; puede omitir requisitos de la Ley de Protección al Consumidor, de precios justos o de protección de datos. | M | M | Se limita a describir lo que el sistema hace (debitado exacto, desglose del recibo, uso de datos) y remite a la normativa; falta revisión legal externa antes de la impresión masiva de tarjetas (B-33). | **Abierto** |
+| R-16 | El punto de acceso de configuración del validador (firmware 9) es abierto: cualquiera al alcance puede unirse durante la ventana de 5 minutos, cambiar la red guardada y dejar la unidad sin sincronización, o suplantar la red que el chofer cree estar eligiendo. | M | M | La ventana solo se abre sin credenciales (2 s) o cuando la red guardada no aparece (20 s) y no se reabre sola en el arranque; la página no imprime el token ni permite leerlo, y la sincronización va por HTTPS con validación de certificado. Mitigación pendiente: clave WPA2 impresa en la unidad o botón físico para abrirla. | **Abierto** |
 
 ## 2. Brechas funcionales frente al diseño técnico
 
@@ -67,7 +68,7 @@ implementación:
 | B-26 | El reloj SPI de la pantalla se subió a 40 MHz por medición de tiempo; no se validó la integridad de señal ni la estabilidad térmica de la unidad. | B | Si aparecen píxeles sueltos, volver a 24 MHz deja el resultado en 63 ms y rompe el límite de 50 ms (BLINK-DOC-18 §12). |
 | B-27 | `bt_recargar` legado sigue abierto a `anon` y acepta montos libres sin desglose. | M | Compatibilidad con clientes que tengan el service worker anterior en caché; retirar cuando el parque actualice (BLINK-DOC-19, ADR-20). |
 | B-28 | Sin token ring offline firmado: la recarga aprobada espera la sincronización del validador. | A | Un pasajero que recarga y aborda antes de que su unidad sincronice puede no tener saldo aunque la nube ya lo acreditó (BLINK-DOC-19 §9). |
-| B-29 | Sin portal cautivo `WiFiManager`; la red del validador se configura en el firmware. | B | Cambiar de red exige reflashear o editar la configuración (BLINK-DOC-19 §9). |
+| B-29 | ~~Sin portal cautivo; la red del validador se configura en el firmware.~~ **Cerrada el 2026-11-01 con el firmware 9**: el validador levanta un AP temporal y una página de configuración desde el teléfono (BLINK-DOC-06 §6.1, BLINK-DOC-07 §4.11). | B | Queda R-16: el AP es abierto durante la ventana de 5 minutos. |
 | B-30 | Sin app nativa, mapa ni GTFS; el portal es web y no hay capa geográfica. | B | El estándar de rutas de la especificación de arquitectura no está implementado (BLINK-DOC-19 §9). |
 | B-31 | Batería Li-Po 2000 mAh, TP4056, buzzer y autonomía no validados en la unidad física. | M | Falta la prueba de campo antes de operación continua (BLINK-DOC-19 §9). |
 | B-32 | No hay decreto, ordenanza ni acta municipal que homologue los Bs 500 por pasaje; la Gaceta Oficial N.º 43.335 fija una referencia nacional de Bs 100 para el pasaje urbano y exhorta a las alcaldías a armonizar. | A | La tarifa aplicada y acreditada sigue siendo la de la tarjeta (hoy Bs 500) y los términos lo declaran así, sin llamarla oficial nacional; el propietario debe aportar el instrumento municipal que la respalde o ajustar `settings.publico.tarifario.base` (BLINK-DOC-20 §3, R-14). |
@@ -135,15 +136,19 @@ implementación:
 | 20 | Aportar el decreto u ordenanza municipal que homologue la tarifa por pasaje, o ajustar `settings.publico.tarifario.base` a la tarifa homologada (B-32, R-14). | Propietario | Inmediato |
 | 21 | Someter la hoja legal a revisión de un abogado antes de imprimirla en las tarjetas y de la campaña pública (R-15). | Propietario | Corto |
 | 22 | Definir si se implementan las gratuitades y descuentos de la Gaceta 43.335 y, en su caso, cómo se verifica la condición del pasajero (B-33). | Producto | Medio |
+| 23 | Cerrar R-16: proteger el AP de configuración con clave WPA2 por unidad impresa en la etiqueta, o abrirlo solo con un botón físico y un LED que avise. | Desarrollo | Corto |
 
 ## 6. Revisión
 
 Este registro se actualiza al cerrar cada hito. La última revisión corresponde al
-2026-11-01 y acompañó la capa legal del portal (LEG-TER-001 y Gaceta Oficial
-N.º 43.335, BLINK-DOC-20): se añadieron R-14 (tarifa sin homologar publicada en
-términos) y R-15 (la hoja no es una revisión legal), B-32 (falta el instrumento
-municipal que respalde los Bs 500) y B-33 (gratuidades y descuentos de la Gaceta
-sin implementar).
+2026-11-01 y acompañó el modo de configuración Wi-Fi del validador (firmware 9):
+se cerró B-29 (ya no hace falta consola para cambiar de red) y se añadió R-16
+(el AP de configuración es abierto mientras dura la ventana).
+La revisión anterior, del 2026-11-01, acompañó la capa legal del portal
+(LEG-TER-001 y Gaceta Oficial N.º 43.335, BLINK-DOC-20): se añadieron R-14
+(tarifa sin homologar publicada en términos) y R-15 (la hoja no es una revisión
+legal), B-32 (falta el instrumento municipal que respalde los Bs 500) y B-33
+(gratuidades y descuentos de la Gaceta sin implementar).
 La revisión anterior, del 2026-11-01, acompañó la bandeja de recargas del
 back-office (migración `0018`): se cerró B-04 (aprobación de recargas sin
 pantalla en el panel).

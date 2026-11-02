@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-06 |
-| Versión | 1.6.0 |
-| Fecha | 2026-10-31 |
+| Versión | 1.7.0 |
+| Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 12207 (operación y mantenimiento) |
 
@@ -466,6 +466,38 @@ ENROLAR,23-1-000001-9,50000,1,3981BF06
 Los sketches **no están en los repositorios**; viven en `~/BLINK/firmware`
 (enlaces desde `~/Arduino`). Trasladarlos a un repositorio es una brecha abierta
 (BLINK-DOC-09 R-04).
+
+### 6.1 Configurar el Wi-Fi del validador desde el teléfono (firmware 9)
+
+Hasta el firmware 8 cambiar de red exigía consola serie (`WIFI,ssid,clave`).
+Desde el firmware 9 la unidad levanta un punto de acceso temporal con una
+página propia; el chofer lo hace desde su teléfono.
+
+| Paso | Qué hace el operador | Qué hace el equipo |
+| --- | --- | --- |
+| 1 | Enciende el validador. | Sin red guardada, a los 2 s abre la ventana y la pantalla muestra **CONFIGURAR WIFI**, `BLINK-XXXX` y `192.168.4.1`. Con red guardada pero sin enlace, la abre a los 20 s. |
+| 2 | En el teléfono, se une a `BLINK-XXXX` (abierta, sin clave). | Levanta el AP y el portal cautivo (`DNSServer` + `WebServer` en 192.168.4.1). |
+| 3 | Acepta «sin Internet» si el teléfono avisa y espera la página; si no aparece, abre `192.168.4.1`. | Sirve la página de configuración; cualquier otra ruta redirige a `/`. |
+| 4 | Pulsa «Buscar redes» (o escribe el SSID), pone la clave y **Guardar y conectar**. | Guarda en NVS, reaplica `WiFi.begin()`, registra `PORTAL,guardado,red=…` y baja el AP 2,5 s después. |
+| 5 | Espera la pantalla **CONECTADA** con IP. | Entra en modo estación, pide hora por NTP y sincroniza. |
+
+Detalles operativos:
+
+- La ventana dura **5 minutos** y no se reabre sola en el mismo arranque: si se
+  cierra sin guardar, apagar y encender el equipo.
+- Se recuerda **una** red a la vez. La página trae «Olvidar red guardada»
+  (equivalente a `OLVIDAR_WIFI`) y «Terminar configuracion» (baja el AP).
+- Por consola serie: `CONFIGURAR_WIFI` abre la ventana a pedido y
+  `CERRAR_PORTAL` la cierra; el registro del equipo lo confirma con
+  `PORTAL,abierto,red=…,ip=…,min=5` / `PORTAL,cerrado`.
+- El AP es **abierto** mientras está activo (R-16 en BLINK-DOC-09). No expone
+  el token, pero sí permite cambiar la red: no dejarlo abierto en la calle ni
+  usarlo como red de trabajo del vehículo.
+
+Prueba en banco (2026-11-01, unidad MAC `1C:60:8B:DF:94:8C`): AP
+`BLINK-948C` visible, `/` y `/redes` respondiendo, guardado contra un hotspot
+temporal, unión automática en segundos, y tras reiniciar `INFO` con
+`red=conectada,ip=10.42.0.89,sync=…` y `SYNC,ok=1`.
 
 ## 7. Monitoreo y alertas
 

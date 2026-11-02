@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-18 |
-| Versión | 1.0.0 |
-| Fecha | 2026-10-31 |
+| Versión | 1.1.0 |
+| Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
 | Normas de referencia | ISO 9241-3 · ISO/IEC 25010 · ISO/IEC 27001 · ISO/IEC/IEEE 26514 |
@@ -108,6 +108,26 @@ Cuando el equipo no tiene Wi-Fi, la banda entera (184–239) pasa a amarillo
 encolados, `- <n> PEND`. Es **persistente**: no parpadea ni se oculta, para que
 el pasajero y el conductor sepan que los cobros se están guardando en local
 (ADR-15). El contraste negro sobre amarillo es de 15:1.
+
+### 4.3 Pantalla de configuración Wi-Fi (firmware 9)
+
+Cuando el validador abre su punto de acceso temporal, la pantalla deja el panel
+de reposo y muestra la vista `VISTA_CONFIG`, con el mismo lienzo y la misma
+cabecera azul:
+
+| Franja | Contenido |
+| --- | --- |
+| Cabecera (0–30) | Logotipo BLINK y unidad/placa, sin latido (el enlace es el propio AP) |
+| Título (y 54) | `CONFIGURAR WIFI` en azul, 2× |
+| Red (y 88–102) | `Red del equipo:` en gris y el nombre del AP (`BLINK-XXXX`) en blanco, 2× |
+| Dirección (y 140–152) | `Abre el navegador en` en gris y `192.168.4.1` en verde, 2× |
+| Ayuda (y 178) | `y elige tu red Wi-Fi` en gris |
+| Cuenta (y 206) | `quedan N min` en ámbar; se repinta solo esta línea para no hacer parpadear el resto |
+
+Mientras la vista está activa el refresco de estado de 3 s no repinta, para no
+pisar el mensaje. Al cerrar la ventana la pantalla vuelve al panel de reposo.
+La lógica de provisión está en BLINK-DOC-06 §6.1 y la prueba en BLINK-DOC-07
+§4.11.
 
 ## 5. Transacción aprobada (2,5 s)
 
@@ -267,6 +287,9 @@ de 6×8 px queda por debajo del umbral y se registra como brecha (B-25).
 | 2026-10-31 23:31 | Arranque tras el flasheo | `PANTALLA,lienzo=ram,heap=209108` y `READY,BLINK,8,0,0` |
 | 2026-10-31 23:31 | `PANTALLA_TEST` con lienzo en RAM | `ms=39 vista=ok`, `ms=40 vista=no`, `ms=95 vista=panel` |
 | 2026-10-31 | Sondeo de reloj SPI (compilación de prueba) | 24 MHz: 57 ms de relleno; 32 MHz: 46 ms; 40 MHz: 34 ms |
+| 2026-11-01 | Compilación del firmware 9 (portal Wi-Fi) | 1 265 479 bytes (96 %), 52 636 bytes de RAM (16 %) |
+| 2026-11-01 | Apertura del portal desde el equipo | `PORTAL,abierto,red=BLINK-948C,ip=192.168.4.1,min=5` y vista `VISTA_CONFIG` activa |
+| Pendiente | Mirar la pantalla durante la ventana de configuración | Ver `CONFIGURAR WIFI`, `BLINK-XXXX`, `192.168.4.1` y la cuenta de minutos sin que la pise el refresco de estado |
 | Pendiente | Toque real con la maestra | Ver el verde con `ISO-00` y volver al panel a los 2,5 s |
 | Pendiente | Toque sin saldo | Ver el rojo con `SALDO INSUFICIENTE` durante 3 s |
 | Pendiente | Apagar el router y mirar la banda | Amarillo `SIN CONEXION A INTERNET` persistente |

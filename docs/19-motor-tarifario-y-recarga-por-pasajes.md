@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-19 |
-| Versión | 1.0.0 |
+| Versión | 1.0.1 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente (simulación y producción; `0019` y `0020` aplicadas el 2026-11-01) |
 | Autor | Equipo BLINK (desarrollo asistido) |
@@ -59,7 +59,7 @@ datos), BLINK-DOC-04 (RPC), BLINK-DOC-06 §5.6 (ciclo de recarga), BLINK-DOC-07
 | --- | --- | --- |
 | Validación local en la tarjeta en menos de 0,2 s, 100 % offline | Cumplido | Firmware 8; DOC-16. |
 | Sincronización por lotes en base/garaje | Cumplido por sincronización HTTPS con token por validador | DOC-16 §5. |
-| Portal cautivo `WiFiManager` sin botones | **No implementado**: la red se configura en el firmware | B-29 |
+| Portal cautivo sin botones | Cumplido desde el firmware 9: AP temporal `BLINK-XXXX` y página en 192.168.4.1 desde el teléfono | DOC-06 §6.1, DOC-07 §4.11 |
 | Token ring de recargas firmado y cacheado en el ESP32 | **No implementado**: la recarga aprobada espera la sincronización del validador | B-28 |
 | App nativa con mapa y GTFS | **No implementado**: el portal es web y no hay capa geográfica | B-30 |
 | Batería Li-Po 2000 mAh con TP4056, buzzer e IPS 240×240 | Placa y pantalla implementadas; batería y buzzer no validados en la unidad | B-31 |
@@ -300,8 +300,10 @@ Con un token de cuenta real y la tarjeta `G-00001-099-F` (tarifa 500):
   el portal la deja pendiente de la próxima sincronización del validador. Un
   pasajero que recarga y aborda antes de que su unidad sincronice puede no
   tener saldo (B-28).
-- **WiFiManager, GTFS y batería.** No están implementados o no están validados
-  (B-29, B-30, B-31).
+- **Portal de configuración.** Implementado en el firmware 9 (AP abierto de 5
+  minutos); su principal salvedad es que el AP no lleva clave (R-16).
+- **GTFS y batería.** No están implementados o no están validados (B-30,
+  B-31).
 - **`bt_recargar` legado.** Sigue abierto para clientes con caché anterior;
   permite montos libres y no guarda desglose. Retirarlo cuando el parque esté
   actualizado (B-27).
@@ -354,7 +356,7 @@ aprueban acreditando el bruto.
 | R-13 | El excedente de redondeo no se concilia contra una cuenta contable. | Se guarda por recarga; sumarlo en el cierre diario antes de usarlo como ingreso. |
 | B-27 | `bt_recargar` legado acepta montos libres y no guarda desglose. | Retirar cuando el parque actualice; mientras, la UI nueva no lo usa. |
 | B-28 | Sin token ring offline: la recarga espera la sincronización del validador. | Documentar la espera al pasajero; evaluar token firmado en una fase posterior. |
-| B-29 | Sin portal cautivo `WiFiManager`. | La red se configura en el firmware; evaluar en la siguiente revisión de hardware. |
+| B-29 | Portal de configuración Wi-Fi: cerrado en el firmware 9, pero el AP es abierto. | R-16: protegerlo con clave por unidad o botón físico antes de la operación masiva. |
 | B-30 | Sin app nativa, mapa ni GTFS. | Fuera del alcance del hito; la telemetría y las rutas ya tienen tablas compatibles. |
 | B-31 | Batería, buzzer y autonomía no validados en la unidad física. | Probar en la unidad de campo antes de la operación continua. |
 
