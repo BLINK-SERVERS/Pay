@@ -193,6 +193,9 @@ export function Recargar({
       `Tarjeta: ${tarjeta.serial}`,
       `Titular: ${tarjeta.titular.nombre}`,
       `Pasajes: ${cotizacion.pasajes}`,
+      `Tarifa por pasaje: ${formatearBs(cotizacion.tarifaBase)}`,
+      `Pasaje urbano: ${formatearBs(cotizacion.acreditado)}`,
+      `Tasa administrativa: ${formatearBs(cotizacion.total - cotizacion.acreditado)}`,
       `Transferido: ${formatearBs(cotizacion.total)}`,
       `A acreditar: ${formatearBs(cotizacion.acreditado)}`,
       `Banco: ${reportada.banco ?? ""}`,
@@ -299,8 +302,8 @@ export function Recargar({
         <form className="tarjeta-panel" onSubmit={continuarPasajes} noValidate>
           <p className="recarga__tarifa">
             <Icon name="autobus" />
-            Pasaje a {formatearBs(tarjeta.tarifa)}. El monto a transferir incluye la comisión
-            bancaria y el margen de servicio.
+            Pasaje a {formatearBs(tarjeta.tarifa)}. El monto a transferir incluye la tasa
+            administrativa por el servicio digital.
           </p>
 
           <div className="chips chips--pasajes" role="group" aria-label="Cantidades frecuentes">
@@ -365,13 +368,14 @@ export function Recargar({
               </div>
               <div className="recibo__detalle">
                 <div>
-                  <span>Pasajes</span>
+                  <span>Pasaje urbano</span>
                   <strong>
-                    {cotizacion.pasajes} · {formatearBs(cotizacion.acreditado)}
+                    {cotizacion.pasajes} × {formatearBs(cotizacion.tarifaBase)} ·{" "}
+                    {formatearBs(cotizacion.acreditado)}
                   </strong>
                 </div>
                 <div>
-                  <span>Comisiones y servicio</span>
+                  <span>Tasa administrativa digital</span>
                   <strong>{formatearBs(cotizacion.total - cotizacion.acreditado)}</strong>
                 </div>
               </div>
@@ -604,6 +608,12 @@ export function Recargar({
               <dt>Pasajes</dt>
               <dd>
                 {cotizacion.pasajes} a {formatearBs(cotizacion.tarifaBase)}
+              </dd>
+            </div>
+            <div>
+              <dt>Tasa administrativa digital</dt>
+              <dd className="mono">
+                {formatearBs(cotizacion.total - cotizacion.acreditado)}
               </dd>
             </div>
             <div>

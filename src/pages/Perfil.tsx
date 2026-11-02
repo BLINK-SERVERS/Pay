@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Hoja } from "../components/Hoja";
+import { HojaLegal } from "../components/HojaLegal";
 import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
 import { ErrorBlink } from "../lib/repo";
@@ -57,6 +58,7 @@ export function Perfil({
   const [nuevo, setNuevo] = useState("");
   const [repetir, setRepetir] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [legalAbierto, setLegalAbierto] = useState(false);
   const [exito, setExito] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
@@ -332,6 +334,16 @@ export function Perfil({
             <span className="mono">{ajustes.atencion}</span>
           </span>
         </div>
+        <button type="button" className="fila-accion" onClick={() => setLegalAbierto(true)}>
+          <span className="fila-accion__icono">
+            <Icon name="documento" />
+          </span>
+          <span className="fila-accion__texto">
+            <strong>Términos y condiciones</strong>
+            <span>Tarifa del pasaje y tasa administrativa</span>
+          </span>
+          <Icon name="adelante" />
+        </button>
       </section>
 
       <p className="panel__nota panel__nota--centro">
@@ -516,6 +528,12 @@ export function Perfil({
           </div>
         )}
       </Hoja>
+
+      <HojaLegal
+        abierta={legalAbierto}
+        alCerrar={() => setLegalAbierto(false)}
+        tarifa={tarjetaActiva?.tarifa ?? ajustes.tarifario.base}
+      />
     </div>
   );
 }

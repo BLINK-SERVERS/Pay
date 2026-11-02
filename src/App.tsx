@@ -220,7 +220,7 @@ export function App() {
   }
 
   if (!sesion) {
-    return <Acceso alEntrar={alEntrar} />;
+    return <Acceso alEntrar={alEntrar} tarifa={ajustes.tarifario.base} />;
   }
 
   return (

@@ -277,6 +277,72 @@ body {
   padding-inline: 0.5rem;
 }
 
+.enlace-legal {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.enlace-legal:hover {
+  color: var(--color-text-secondary);
+}
+
+/* Términos legales (LEG-TER-001) --------------------------- */
+
+.legal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  font-size: var(--fs-sm);
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+}
+
+.legal section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legal h3 {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-primary);
+}
+
+.legal p {
+  margin: 0;
+}
+
+.legal ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.legal strong {
+  color: var(--color-text-primary);
+}
+
+.legal__aviso {
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.legal__nota {
+  font-size: var(--fs-xs);
+  color: var(--color-text-tertiary);
+}
+
 /* Registro en dos etapas ------------------------------------ */
 
 .registro {

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
 import { Hoja } from "../components/Hoja";
+import { HojaLegal } from "../components/HojaLegal";
 import { ErrorBlink } from "../lib/repo";
 import { repositorio, type Repositorio } from "../lib/repo";
 import {
@@ -21,9 +22,11 @@ type PasoRegistro = "datos" | "pago";
 interface Props {
   repo?: Repositorio;
   alEntrar: (sesion: Sesion) => void;
+  /** Tarifa vigente que se muestra en los términos legales. */
+  tarifa?: number;
 }
 
-export function Acceso({ repo = repositorio, alEntrar }: Props) {
+export function Acceso({ repo = repositorio, alEntrar, tarifa = 500 }: Props) {
   const [modo, setModo] = useState<Modo>("entrar");
 
   // Entrar
@@ -49,6 +52,7 @@ export function Acceso({ repo = repositorio, alEntrar }: Props) {
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [ayuda, setAyuda] = useState(false);
+  const [legalAbierto, setLegalAbierto] = useState(false);
 
   const demo = repo.modo === "local";
 
@@ -600,10 +604,24 @@ export function Acceso({ repo = repositorio, alEntrar }: Props) {
           </p>
         )}
         <p className="acceso__legal">
-          Al entrar aceptas las condiciones de uso de BLINK TARJETA. Tus datos se tratan
-          según la política de privacidad de la línea.
+          Al entrar aceptas los{" "}
+          <button
+            type="button"
+            className="enlace-legal"
+            onClick={() => setLegalAbierto(true)}
+          >
+            términos y condiciones
+          </button>{" "}
+          de BLINK TARJETA. Tus datos se tratan según la sección de datos personales de
+          esos términos.
         </p>
       </footer>
+
+      <HojaLegal
+        abierta={legalAbierto}
+        alCerrar={() => setLegalAbierto(false)}
+        tarifa={tarifa}
+      />
 
       <Hoja
         abierta={ayuda}

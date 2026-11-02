@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-09 |
-| Versión | 1.8.0 |
+| Versión | 1.9.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 12207 (riesgos) · ISO/IEC 27001 (A.5.7) |
@@ -28,6 +28,8 @@ Escalas: probabilidad e impacto **A**lta / **M**edia / **B**aja. Estado:
 | R-11 | El service worker comparte origen con las demás publicaciones de GitHub Pages; una limpieza o un ámbito amplios podrían tocar o leer cachés ajenas. | B | M | Borra solo cachés con prefijo `blink-tarjeta-`, valida origen y ámbito de los mensajes, solo cachea recursos estáticos dentro de `/TARJETA/` y las respuestas de API quedan fuera. | **Mitigado** |
 | R-12 | Cambiar `settings.publico.tarifario` altera el precio de las recargas nuevas sin aviso al pasajero. | M | M | Cada recarga guarda una copia del tarifario; publicar cambios con nota operativa y revisar la bandeja. | **Abierto** |
 | R-13 | El excedente de redondeo se guarda por recarga pero no se concilia contra una cuenta contable. | B | M | Sumarlo en el cierre diario antes de tratarlo como ingreso; no hay cuenta de destino en el esquema. | **Abierto** |
+| R-14 | Publicar los términos con una tarifa que no está homologada por la autoridad municipal expone a observaciones por cobro indebido o por publicidad engañosa, y a la obligación de devolver la diferencia si la alcaldía fija otro monto. | M | A | Los términos declaran que la tarifa la homologa el municipio (art. 178.2 CRBV), muestran el monto vigente tomado de la tarjeta y no lo presentan como tarifa nacional oficial; la Gaceta 43.335 se cita como referencia y exhorto. Falta obtener el decreto o acta de homologación (B-32) antes de operar con público. | **Abierto** |
+| R-15 | La hoja legal es un resumen operativo redactado por el equipo, no una pieza revisada por un abogado; puede omitir requisitos de la Ley de Protección al Consumidor, de precios justos o de protección de datos. | M | M | Se limita a describir lo que el sistema hace (debitado exacto, desglose del recibo, uso de datos) y remite a la normativa; falta revisión legal externa antes de la impresión masiva de tarjetas (B-33). | **Abierto** |
 
 ## 2. Brechas funcionales frente al diseño técnico
 
@@ -68,6 +70,8 @@ implementación:
 | B-29 | Sin portal cautivo `WiFiManager`; la red del validador se configura en el firmware. | B | Cambiar de red exige reflashear o editar la configuración (BLINK-DOC-19 §9). |
 | B-30 | Sin app nativa, mapa ni GTFS; el portal es web y no hay capa geográfica. | B | El estándar de rutas de la especificación de arquitectura no está implementado (BLINK-DOC-19 §9). |
 | B-31 | Batería Li-Po 2000 mAh, TP4056, buzzer y autonomía no validados en la unidad física. | M | Falta la prueba de campo antes de operación continua (BLINK-DOC-19 §9). |
+| B-32 | No hay decreto, ordenanza ni acta municipal que homologue los Bs 500 por pasaje; la Gaceta Oficial N.º 43.335 fija una referencia nacional de Bs 100 para el pasaje urbano y exhorta a las alcaldías a armonizar. | A | La tarifa aplicada y acreditada sigue siendo la de la tarjeta (hoy Bs 500) y los términos lo declaran así, sin llamarla oficial nacional; el propietario debe aportar el instrumento municipal que la respalde o ajustar `settings.publico.tarifario.base` (BLINK-DOC-20 §3, R-14). |
+| B-33 | La Gaceta 43.335 prevé gratuidad (mujeres ≥ 50, hombres ≥ 60, personas con discapacidad), 50 % para estudiantes y 20 % en feriados; ninguna de esas reglas existe en el tarifario ni en el validador. | M | Todo pasajero paga la tarifa plena; aplicar los descuentos exige categoría verificable en la tarjeta o en la cuenta, reglas en `bt_cotizar_recarga` y en el chip, y no está aprobado como alcance (BLINK-DOC-20 §3, R-15). |
 
 ## 3. Deuda técnica
 
@@ -128,12 +132,21 @@ implementación:
 | 17 | Guardar o contar los códigos de rechazo por unidad y exponerlos en el panel fiscal (B-24). | Desarrollo | Medio |
 | 18 | Validar en el panel real colores, banda amarilla y legibilidad a plena luz; ajustar la cabecera si no se lee (B-25). | Propietario · Desarrollo | Corto |
 | 19 | Vigilar la estabilidad del SPI a 40 MHz en operación y tener el retorno a 24 MHz documentado (B-26). | Desarrollo | Medio |
+| 20 | Aportar el decreto u ordenanza municipal que homologue la tarifa por pasaje, o ajustar `settings.publico.tarifario.base` a la tarifa homologada (B-32, R-14). | Propietario | Inmediato |
+| 21 | Someter la hoja legal a revisión de un abogado antes de imprimirla en las tarjetas y de la campaña pública (R-15). | Propietario | Corto |
+| 22 | Definir si se implementan las gratuitades y descuentos de la Gaceta 43.335 y, en su caso, cómo se verifica la condición del pasajero (B-33). | Producto | Medio |
 
 ## 6. Revisión
 
 Este registro se actualiza al cerrar cada hito. La última revisión corresponde al
-2026-11-01 y acompañó la bandeja de recargas del back-office (migración `0018`):
-se cerró B-04 (aprobación de recargas sin pantalla en el panel).
+2026-11-01 y acompañó la capa legal del portal (LEG-TER-001 y Gaceta Oficial
+N.º 43.335, BLINK-DOC-20): se añadieron R-14 (tarifa sin homologar publicada en
+términos) y R-15 (la hoja no es una revisión legal), B-32 (falta el instrumento
+municipal que respalde los Bs 500) y B-33 (gratuidades y descuentos de la Gaceta
+sin implementar).
+La revisión anterior, del 2026-11-01, acompañó la bandeja de recargas del
+back-office (migración `0018`): se cerró B-04 (aprobación de recargas sin
+pantalla en el panel).
 La revisión anterior, del 2026-10-31, acompañó la interfaz datáfono
 `ISO-UI-240-REV2` del firmware 8
 (BLINK-DOC-18): se añadieron B-25 (contraste de cabecera y título, falta la

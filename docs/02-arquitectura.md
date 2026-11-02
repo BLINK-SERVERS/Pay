@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-02 |
-| Versión | 1.6.0 |
+| Versión | 1.7.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 26514 · ISO/IEC/IEEE 42010 |
@@ -165,3 +165,6 @@ usable.
 | ADR-18 | Total redondeado a la decena superior con excedente explícito. | Regla comercial; el pasajero transfiere un monto «redondo». | La utilidad se calcula sobre el total y el excedente se audita aparte. |
 | ADR-19 | Tope de recarga de 20.000 Bs y máximo de pasajes derivado. | Los bloques de 10 y 20 pasajes excedían el tope anterior de 5.000. | La UI calcula el máximo por operación; la RPC lo revalida. |
 | ADR-20 | `bt_recargar` (monto libre) se mantiene de forma temporal. | Clientes con service worker antiguo no deben fallar. | Superficie legada hasta cerrar B-27. |
+| ADR-21 | La hoja legal toma la tarifa de la tarjeta activa, no de una constante legal. | La competencia tarifaria es municipal (art. 178.2 CRBV) y puede cambiar por decreto. | Si cambia `settings.publico.tarifario.base`, los términos muestran el nuevo monto sin recompilar (BLINK-DOC-20 §5). |
+| ADR-22 | El recibo separa «Pasaje urbano» y «Tasa administrativa digital»; la comisión, la provisión y la utilidad quedan solo en la base. | LEG-TER-001 exige tres líneas visibles y el pasajero no necesita el desglose interno. | El portal suma ambos conceptos; el detalle por recarga se conserva en `recharges` (BLINK-DOC-20 §5). |
+| ADR-23 | No se declara la tarifa aplicada como «tarifa nacional oficial». | La Gaceta 43.335 fija Bs 100 de referencia y exhorta a armonizar; no homologa el monto del operador. | Los términos citan la Gaceta como referencia y remiten al municipio; queda abierta B-32. |

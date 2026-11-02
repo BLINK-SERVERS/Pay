@@ -3,11 +3,11 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-00 |
-| Versión | 1.12.0 |
+| Versión | 1.13.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
-| Revisión | 12 |
+| Revisión | 13 |
 | Normas de referencia | ISO 9001:2015 §7.5 · ISO/IEC/IEEE 12207:2017 · ISO/IEC/IEEE 26511/26512/26513/26514/26515 · ISO/IEC 25010 · ISO/IEC 27001:2022 |
 
 ## 1. Propósito
@@ -26,7 +26,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 
 | Producto | Repositorio | URL pública | Versión |
 | --- | --- | --- | --- |
-| BLINK TARJETA (portal del pasajero) | `BLINK-SERVERS/TARJETA` | https://blink-servers.github.io/TARJETA/ | 1.5.0 |
+| BLINK TARJETA (portal del pasajero) | `BLINK-SERVERS/TARJETA` | https://blink-servers.github.io/TARJETA/ | 1.7.0 |
 | BLINK BACK-OFFICE (gestión de tarjetas) | `BLINK-SERVERS/BACKOFFICE` | https://blink-servers.github.io/BACKOFFICE/ | 1.2.0 |
 | Backend (Supabase) | proyecto `gakkfzqcrapxeierfdhk` | — | PostgreSQL 17.11 |
 | Simulación local | `TARJETA/simulacion` | `http://127.0.0.1:54321` (API) · `:5175` (portal) · `:5173` (panel) | — |
@@ -76,6 +76,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | BLINK-DOC-17 | [Interfaz del validador y códigos de respuesta POS](17-interfaz-y-codigos-pos.md) | 9241 · 8583 · 26514 |
 | BLINK-DOC-18 | [Interfaz datáfono 240×240 (ISO-UI-240-REV2)](18-interfaz-datofono-240.md) | 9241-3 · 25010 · 26514 |
 | BLINK-DOC-19 | [Motor tarifario y recarga por pasajes](19-motor-tarifario-y-recarga-por-pasajes.md) | 29148 · 25010 · 9241-210 · 20022 |
+| BLINK-DOC-20 | [Términos legales y cumplimiento tarifario](20-terminos-legales-y-cumplimiento.md) | 29148 · 25010 · 9241-210 |
 | — | [CHANGELOG](../CHANGELOG.md) | Keep a Changelog 1.1.0 + SemVer |
 
 ## 4. Convenciones de esta suite
@@ -110,6 +111,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | 1.10.0 | 2026-10-31 | Nuevo BLINK-DOC-18: interfaz datáfono `ISO-UI-240-REV2` (firmware 8) con resultado a pantalla completa 2,5 s / 3,0 s, banda amarilla offline, renderizado medido en 39–40 ms, ADR-14 y ADR-15; DOC-02, DOC-07, DOC-09 y DOC-17 actualizados. | Equipo BLINK |
 | 1.11.0 | 2026-11-01 | Bandeja de recargas en el back-office (migración `0018`, `bt_admin_recargas` y `bt_admin_resolver_recarga` con sesión + MFA); B-04 cerrada; DOC-01, DOC-02, DOC-04, DOC-06, DOC-07, DOC-08 y DOC-10 actualizados. | Equipo BLINK |
 | 1.12.0 | 2026-11-01 | Nuevo BLINK-DOC-19: motor tarifario por pasajes (migraciones `0019` y `0020`, `bt_recargar_pasajes`, desglose contable y ADR-16 a ADR-20); el portal deja de aceptar montos libres; B-27 a B-31 abiertas; DOC-01 a DOC-10 actualizados. | Equipo BLINK |
+| 1.13.0 | 2026-11-01 | Nuevo BLINK-DOC-20: términos `LEG-TER-001` en el portal, separación entre pasaje y tasa administrativa en el recibo, veredicto de la Gaceta 43.335 y hallazgo B-32 (500 Bs frente a la referencia nacional de 100 Bs), más B-33 (descuentos no implementados) y R-14/R-15; ADR-21 a ADR-23; DOC-01, DOC-02, DOC-07, DOC-08 y DOC-09 actualizados. | Equipo BLINK |
 
 Reglas de mantenimiento:
 

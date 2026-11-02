@@ -7,6 +7,41 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+## [1.7.0] — 2026-11-01
+
+### Añadido
+
+- **Términos y condiciones en el portal** (LEG-TER-001, BLINK-DOC-20): hoja
+  legal accesible desde el pie del acceso y desde la sección BLINK del perfil,
+  con seis apartados —naturaleza del servicio, tasa administrativa, desglose de
+  la recarga, tarjeta MIFARE Classic 1K, datos personales y base normativa—.
+  La tarifa mostrada es la de la tarjeta activa, no un valor fijo.
+- **Desglose del recibo** exigido por los términos: «Pasaje urbano» (pasajes ×
+  tarifa, monto acreditado) y «Tasa administrativa digital» (diferencia contra
+  el total). Antes el recibo hablaba de comisión, provisión y utilidad.
+- **BLINK-DOC-20** con el veredicto de LEG-TER-001 y de la Gaceta Oficial
+  N.º 43.335, ADR-21 a ADR-23, las brechas B-32/B-33 y los riesgos R-14/R-15.
+- **RF-15** en BLINK-DOC-01: los términos deben abrirse desde el acceso y el
+  perfil, y el recibo debe separar tarifa de tasa administrativa.
+
+### Cambiado
+
+- El texto de la recarga aclara que el monto a transferir incluye la tasa
+  administrativa por el servicio digital.
+- El manual de usuario (BLINK-DOC-08 §1.7) explica cómo abrir los términos y
+  qué datos tratan; la prueba de sistema (BLINK-DOC-07 §4.10) registra la
+  verificación en navegador.
+- La caché del service worker sube a `v5` para que los pasajeros con el armazón
+  anterior reciban la hoja legal.
+
+### Importante
+
+- La tarifa de Bs 500 sigue siendo la aplicada y acreditada en la tarjeta, pero
+  **no se presenta como tarifa nacional oficial**: la Gaceta 43.335 fija Bs 100
+  de referencia y exhorta a las alcaldías a armonizar, y la competencia es
+  municipal (art. 178.2 CRBV). Falta el decreto u ordenanza que homologue el
+  monto (B-32, R-14).
+
 ## [1.6.0] — 2026-11-01
 
 ### Añadido

@@ -7,7 +7,7 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 - **Panel administrativo:** https://blink-servers.github.io/BACKOFFICE/
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 1.6.0 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 1.7.0 · [CHANGELOG](CHANGELOG.md)
 
 ## Qué hace
 

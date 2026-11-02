@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-08 |
-| Versión | 1.5.0 |
+| Versión | 1.6.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26511 · 26512 |
@@ -71,9 +71,9 @@ cuenta, contacta a atención al cliente.
    saldo también se actualiza en el próximo tap del validador.
 
 Ejemplo: 3 pasajes a Bs 500 transfieren **Bs 1.590** y acreditan **Bs 1.500**.
-Los Bs 90 restantes cubren la comisión bancaria (Bs 23,85), la provisión de la
-liquidación al chofer (Bs 4,50), el margen del servicio (Bs 60,00) y el ajuste
-de redondeo (Bs 1,68).
+El recibo separa «Pasaje urbano: 3 × Bs 500 · Bs 1.500» y «Tasa administrativa
+digital: Bs 90». Esa tasa cubre la pasarela, la plataforma y el margen del
+servicio; el pasaje completo se liquida al transportista.
 
 **Errores frecuentes**
 
@@ -95,6 +95,15 @@ de redondeo (Bs 1,68).
 
 En **Perfil**, al final, toca **Cerrar sesión**. La sesión también expira sola a
 las 12 horas.
+
+### 1.7 Términos y condiciones
+
+- En la pantalla de acceso, toca **términos y condiciones** en el pie.
+- Dentro de la cuenta, ve a **Perfil › BLINK › Términos y condiciones**.
+
+La hoja explica que BLINK no presta el transporte ni fija la tarifa, muestra la
+tarifa vigente por pasaje, separa la tasa administrativa y resume la base
+normativa (Gaceta Oficial N.º 43.335). También funciona sin conexión.
 
 ## 2. El validador y el lector — el chofer
 

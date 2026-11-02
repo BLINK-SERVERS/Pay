@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-01 |
-| Versión | 1.2.0 |
+| Versión | 1.3.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 12207:2017 · ISO/IEC/IEEE 29148 |
@@ -99,6 +99,7 @@ reclamo → recarga → aprobación → sincronización → cobro) sin tocar pro
 | RF-12 | Cobrar el pasaje y sincronizar validador con token. | Validador | Implementado, sin prueba física |
 | RF-13 | Gestionar lotes, inventario y enrolado desde una consola con RBAC y TOTP. | Back-office | Implementado |
 | RF-14 | Simular el flujo completo contra un backend local reproducible. | Simulación | Implementado |
+| RF-15 | Mostrar los términos y condiciones (`LEG-TER-001`) y separar en el recibo el pasaje urbano de la tasa administrativa digital. | TARJETA | Implementado (DOC-20) |
 
 ## 5. Supuestos y restricciones
 

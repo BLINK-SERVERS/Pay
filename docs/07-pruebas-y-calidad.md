@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-07 |
-| Versión | 1.9.0 |
+| Versión | 1.10.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26513 · ISO/IEC 25010 |
@@ -424,6 +424,31 @@ ejecutan el ciclo completo en la simulación.
 El punto 9 es el hallazgo más importante de la verificación: sin `0020`, el
 plástico habría quedado con 60 Bs más que la nube. La prueba de flujo ahora
 compara el importe del `RECARGA_APLICADA` con `monto_base`.
+
+### 4.10 Términos legales y desglose del recibo (2026-11-01)
+
+Se incorporó la hoja de términos (LEG-TER-001) accesible desde el acceso y desde
+el perfil, con la tarifa tomada de la tarjeta activa, y se renombró el recibo
+para separar «Pasaje urbano» de «Tasa administrativa digital» sin exponer el
+desglose interno (comisión, provisión, utilidad). La verificación se hizo en el
+navegador contra el servidor de desarrollo (Vite, puerto 5199) y en la
+simulación.
+
+| # | Prueba | Resultado |
+| --- | --- | --- |
+| 1 | Enlace en el pie del acceso | «términos y condiciones» abre la hoja; la hoja muestra Bs 500 formateado con la tarifa vigente |
+| 2 | Enlace en Perfil | Fila «Términos y condiciones» bajo la sección BLINK; abre la misma hoja y cierra con «Entendido» |
+| 3 | Tarifa dinámica | Con otra tarifa en `settings.publico.tarifario.base` la hoja muestra ese valor, no un número fijo |
+| 4 | Contenido | Seis secciones: naturaleza del servicio, tasa administrativa, desglose, tarjeta MIFARE Classic 1K, datos personales y base normativa con nota de la Gaceta 43.335 |
+| 5 | Recibo de recarga | «Pasaje urbano 2 × Bs 500 · Bs 1.000» y «Tasa administrativa digital Bs 60»; total 1.060 |
+| 6 | Copiar recibo | El texto incluye tarifa por pasaje, pasaje urbano y tasa administrativa |
+| 7 | Regresión | `npm run typecheck`, `npm test` (87 pruebas) y `npm run build` en verde |
+| 8 | Service worker | La caché sube a `v5` para que un pasajero con el armazón anterior reciba la hoja legal |
+
+La hoja es un resumen operativo y no sustituye la revisión de un abogado
+(BLINK-DOC-09 R-15). La tarifa de Bs 500 se muestra como la aplicada en la
+tarjeta, no como tarifa nacional oficial, porque la Gaceta 43.335 fija una
+referencia de Bs 100 y la competencia es municipal (B-32).
 
 ## 5. Prueba de la tarjeta virtual (ID-1 / CR80)
 
