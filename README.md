@@ -37,7 +37,7 @@ cd simulacion
 ./detener.sh      # apaga y borra la base efímera
 ```
 
-Los detalles están en [docs/06 §5.7](docs/06-operacion-y-despliegue.md).
+Los detalles están en [docs/06 §5.7](../docs/06-operacion-y-despliegue.md).
 
 ## Usar en el celular y sin conexión
 
@@ -94,7 +94,7 @@ src/
 supabase/migrations/ 0001…0020 (esquema compartido del ecosistema)
 scripts/lote.ts      generador de lotes y hoja imprimible
 simulacion/          pila Docker, semilla y flujo completo
-docs/                documentación ISO del ecosistema
+../docs/             suite ISO y documentación central del ecosistema
 ```
 
 ## Despliegue
@@ -106,15 +106,15 @@ Cada push a `main` dispara `.github/workflows/pages.yml`: `typecheck` → `test`
 
 | Documento | Contenido |
 | --- | --- |
-| [docs/README.md](docs/README.md) | Índice y control documental (ISO 9001 / 12207). |
-| [docs/02-arquitectura.md](docs/02-arquitectura.md) | Componentes, flujos y decisiones. |
-| [docs/03-modelo-de-datos.md](docs/03-modelo-de-datos.md) | Tablas, migraciones y reglas. |
-| [docs/04-api-rpc.md](docs/04-api-rpc.md) | Contrato de las funciones RPC. |
-| [docs/06-operacion-y-despliegue.md](docs/06-operacion-y-despliegue.md) | Despliegue, DNS, base de datos, simulación y firmware. |
-| [docs/07-pruebas-y-calidad.md](docs/07-pruebas-y-calidad.md) | Estrategia y resultados. |
-| [docs/08-manual-de-usuario.md](docs/08-manual-de-usuario.md) | Guía del pasajero, chofer y operación. |
-| [docs/10-guia-de-retoma.md](docs/10-guia-de-retoma.md) | Cómo continuar el desarrollo. |
-| [docs/12-enrolado-de-lotes.md](docs/12-enrolado-de-lotes.md) | Producción física de lotes. |
+| [docs/README.md](../docs/README.md) | Índice y control documental (ISO 9001 / 12207). |
+| [docs/02-arquitectura.md](../docs/02-arquitectura.md) | Componentes, flujos y decisiones. |
+| [docs/03-modelo-de-datos.md](../docs/03-modelo-de-datos.md) | Tablas, migraciones y reglas. |
+| [docs/04-api-rpc.md](../docs/04-api-rpc.md) | Contrato de las funciones RPC. |
+| [docs/06-operacion-y-despliegue.md](../docs/06-operacion-y-despliegue.md) | Despliegue, DNS, base de datos, simulación y firmware. |
+| [docs/07-pruebas-y-calidad.md](../docs/07-pruebas-y-calidad.md) | Estrategia y resultados. |
+| [docs/08-manual-de-usuario.md](../docs/08-manual-de-usuario.md) | Guía del pasajero, chofer y operación. |
+| [docs/10-guia-de-retoma.md](../docs/10-guia-de-retoma.md) | Cómo continuar el desarrollo. |
+| [docs/12-enrolado-de-lotes.md](../docs/12-enrolado-de-lotes.md) | Producción física de lotes. |
 
 ## Base de datos compartida
 
