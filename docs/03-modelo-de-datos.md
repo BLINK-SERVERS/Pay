@@ -103,20 +103,23 @@ Columnas relevantes: `visible_id` (ID BLINK único), `chip_uid`, `barcode_data`,
 estudiante) y desde `0019` es la base que usa el motor tarifario al cotizar la
 recarga (BLINK-DOC-19 §3).
 
-Restricciones de `visible_id` (migración 0009):
+Restricciones de `visible_id` (migraciones 0014 y 0016):
 
-- Formato `EE-T-SSSSSSS-C`: entidad de 2 dígitos, tarifa de 1, secuencial de **6 o
-  7** dígitos y dígito verificador Luhn de 1.
-- `bt_luhn_valido(visible_id)` ignora los guiones y calcula Luhn sobre el número
-  completo, de modo que la serie heredada de 10 dígitos (`23-1-000001-9`) y la
-  nueva de 11 (`23-1-0000001-9`) conviven sin migrar plásticos ya impresos.
-- `barcode_data` es único y lo genera la base: 11 dígitos sin guiones para la
-  serie nueva y 10 para la heredada.
+- Formato `AGE-#####-###-L`: letra de tarifa (`A` Alfa, `G` general, `E`
+  estudiante/tercera edad), lote de 5 dígitos, unidad de 3 dígitos y dígito
+  verificador Luhn mod 23 de 1 letra. La tarjeta Alfa es `A-00000-000-H`; los
+  lotes comerciales usan `G-00001-001-N` o `E-00001-001-V` (BLINK-DOC-12).
+- `bt_luhn_valido(visible_id)` ignora los guiones y calcula el verificador sobre
+  el serial completo. La serie numérica heredada (`23-1-000001-9`) sigue
+  leyéndose, pero ya no se emite.
+- `barcode_data` es único y lo genera la base: el serial sin guiones
+  (`G00001001N`).
 
-`fare_type` admite `0`, `1` y `2`: `0` identifica la **tarjeta maestra**
-`00-0-0000000-0`, `1` la tarifa general y `2` la estudiante. La maestra nace
-`ACTIVE`, tiene `batch_id` nulo, se asigna a una cuenta y cobra la tarifa general
-como cualquier otra tarjeta (ver BLINK-DOC-12).
+`fare_type` admite `0`, `1` y `2`: `0` identifica la **tarjeta Alfa**
+`A-00000-000-H`, `1` la tarifa general y `2` la estudiante. La Alfa nace
+`ACTIVE`, con `batch_number` y `serial_number` en 0, se asigna a la cuenta del
+propietario con `bt_crear_tarjeta_alfa` y cobra la tarifa general como cualquier
+otra tarjeta (ver BLINK-DOC-12).
 
 Estados (aprovisionamiento en lote, ciclo de vida):
 
@@ -223,7 +226,7 @@ erDiagram
 | --- | --- |
 | PIN de 6 dígitos no trivial | `bt_pin6_valido` |
 | Serial con Luhn | `bt_luhn_valido` (10 u 11 dígitos, serie heredada y nueva) |
-| Tarjeta maestra | `bt_crear_tarjeta_maestra` inserta `00-0-0000000-0` con `fare_type = 0`; solo `service_role` |
+| Tarjeta Alfa | `bt_crear_tarjeta_alfa` inserta `A-00000-000-H` con `fare_type = 0`; solo `service_role` |
 | Vigencia de la tarjeta | `bt_tarjeta_vigente` (vence > hoy) |
 | Tope de recarga | `bt_tope_recarga` lee `settings.publico.topeRecarga` (defecto 20.000 desde `0019`) |
 | Precio de la recarga | `bt_cotizar_recarga` aplica gross-up y redondeo a la decena; `bt_recargar_pasajes` recotiza con `cards.tarifa` y guarda el desglose |

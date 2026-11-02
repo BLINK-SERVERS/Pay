@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Código | BLINK-DOC-13 |
+| Código | BLINK-DOC-14 |
 | Versión | 2.0.0 |
 | Fecha | 2026-10-31 |
 | Estado | Vigente |

@@ -193,7 +193,7 @@ cambio se justificó con la métrica RU-03 y se verificó en la unidad física.
 ## 9. Verificación en banco (2026-11-01)
 
 Unidad ESP32-D0WD-V3, MAC `1C:60:8B:DF:94:8C`, `/dev/ttyUSB0`. Firmware
-compilado en **1 279 347 B (97 %)** y flasheado con verificación por hash. El
+compilado en **1 279 639 B (97 %)** y flasheado con verificación por hash. El
 banco usó un hotspot temporal del portátil (`BLINK-PRUEBA`,
 `10.42.0.1/24`) y el puerto serie con DTR y RTS en bajo.
 
@@ -209,7 +209,8 @@ banco usó un hotspot temporal del portátil (`BLINK-PRUEBA`,
 | 7 | Olvidar red | `OLVIDAR_WIFI` deja `RED,estado=sin-wifi` y conserva el token (`token=1`) |
 | 8 | Cierre forzado | `CERRAR_PORTAL` responde `OK,portal=0` y la pantalla vuelve al panel |
 | 9 | Sin JavaScript | La etapa la decide el equipo: el formulario y las vistas se sirven ya renderizadas; el envío es un `POST` normal |
-| 10 | Tamaño y memoria | Página de ~8,2 KB construida en RAM con reserva de 7 800 B; sin asignaciones dinámicas por petición más allá de la `String` |
+| 10 | Tamaño y memoria | Página de 8 147 B servida y medida con `curl` el 2026-11-02; el buffer reserva 7 800 B y la `String` crece una vez; sin fugas entre peticiones |
+| 11 | Auditoría de firmware (2026-11-02) | Arranque `READY,BLINK,9,1,0`; `GET /` 200 con 8 147 B; `/estado` `{"e":"form",…,"min":3}`; `/redes` devuelve 5 redes; un `POST` con SSID inexistente pasa a `conectando` a los 8 s y a `fallo` a los 32 s sin cerrar la ventana ni el AP |
 
 **Límite del banco:** el portátil tiene una sola radio Wi-Fi. Para comprobar el
 éxito con un hotspot real se unió el equipo al hotspot por consola y se envió el

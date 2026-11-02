@@ -3,11 +3,11 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-00 |
-| Versión | 1.16.0 |
-| Fecha | 2026-11-01 |
+| Versión | 1.17.0 |
+| Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
-| Revisión | 16 |
+| Revisión | 17 |
 | Normas de referencia | ISO 9001:2015 §7.5 · ISO/IEC/IEEE 12207:2017 · ISO/IEC/IEEE 26511/26512/26513/26514/26515 · ISO/IEC 25010 · ISO/IEC 27001:2022 |
 
 ## 1. Propósito
@@ -27,7 +27,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | Producto | Repositorio | URL pública | Versión |
 | --- | --- | --- | --- |
 | BLINK TARJETA (portal del pasajero) | `BLINK-SERVERS/TARJETA` | https://blink-servers.github.io/TARJETA/ | 1.7.0 |
-| BLINK BACK-OFFICE (gestión de tarjetas) | `BLINK-SERVERS/BACKOFFICE` | https://blink-servers.github.io/BACKOFFICE/ | 1.2.0 |
+| BLINK BACK-OFFICE (gestión de tarjetas) | `BLINK-SERVERS/BACKOFFICE` | https://blink-servers.github.io/BACKOFFICE/ | 1.3.0 |
 | Backend (Supabase) | proyecto `gakkfzqcrapxeierfdhk` | — | PostgreSQL 17.11 |
 | Simulación local | `TARJETA/simulacion` | `http://127.0.0.1:54321` (API) · `:5175` (portal) · `:5173` (panel) | — |
 
@@ -116,6 +116,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | 1.14.0 | 2026-11-01 | Firmware 9: configuración del Wi-Fi del validador desde el teléfono (AP `BLINK-XXXX` + portal cautivo en 192.168.4.1, ventana de 5 minutos); B-29 cerrada y R-16 abierta; DOC-06 §6.1, DOC-07 §4.11, DOC-08 §2.2, DOC-18 §4.3 y DOC-09 1.10.0. | Equipo BLINK |
 | 1.15.0 | 2026-11-01 | El validador arranca la ventana de configuración con un **código QR** (`WIFI:T:nopass;S:BLINK-XXXX;P:;;`) y solo muestra las instrucciones cuando detecta un teléfono unido; sin cabecera de BLINK ni tarifa. DOC-06 §6.1 y nuevo §6.2, DOC-07 §4.11 (pruebas 12–16), DOC-08 §2.2 y DOC-18 §4.3. | Equipo BLINK |
 | 1.16.0 | 2026-11-01 | Nuevo BLINK-DOC-21: usabilidad ISO de la vinculación Wi-Fi (9241-11/110/210, 25010, 26514), flujo de tres pasos con lista automática, espera de 25 s, resultado y reintento sin reiniciar (ADR-24 a ADR-26); pantallas CONECTANDO/CONECTADA/NO SE PUDO CONECTAR y corrección del falso positivo; B-34 y B-35; DOC-06, DOC-07, DOC-08, DOC-09 y DOC-18 actualizados. | Equipo BLINK |
+| 1.17.0 | 2026-11-02 | Auditoría completa de firmware, TARJETA, BACK-OFFICE y documentación: trece defectos de firmware corregidos (B-36 a B-48), siete riesgos nuevos (R-17 a R-23), ocho brechas de las aplicaciones (B-49 a B-56) y quince desajustes documentales corregidos (DOC-01, DOC-02, DOC-03, DOC-04, DOC-06, DOC-09, DOC-14, DOC-18, DOC-21, DOC-00, README del back-office y firmware); compilación 1 279 639 B (97 %) y verificación en hardware del portal de configuración. | Equipo BLINK |
 
 Reglas de mantenimiento:
 
@@ -129,7 +130,7 @@ Reglas de mantenimiento:
 
 | Término | Definición |
 | --- | --- |
-| **ID BLINK** | Serial visible con dígito verificador Luhn: 10 dígitos (`23-1-000001-9`) o 11 en la serie nueva (`23-1-0000001-9`). La serie `T-LLLLL-UUU-V` de BLINK-DOC-12 usa Luhn mod 23. |
+| **ID BLINK** | Serial visible con verificador Luhn mod 23: `AGE-#####-###-L` (`G-00001-001-N`). La tarjeta del propietario es la Alfa `A-00000-000-H`; la serie numérica heredada (`23-1-000001-9`) solo se lee. |
 | **Cuenta** | Identidad del pasajero (cédula, PIN, Pago Móvil) que puede tener N tarjetas. |
 | **Billetera** | Conjunto de tarjetas activas de una cuenta. |
 | **Validador** | Dispositivo ESP32 + RC522 que cobra el pasaje y sincroniza con la nube. |

@@ -453,7 +453,7 @@ referencia de Bs 100 y la competencia es municipal (B-32).
 ### 4.11 Configuración Wi-Fi desde el teléfono (firmware 9, 2026-11-01)
 
 Prueba en la unidad física (ESP32-D0WD-V3, MAC `1C:60:8B:DF:94:8C`,
-`/dev/ttyUSB0`), compilada en **1 279 347 B (97 % de la partición por defecto)**
+`/dev/ttyUSB0`), compilada en **1 279 639 B (97 % de la partición por defecto)**
 y verificada por hash al flashear. El banco se armó con un hotspot temporal del
 portátil (`BLINK-PRUEBA`) y el puerto serie se abrió con DTR y RTS en bajo para
 leer los registros. La tabla cubre la primera versión (portal básico), la

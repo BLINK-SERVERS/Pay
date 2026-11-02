@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-09 |
-| Versión | 1.11.0 |
-| Fecha | 2026-11-01 |
+| Versión | 1.12.0 |
+| Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 12207 (riesgos) · ISO/IEC 27001 (A.5.7) |
 
@@ -31,6 +31,13 @@ Escalas: probabilidad e impacto **A**lta / **M**edia / **B**aja. Estado:
 | R-14 | Publicar los términos con una tarifa que no está homologada por la autoridad municipal expone a observaciones por cobro indebido o por publicidad engañosa, y a la obligación de devolver la diferencia si la alcaldía fija otro monto. | M | A | Los términos declaran que la tarifa la homologa el municipio (art. 178.2 CRBV), muestran el monto vigente tomado de la tarjeta y no lo presentan como tarifa nacional oficial; la Gaceta 43.335 se cita como referencia y exhorto. Falta obtener el decreto o acta de homologación (B-32) antes de operar con público. | **Abierto** |
 | R-15 | La hoja legal es un resumen operativo redactado por el equipo, no una pieza revisada por un abogado; puede omitir requisitos de la Ley de Protección al Consumidor, de precios justos o de protección de datos. | M | M | Se limita a describir lo que el sistema hace (debitado exacto, desglose del recibo, uso de datos) y remite a la normativa; falta revisión legal externa antes de la impresión masiva de tarjetas (B-33). | **Abierto** |
 | R-16 | El punto de acceso de configuración del validador (firmware 9) es abierto: cualquiera al alcance puede unirse durante la ventana de 5 minutos, cambiar la red guardada y dejar la unidad sin sincronización, o suplantar la red que el chofer cree estar eligiendo. | M | M | La ventana solo se abre sin credenciales (2 s) o cuando la red guardada no aparece (20 s) y no se reabre sola en el arranque; la página no imprime el token ni permite leerlo, y la sincronización va por HTTPS con validación de certificado. Mitigación pendiente: clave WPA2 impresa en la unidad o botón físico para abrirla. | **Abierto** |
+| R-17 | El código TOTP del back-office no tiene límite de intentos: `bt_admin_entrar` bloquea el PIN a los 5 fallos, pero un TOTP erróneo devuelve `error: mfa` sin incrementar `intentos` ni `bloqueado_hasta`. Con el PIN correcto se pueden probar códigos de 6 dígitos sin límite. | M | A | Contar también los fallos de TOTP por cuenta, bloquear con la misma política del PIN y registrar el evento (BLINK-DOC-06 §5.5). | **Abierto** |
+| R-18 | «Salir» del back-office solo borra la sesión del navegador: no existe RPC de cierre y el token de `admin_sessions` sigue válido hasta expirar. | M | M | Añadir `bt_admin_salir(p_token)` (como `bt_salir` del portal), llamarla antes de borrar y acortar la vida del token. | **Abierto** |
+| R-19 | `bt_admin_mfa_inscribir` regenera el secreto TOTP con solo el token de sesión: no pide el código actual ni el PIN. Un token robado permite sustituir el segundo factor y quedarse con la cuenta. | B | A | Exigir el TOTP vigente (o PIN + confirmación) cuando `totp_activo` ya está activo. | **Abierto** |
+| R-20 | La cédula se normaliza a solo dígitos (`cedula_digitos`) y el índice único no distingue la letra: `V-12345678` y `E-12345678` colisionan y la segunda cuenta no se puede registrar. | M | M | Incluir la letra normalizada en la clave única o validar el tipo antes de insertar. | **Abierto** |
+| R-21 | El contador de intentos de PIN se lee y se escribe sin bloquear la fila: dos intentos simultáneos pueden perder incrementos y alargar un ataque de fuerza bruta. | B | M | Usar `select … for update` o un `update … returning` atómico. | **Abierto** |
+| R-22 | Los CSV exportados por el back-office no neutralizan celdas que empiezan por `=`, `+`, `-` o `@`: un titular o serial malicioso se ejecuta como fórmula al abrir el archivo en Excel o LibreOffice. | B | M | Prefijar un apóstrofo a esas celdas en `descargarCsv` y añadir una prueba. | **Abierto** |
+| R-23 | TARJETA y BACK-OFFICE se publican bajo el mismo origen `*.github.io`: `localStorage`, cookies y el service worker son compartidos. Una inyección o un recurso comprometido en una aplicación alcanza la sesión guardada de la otra. | M | M | Publicar cada aplicación en un subdominio propio o aislar la sesión y el almacenamiento (amplía R-11). | **Abierto** |
 
 ## 2. Brechas funcionales frente al diseño técnico
 
@@ -75,6 +82,27 @@ implementación:
 | B-33 | La Gaceta 43.335 prevé gratuidad (mujeres ≥ 50, hombres ≥ 60, personas con discapacidad), 50 % para estudiantes y 20 % en feriados; ninguna de esas reglas existe en el tarifario ni en el validador. | M | Todo pasajero paga la tarifa plena; aplicar los descuentos exige categoría verificable en la tarjeta o en la cuenta, reglas en `bt_cotizar_recarga` y en el chip, y no está aprobado como alcance (BLINK-DOC-20 §3, R-15). |
 | B-34 | La vinculación Wi-Fi se verificó en banco con un hotspot de portátil y un navegador de escritorio, pero no con choferes reales ni con el navegador de un teléfono; no hay datos de eficacia, tiempo de tarea ni satisfacción. | M | El protocolo de medición está listo (BLINK-DOC-21 §10): 5–8 choferes, tres tareas, SUS ≥ 75. Ejecutarlo antes de la producción en serie y ajustar textos u objetivos con el resultado. |
 | B-35 | La vinculación declara éxito con el enlace asociado (`WL_CONNECTED`), no con Internet alcanzable: un hotspot sin datos deja la unidad «conectada» y sin subir cobros, y la banda amarilla no aparece porque solo mira el enlace. | M | El comportamiento está documentado (BLINK-DOC-21 §12); los cobros quedan en local y suben cuando vuelva la red. Una sonda HTTP de salud queda fuera de este cambio. |
+| B-36 | Las listas de bloqueadas e inciertas se vaciaban completas al llegar al tope: `contarLineas` se recalculaba sobre la NVS, que no cambiaba, y el `while` borraba entradas hasta dejar una. Además no se comprobaba el resultado de `putString`. | A | **Corregida** el 2026-11-02 (firmware 9, revisión de auditoría): se cuenta sobre la copia local, se conservan las más recientes y se registra `ALMACEN,error=…-nvs` si la escritura falla. Verificado en compilación y arranque; la prueba física de bloqueo sigue en B-02. |
+| B-37 | Al confirmar la subida, el validador borraba `enviados` entradas del ring en vez de `totalLog`: si el POST incluía un log que no se pudo escribir, quedaba una entrada fantasma y la cola se atascaba o perdía cobros. | A | **Corregida**: solo se llama `confirmarLog(totalLog)` cuando el POST responde 200. |
+| B-38 | La sincronización HTTPS corre dentro de `loop()` y puede bloquearlo hasta ~27 s (conexión, TLS y POST): durante ese tiempo no se leen tarjetas ni responde la página del portal. | M | **Mitigada**: se omite mientras la ventana de configuración está abierta (`portalAbierto()`). Fuera del portal sigue bloqueando; pasar la subida a una tarea o a un cliente asíncrono. **Abierta**. |
+| B-39 | Comparaciones de `millis()` sin aritmética modular: tras 49,7 días la ventana del AP no cerraba y las credenciales pendientes no se aplicaban; además `cerrarEn` podía vencer antes de nacer. | M | **Corregida**: `(long)(millis() - t) >= 0` en `atenderPortal`, `cerrarPortal` y `aplicarPendiente`. |
+| B-40 | El barrido `/redes` desconectaba la estación y, si no encontraba redes, no reanudaba el intento de enlace: la página quedaba en «conectando» hasta el fallo aunque la red guardada fuera válida. | M | **Corregida**: recuerda si estaba conectada, reintenta el barrido tras `disconnect()` y reanuda `WiFi.begin` con la red elegida. Verificado en banco: `/redes` respondió con la lista completa sin tumbar el portal. |
+| B-41 | Si fallaba la lectura del contador, se asumía 0 y el cobro se marcaba «incierto» aunque el chip se hubiera debitado; la tarjeta quedaba retenida para el usuario. | M | **Corregida**: devuelve `tiempo` si fue timeout o `valor` si el bloque no se pudo leer; no se escribe ni se cobra a ciegas. |
+| B-42 | El CRC-8 se comprobaba antes de distinguir la versión del bloque: las tarjetas v1/v2 (sin CRC) se rechazaban como corruptas. | A | **Corregida**: solo se valida en v3 (`bloque[14] == 3`); v1/v2 se siguen leyendo. |
+| B-43 | `pantallaTarjeta()` repintaba la franja sobre las vistas de configuración Wi-Fi, enrolado y armado, rompiendo el QR o los pasos hasta el siguiente cambio de vista. | M | **Corregida**: solo dibuja si la vista no es COBRO, RECHAZO, CONFIG, ARMADO o ENROLADA. |
+| B-44 | El último fix GPS no caducaba: si el módulo se desconectaba, se seguían reportando coordenadas viejas como actuales en cada cobro. | M | **Corregida**: el fix vale 10 s (`GPS_FIX_MS`); después `latitud()` y `longitud()` devuelven 0. |
+| B-45 | La búsqueda de seriales en las listas usaba subcadenas (`indexOf(serial + "\n")`): un serial corto casaba dentro de otro y bloqueaba una tarjeta válida. | A | **Corregida**: `contieneLinea()` compara la línea completa. |
+| B-46 | `cerrarPortal()` descartaba la red pendiente si el chofer pulsaba «Terminar» en los 800 ms posteriores a Guardar. | M | **Corregida**: aplica la pendiente antes de apagar el AP. |
+| B-47 | `Serial.readStringUntil` sin límite bloqueaba `loop()` hasta 1 s por carácter ausente y aceptaba líneas de longitud ilimitada. | M | **Corregida**: `Serial.setTimeout(50)` y rechazo de líneas de más de 160 caracteres con `ERROR,comando=largo`. |
+| B-48 | Sin GPS ni NTP se escribía el uptime como epoch en el chip y en la telemetría, produciendo fechas de 1970 indistinguibles de un reloj real. | B | **Corregida**: se escribe 0 y la nube decide. |
+| B-49 | El bloque de integridad (CRC-16 de ID + saldo + contador) se escribe al cobrar, pero no se lee ni se verifica en el siguiente toque; solo se comprueba el CRC-8 de identidad. | M | **Abierta**: verificar el bloque y marcar `corrupta` o `valor` si no coincide (BLINK-DOC-16 §3). |
+| B-50 | El back-office ignora las líneas `ERROR,*` del lector: si `ENROLAR` falla, la estación sigue como si hubiera armado y la siguiente tarjeta no se graba. | M | **Abierta**: mapear `ERROR` a un aviso y detener la secuencia (`backoffice/src/lib/serial.ts`, `Estacion.tsx`). |
+| B-51 | La exportación CSV de inventario usa solo la página visible de 300 tarjetas: si hay más, el archivo queda incompleto aunque la pantalla avise «se listan hasta 300». | M | **Abierta**: exportar por tandas o generar el archivo en el servidor. |
+| B-52 | La estación no envía `ENROLAR_OFF` al desmontar la vista ni al cerrar sesión; solo al pulsar «Desconectar» o «Detener». Si el operador navega, el lector sigue armado hasta que vence la ventana. | B | **Abierta**: limpieza en `useEffect` y antes de `salir`. |
+| B-53 | El arranque del portal espera `bt_ajustes` sin timeout; con la red colgada no se muestra nada aunque exista copia offline válida. Si falla, usa `AJUSTES_POR_DEFECTO` en silencio, incluido el Pago Móvil de ejemplo (B-20). | M | **Abierta**: timeout de 3–5 s, arrancar con la copia y marcar «datos de ejemplo». |
+| B-54 | Las llamadas `fetch` del back-office no tienen timeout ni aborto; un 401/403 se trata como «permiso» y no como sesión vencida, y `response.json()` de una respuesta 200 vacía lanza un error no tipado. | B | **Abierta**: `AbortController`, mapear 401 a `sesion` y validar el cuerpo antes de convertirlo. |
+| B-55 | `bt_recargar_pasajes` acepta tarjetas `BLOQUEADA` o `VENCIDA` de la cuenta: `bt_tarjeta_de_cuenta` solo filtra por dueño. Se puede reportar una recarga para un plástico bloqueado. | M | **Abierta**: rechazar estados no operativos en la RPC; hoy solo la aprobación manual puede frenarla. |
+| B-56 | El texto de Pago Móvil sugiere `tarifa × 10` sin gross-up: no incluye comisión de entrada, provisión de salida ni margen, así que el pasajero transfiere menos de lo que exige una recarga de 10 pasajes. | M | **Abierta**: calcular con `cotizarRecarga(10, ajustes)` y acotar al tope (`App.tsx:332`). |
 
 ## 3. Deuda técnica
 
@@ -102,7 +130,7 @@ implementación:
 | L-02 | El host directo de Supabase es IPv6. | Hay que usar el pooler desde redes IPv4. |
 | L-03 | GitHub Pages no permite cabeceras personalizadas. | No se pueden añadir CSP/HSTS propios en TARJETA/BACKOFFICE ni en la redirección. |
 | L-04 | Pages sirve con base `/TARJETA/`; mover a subdominio exige compilar en la raíz. | Cambio de `base` y de `vite.config.ts` si se decide `tarjeta.blink.com.ve`. |
-| L-05 | La tarjeta maestra se crea por consola (`bt_crear_tarjeta_maestra`), no desde el back-office. | Crear el plástico del propietario exige acceso a SQL. |
+| L-05 | La tarjeta Alfa se crea por consola (`bt_crear_tarjeta_alfa`), no desde el back-office. | Crear el plástico del propietario exige acceso a SQL. |
 | L-06 | La redirección de `pasajes.blink.com.ve` es HTML (`meta refresh` + JS), no un 301 del servidor. | GitHub Pages no permite reglas de servidor; sin JS igual redirige por el `meta`, pero no hay control de cabeceras ni de caché. |
 | L-07 | El validador no acciona relé ni torniquete: el aviso es pantalla y buzzer. | «Cero saldo = cero acceso» depende del conductor o del sistema de la unidad (ADR-11, BLINK-DOC-16 §7). |
 
@@ -141,14 +169,37 @@ implementación:
 | 23 | Cerrar R-16: proteger el AP de configuración con clave WPA2 por unidad impresa en la etiqueta, o abrirlo solo con un botón físico y un LED que avise. | Desarrollo | Corto |
 | 24 | Ejecutar el protocolo de medición de usabilidad con 5–8 choferes y ajustar textos u objetivos según el resultado (B-34). | Producto · Desarrollo | Corto |
 | 25 | Añadir una sonda de Internet antes de declarar «conectado» y reflejarla en la banda de estado (B-35). | Desarrollo | Medio |
+| 26 | Contar los fallos de TOTP y bloquear la cuenta con la misma política del PIN (R-17). | Desarrollo | Inmediato |
+| 27 | Añadir `bt_admin_salir` y revocar el token al cerrar sesión del back-office (R-18). | Desarrollo | Inmediato |
+| 28 | Exigir TOTP vigente o PIN para reinscribir el segundo factor (R-19). | Desarrollo | Corto |
+| 29 | Separar `V` y `E` en la clave única de cédula (R-20) y hacer atómico el contador de intentos (R-21). | Desarrollo | Corto |
+| 30 | Neutralizar fórmulas en los CSV exportados (R-22) y completar la exportación de inventario (B-51). | Desarrollo | Corto |
+| 31 | Rechazar tarjetas bloqueadas o vencidas en `bt_recargar_pasajes` (B-55). | Desarrollo | Corto |
+| 32 | Corregir el monto sugerido de Pago Móvil con `cotizarRecarga` (B-56). | Desarrollo | Corto |
+| 33 | Verificar el bloque de integridad al leer (B-49) y sacar la sincronización HTTPS del `loop()` (B-38). | Desarrollo | Medio |
+| 34 | Repetir la prueba física de bloqueo offline y de fallo de escritura en la unidad (B-02, B-23, B-36). | Desarrollo | Corto |
 
 ## 6. Revisión
 
 Este registro se actualiza al cerrar cada hito. La última revisión corresponde al
-2026-11-01 y acompañó la revisión de usabilidad de la vinculación Wi-Fi
-(BLINK-DOC-21, firmware 9): se añadieron B-34 (falta la medición con choferes
-reales y con el navegador de un teléfono) y B-35 (se confirma el enlace, no el
-alcance de Internet); R-16 sigue abierto.
+2026-11-02 y acompañó la auditoría completa de firmware, TARJETA, BACK-OFFICE y
+documentación: se corrigieron trece defectos de firmware (B-36 a B-48), se
+añadieron siete riesgos (R-17 a R-23) y ocho brechas de las aplicaciones
+(B-49 a B-56). En la misma revisión se corrigieron quince desajustes entre los
+documentos y el código: runbook con seriales retirados (DOC-06), RPC y límites
+eliminados en `0014` (DOC-04), modelo de seriales y tarjeta maestra (DOC-03),
+hardware inexistente y puertos de desarrollo (DOC-02), estado de RF-12 (DOC-01),
+cadena de migraciones truncada (DOC-06), constante `PORTAL_PRUEBA_MS` mal
+atribuida (DOC-06), versión del back-office (DOC-00), código duplicado de
+DOC-14, rango documental del README del back-office y ejemplo de `READY` con
+versión 8 en el firmware. Las cifras de la página del portal (8.147 B) se
+midieron con `curl` sobre la unidad y quedan reproducibles; las de redes y
+toques siguen siendo mediciones de banco del 2026-11-01. R-16 y B-38 siguen
+abiertos.
+La revisión anterior, del 2026-11-01, acompañó la revisión de usabilidad de la
+vinculación Wi-Fi (BLINK-DOC-21, firmware 9): se añadieron B-34 (falta la
+medición con choferes reales y con el navegador de un teléfono) y B-35 (se
+confirma el enlace, no el alcance de Internet); R-16 sigue abierto.
 La revisión anterior, del 2026-11-01, acompañó el modo de configuración Wi-Fi del
 validador (firmware 9): se cerró B-29 (ya no hace falta consola para cambiar de
 red) y se añadió R-16 (el AP de configuración es abierto mientras dura la

@@ -33,13 +33,13 @@ Sitio: https://blink-servers.github.io/TARJETA/
 
 1. En el inicio toca **Vincular tarjeta** (o **Vincular mi primera tarjeta**).
 2. Escribe el **serial** impreso al reverso del plástico, debajo del código de
-   barras (formato `23-1-0000001-9`; las tarjetas antiguas usan
-   `23-1-000001-9`).
+   barras (formato `G-00001-001-N`; la tarjeta del propietario es
+   `A-00000-000-H` y las antiguas usan `23-1-000001-9`).
 3. Toca **Vincular**. Puedes repetir el proceso con la tarjeta de un hijo o de otro
    familiar: todas quedan en la misma cuenta y se deslizan en el carrusel.
 
-Si el serial aparece como inválido, revisa que hayas copiado los 11 dígitos (10 en
-las tarjetas antiguas) y los guiones. Si dice que la tarjeta pertenece a otra
+Si el serial aparece como inválido, revisa que hayas copiado los 13 caracteres
+con guiones (10 u 11 solo en las tarjetas antiguas). Si dice que la tarjeta pertenece a otra
 cuenta, contacta a atención al cliente.
 
 ### 1.3 Consultar saldo y movimientos

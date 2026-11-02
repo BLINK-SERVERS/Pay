@@ -96,7 +96,7 @@ reclamo → recarga → aprobación → sincronización → cobro) sin tocar pro
 | RF-09 | Cambiar la fuente de Pago Móvil (propia o de un familiar). | TARJETA | Implementado |
 | RF-10 | Bloquear la cuenta 5 minutos tras 5 PIN incorrectos. | TARJETA | Implementado |
 | RF-11 | Aprobar o rechazar recargas y acreditar saldo. | Back-office / RPC | Implementado |
-| RF-12 | Cobrar el pasaje y sincronizar validador con token. | Validador | Implementado, sin prueba física |
+| RF-12 | Cobrar el pasaje y sincronizar validador con token. | Validador | Implementado y probado en unidad física (DOC-07 §4.4/§4.5) |
 | RF-13 | Gestionar lotes, inventario y enrolado desde una consola con RBAC y TOTP. | Back-office | Implementado |
 | RF-14 | Simular el flujo completo contra un backend local reproducible. | Simulación | Implementado |
 | RF-15 | Mostrar los términos y condiciones (`LEG-TER-001`) y separar en el recibo el pasaje urbano de la tasa administrativa digital. | TARJETA | Implementado (DOC-20) |

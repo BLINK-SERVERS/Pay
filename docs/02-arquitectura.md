@@ -41,7 +41,7 @@ flowchart LR
 | BLINK POS | React 19 · Vite 8 · Konsta · Supabase JS | GitHub Pages rama `gh-pages` + Cloudflare | Comercio: ventas, caja, catálogo (fuera de esta suite). |
 | Backend | Supabase (PostgREST + PostgreSQL 17.11) | Gestionado | Datos, RLS, RPC `bt_*`, pgcrypto. |
 | Firmware lector | ESP32 + MFRC522 (Arduino) | Flasheo local | Emite `READY,BLINK,1`, `CARD,<UID>`, `PONG`. |
-| Firmware validador | ESP32 + MFRC522 + GPS/4G/OLED | Flasheo local | Cobro offline, sincronización con token. |
+| Firmware validador | ESP32 + MFRC522 + GPS NEO-6M + ST7789 1,54" (Wi-Fi integrado) | Flasheo local | Cobro offline, sincronización con token. |
 | DNS | Cloudflare (zona `blink.com.ve`) | Gestionado | `www`, `pasajes` (redirección) y correo. |
 
 ## 3. Flujos principales
@@ -113,7 +113,7 @@ Regla de diseño: **ninguna pantalla llama a `fetch` directamente**; todo pasa p
 
 | Entorno | URL | Datos |
 | --- | --- | --- |
-| Desarrollo | `npm run dev` → `http://localhost:5173` | Local (sin variables) o nube por `.env.local`. |
+| Desarrollo | `npm run dev` → `http://localhost:5175` (TARJETA) · `:5176` (back-office) | Local (sin variables) o nube por `.env.local`. |
 | Simulación | `http://127.0.0.1:5175/` (portal) · `:5173` (panel) | PostgreSQL 16 local en `127.0.0.1:54329` vía gateway `:54321`. |
 | Producción TARJETA | `https://blink-servers.github.io/TARJETA/` | Supabase real. |
 | Producción back-office | `https://blink-servers.github.io/BACKOFFICE/` | Supabase real. |
@@ -125,7 +125,7 @@ Regla de diseño: **ninguna pantalla llama a `fetch` directamente**; todo pasa p
 | Repo | Disparador | Pasos | Publicación |
 | --- | --- | --- | --- |
 | TARJETA | push a `main` / manual | `npm ci` → typecheck → test → build (`--base=/TARJETA/`) | `upload-pages-artifact` + `deploy-pages` |
-| BACKOFFICE | push a `main` / manual | `npm ci` → typecheck → test → build (`--base=/BACKOFFICE/`) | `upload-pages-artifact` + `deploy-pages` |
+| BACKOFFICE | push a `main` / manual | `npm ci` → typecheck → build (`--base=/BACKOFFICE/`) | `upload-pages-artifact` + `deploy-pages` |
 | PASAJES-REDIRECT | push a `main` | sin compilación (HTML estático) | `deploy-pages` |
 | POS | manual (`npm run deploy`) | `build:pages` (404.html + `.nojekyll`) | rama `gh-pages` |
 

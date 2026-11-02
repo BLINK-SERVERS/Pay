@@ -184,7 +184,7 @@ aplicar migraciones: el editor SQL es la vía alternativa al pooler.
    ```bash
    docker run --rm -d --name blink-eco -p 55433:5432 -e POSTGRES_PASSWORD=local postgres:16-alpine
    psql "postgresql://postgres:local@127.0.0.1:55433/postgres" -f supabase/migrations/0001_tarjeta.sql
-   # … 0002, 0003, 0004, 0005, 0006, 0007, 0008, 0009, 0010, 0011, 0012, 0013, 0014, 0015, 0016
+   # … 0002, 0003, 0004, 0005, 0006, 0007, 0008, 0009, 0010, 0011, 0012, 0013, 0014, 0015, 0016, 0017, 0018, 0019, 0020
    ```
 
 2. Ejecutar la migración nueva dentro de una transacción con
@@ -259,13 +259,13 @@ select public.bt_estacion_catalogo('<uuid-del-lote>');
 -- Carga de pares capturados con el lector USB/ESP32
 select public.bt_estacion_enrolar(
   '<uuid-del-lote>',
-  '[{"serial":"23-1-000001-9","uid":"0484CC62"},
-    {"serial":"23-1-000002-7","uid":"04A1B2C3"}]',
+  '[{"serial":"G-00001-001-N","uid":"0484CC62"},
+    {"serial":"G-00001-002-R","uid":"04A1B2C3"}]',
   'operador-01'
 );
 
 -- Fase 2 alternativa por SQL · asignación directa a una cuenta existente
-select public.bt_estacion_asignar('23-1-000001-9', 'V-34201580', 'taquilla-01');
+select public.bt_estacion_asignar('G-00001-001-N', 'V-34201580', 'taquilla-01');
 ```
 
 ```sql
@@ -457,7 +457,7 @@ arduino-cli upload  --fqbn esp32:esp32:esp32 -p /dev/ttyUSB0 ~/BLINK/firmware/le
 Enrolado manual (consola serie del validador):
 
 ```text
-ENROLAR,23-1-000001-9,50000,1,3981BF06
+ENROLAR,G-00001-001-N,50000,1,0484CC62
 ```
 
 `serial, saldo inicial, fare_type, UID`. El UID debe coincidir con
@@ -533,7 +533,7 @@ el fallo, la pantalla no vuelve al QR aunque el teléfono se desconecte.
 | Instrucciones | Al menos un teléfono unido (`PORTAL,clientes≥1`) y sin etapa activa | `YA CONECTADO` en verde 2× (y=44), `Abre en el navegador` gris 1× (y=92), `192.168.4.1` blanco 2× (y=106), `y elige tu red Wi-Fi` gris 1× (y=138) y `quedan N min` ámbar 1× (y=198) |
 | Conectando | 800 ms después de guardar (`PORTAL_CONECTANDO`) | `CONECTANDO` blanco 2× (y=48), `a la red` gris 1× (y=88), el SSID en blanco 2× (y=106; 1× si supera 19 caracteres), `Espera unos segundos` gris 1× (y=168) y `No cierres la pagina` gris 1× (y=186) |
 | Conectada | Enlace confirmado (`PORTAL_LISTO`) | `CONECTADA` verde 2× (y=44), la IP blanca 2× (y=96), `ya tiene internet` gris 1× (y=142) y `Puedes cerrar el telefono` blanco 1× (y=172) |
-| No se pudo conectar | 25 s sin enlace (`PORTAL_FALLO`) | `NO SE PUDO` y `CONECTAR` en rojo 2× (y=44 y 68), el SSID blanco (y=116), `Revisa la clave` y `en el telefono` blancos 1× (y=156 y 172) y `y vuelve a intentar` ámbar 1× (y=202) |
+| No se pudo conectar | 25 s sin enlace (`PORTAL_PRUEBA_MS`); después quedan 180 s de margen (`PORTAL_FALLO_MS`) | `NO SE PUDO` y `CONECTAR` en rojo 2× (y=44 y 68), el SSID blanco (y=116), `Revisa la clave` y `en el telefono` blancos 1× (y=156 y 172) y `y vuelve a intentar` ámbar 1× (y=202) |
 
 La vista de instrucciones se repinta entera al entrar el primer cliente y solo
 se refresca la línea de minutos cada segundo; con el último cliente fuera
