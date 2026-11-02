@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-21 |
-| Versión | 1.0.0 |
-| Fecha | 2026-11-01 |
+| Versión | 1.0.1 |
+| Fecha | 2026-11-02 |
 | Estado | Vigente (verificado en banco; medición con choferes pendiente) |
 | Autor | Equipo BLINK (desarrollo asistido) |
 | Normas de referencia | ISO 9241-11:2018 · ISO 9241-110:2020 · ISO 9241-210:2019 · ISO/IEC 25010:2011 · ISO/IEC/IEEE 26514:2022 · ISO 9241-303:2011 |
@@ -194,8 +194,8 @@ cambio se justificó con la métrica RU-03 y se verificó en la unidad física.
 
 Unidad ESP32-D0WD-V3, MAC `1C:60:8B:DF:94:8C`, `/dev/ttyUSB0`. Firmware
 compilado en **1 279 639 B** (97 % de la tabla por defecto) y flasheado con
-verificación por hash; el build del 2026-11-02 con `huge_app` ocupa 1 279 655 B
-(40 % de 3 MB). El
+verificación por hash; la versión 10, con OTA y el esquema `no_fs`, ocupa
+1 295 871 B (63 % de cada ranura de 1 984 KB). El
 banco usó un hotspot temporal del portátil (`BLINK-PRUEBA`,
 `10.42.0.1/24`) y el puerto serie con DTR y RTS en bajo.
 

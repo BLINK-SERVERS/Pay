@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-01 |
-| Versión | 1.3.0 |
-| Fecha | 2026-11-01 |
+| Versión | 1.4.0 |
+| Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 12207:2017 · ISO/IEC/IEEE 29148 |
 
@@ -100,6 +100,7 @@ reclamo → recarga → aprobación → sincronización → cobro) sin tocar pro
 | RF-13 | Gestionar lotes, inventario y enrolado desde una consola con RBAC y TOTP. | Back-office | Implementado |
 | RF-14 | Simular el flujo completo contra un backend local reproducible. | Simulación | Implementado |
 | RF-15 | Mostrar los términos y condiciones (`LEG-TER-001`) y separar en el recibo el pasaje urbano de la tasa administrativa digital. | TARJETA | Implementado (DOC-20) |
+| RF-16 | Actualizar el firmware del validador por aire, con verificación de integridad y reversión si la versión nueva no arranca. | Validador | Implementado y probado en unidad física (DOC-22, DOC-07 §4.12) |
 
 ## 5. Supuestos y restricciones
 

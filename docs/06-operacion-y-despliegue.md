@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-06 |
-| Versión | 1.9.0 |
-| Fecha | 2026-11-01 |
+| Versión | 1.10.0 |
+| Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 12207 (operación y mantenimiento) |
 
@@ -454,17 +454,21 @@ Compilar y flashear:
 arduino-cli compile --fqbn esp32:esp32:esp32 ~/BLINK/firmware/lector
 arduino-cli upload  --fqbn esp32:esp32:esp32 -p /dev/ttyUSB0 ~/BLINK/firmware/lector
 
-# Validador (3 MB de aplicación, sin OTA; actualización solo por USB)
+# Validador (dos ranuras OTA de 1 984 KB; actualización por aire desde la v10)
 rsync -a --exclude .git --exclude README.md ~/BLINK/firmware/validador/ /tmp/BLINK_Validador/
-arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app /tmp/BLINK_Validador
-arduino-cli upload  --fqbn esp32:esp32:esp32:PartitionScheme=huge_app \
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=no_fs /tmp/BLINK_Validador
+arduino-cli upload  --fqbn esp32:esp32:esp32:PartitionScheme=no_fs \
                     -p /dev/ttyUSB0 /tmp/BLINK_Validador
 ```
 
-El validador ocupa 1 279 655 B: 40 % de la partición de 3 MB y 97 % de la
-tabla por defecto. Se usa `huge_app` para dejar ~1,8 MB libres a GPS, batería y
-zumbador; el `--fqbn` debe ser idéntico al compilar y al subir. La NVS está en
-`0x9000` en ambos esquemas, así que el cambio conserva red, token y colas.
+El validador ocupa 1 295 871 B: 63 % de cada ranura de 1 984 KB, con ~736 KB
+libres para GPS, batería y zumbador. `no_fs` reserva `ota_0` (`0x10000`) y
+`ota_1` (`0x200000`) más `otadata` (`0xE000`), que es lo que habilita la
+actualización remota de §6.3; no hay SPIFFS porque el firmware no lo usa. El
+`--fqbn` debe ser idéntico al compilar y al subir. La NVS está en `0x9000` en
+todos los esquemas, así que un cambio de tabla conserva red, token y colas.
+La actualización por USB sigue siendo la vía de recuperación si una unidad no
+arranca.
 
 Enrolado manual (consola serie del validador):
 
@@ -556,6 +560,69 @@ vez por cambio de etapa y no muestran la cuenta atrás. Al cerrarse la ventana
 la pantalla vuelve al panel de reposo. Si la matriz no cupiera, la pantalla
 muestra `ERROR QR` con el nombre de la red y la consola registra
 `PANTALLA,qr=error,datos=…` (ver BLINK-DOC-18 §4.3).
+
+### 6.3 Actualización remota del validador (OTA, firmware 10)
+
+La flota no se actualiza unidad por unidad. El validador consulta un manifiesto
+JSON público, descarga el binario en la ranura pasiva, lo verifica con SHA-256
+y reinicia; si el firmware nuevo no confirma el arranque, vuelve solo al
+anterior.
+
+**Formato del manifiesto** (`manifest.json`):
+
+```json
+{
+  "version": 10,
+  "url": "https://ejemplo.com/firmware/BLINK_Validador_v10.bin",
+  "sha256": "a9041f95b43c2770d3190c2677667e470f409bed1806a3a9745e3cf0d5b96fae",
+  "size": 1296016
+}
+```
+
+**Publicar una versión.** Desde `~/BLINK/firmware/validador`:
+
+```bash
+./publicar_ota.sh /tmp/BLINK_Validador_out/BLINK_Validador.ino.bin \
+                  https://ejemplo.com/firmware
+```
+
+El script copia el `.bin` a `dist-ota/`, calcula el SHA-256 y escribe
+`dist-ota/manifest.json` con la URL absoluta y la `VERSION_FW` de `config.h`
+(`OTA_VERSION=11` la fuerza si el binario es de otra compilación). Se suben
+ambos archivos a un alojamiento HTTPS público (Supabase Storage, bucket de
+objetos o el hosting del back-office). No se requiere clave de servicio: el
+manifiesto y el binario son públicos; la integridad la da el hash. **Hay que
+restringir la escritura del bucket**: quien pueda reemplazar el manifiesto
+puede publicar firmware (BLINK-DOC-09 R-24).
+
+**Configurar la URL.** En `config.h` (`OTA_MANIFEST_URL`) al compilar, o por
+unidad por consola:
+
+```text
+OTA_URL,https://ejemplo.com/firmware/manifest.json
+OTA_ESTADO
+OTA
+OTA_LIMPIAR
+```
+
+`OTA_ESTADO` informa versión local, remota, disponibilidad, fallo y URL. `OTA`
+fuerza la comprobación; `OTA_URL,` borra la URL guardada (guarda vacío en NVS,
+así no reaparece una URL compilada) y `OTA_LIMPIAR` olvida la versión fallida
+para que la automática vuelva a intentarla.
+
+**Cuándo se actualiza.** Dos minutos después de arrancar y luego cada 6 h. Solo
+con enlace, portal de configuración cerrado, sin enrolado en curso, cola de
+cobros vacía y 60 s sin tarjetas. Un fallo se reintenta a los 30 minutos; una
+versión que ya falló no se reinstala sola.
+
+**Seguridad.** HTTPS con el paquete de certificados del core (HTTP solo para
+pruebas locales), `Content-Length` obligatorio, límite de 2 MB, escritura en la
+ranura pasiva, SHA-256 verificado antes de reiniciar, confirmación de arranque a
+los 90 s y reversión tras tres reinicios sin confirmar. La pantalla muestra
+`ACTUALIZANDO` con el porcentaje y «No apagues el equipo». El cargador de
+arranque no se actualiza por OTA: la recuperación ante un equipo que no arranca
+es siempre por USB. Pruebas de hardware del 2026-11-02: v10→v11 completa y
+v11→v12 rota revierte a la v11.
 
 ## 7. Monitoreo y alertas
 

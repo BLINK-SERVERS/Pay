@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-07 |
-| Versión | 1.13.0 |
-| Fecha | 2026-11-01 |
+| Versión | 1.14.0 |
+| Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26513 · ISO/IEC 25010 |
 
@@ -454,12 +454,12 @@ referencia de Bs 100 y la competencia es municipal (B-32).
 
 Prueba en la unidad física (ESP32-D0WD-V3, MAC `1C:60:8B:DF:94:8C`,
 `/dev/ttyUSB0`), compilada en **1 279 639 B (97 % de la tabla por defecto)**
-y verificada por hash al flashear; el build del 2026-11-02 con `huge_app` ocupa
-1 279 655 B (40 % de 3 MB). El banco se armó con un hotspot temporal del
-portátil (`BLINK-PRUEBA`) y el puerto serie se abrió con DTR y RTS en bajo para
-leer los registros. La tabla cubre la primera versión (portal básico), la
-pantalla QR y la revisión de usabilidad del 2026-11-01 (espera de 25 s,
-resultado y reintento).
+y verificada por hash al flashear. La versión 10, con OTA y el esquema `no_fs`,
+ocupa 1 295 871 B (63 % de cada ranura de 1 984 KB). El banco se armó con un
+hotspot temporal del portátil (`BLINK-PRUEBA`) y el puerto serie se abrió con
+DTR y RTS en bajo para leer los registros. La tabla cubre la primera versión
+(portal básico), la pantalla QR y la revisión de usabilidad del 2026-11-01
+(espera de 25 s, resultado y reintento).
 
 | # | Prueba | Resultado |
 | --- | --- | --- |
@@ -492,6 +492,33 @@ la lista salía vacía; la corrección pausa el intento 350 ms y repite.
 La verificación de usabilidad completa está en BLINK-DOC-21 §9. Queda pendiente
 la secuencia «fallo → reintento → éxito» con un teléfono real y la lectura del
 QR con cámara, porque el portátil tiene una sola radio Wi-Fi (B-34).
+
+### 4.12 Actualización remota de firmware (firmware 10, 2026-11-02)
+
+Banco: la misma unidad física en `/dev/ttyUSB0`, hotspot del portátil
+(`BLINK-VALIDADOR`, 10.42.0.1/24) y un servidor HTTP local en el puerto 8000
+sirviendo `~/BLINK/firmware/validador/dist-ota`. Se usó HTTP a propósito para
+poder observar cada paso; en producción la URL debe ser HTTPS (el cliente usa
+el paquete de certificados del core y también acepta HTTP solo para pruebas
+locales).
+
+| # | Prueba | Resultado |
+| --- | --- | --- |
+| 1 | Tabla de particiones | `esptool` lee `ota_0` en `0x10000` y `ota_1` en `0x200000`, 1 984 KB cada una, con `otadata` en `0xe000` |
+| 2 | NVS tras cambiar la tabla | El flasheo por USB conserva `token=1`, placa `A12BC3D` y las colas; `INFO` coincide antes y después |
+| 3 | Arranque v10 | `READY,BLINK,10,1,0`; enlace con el hotspot, IP 10.42.0.89 y sincronización correcta |
+| 4 | Estado OTA | `OTA,listo,fw=10,url=…,fallo=0`; `OTA_ESTADO` informa actual, remota, disponibilidad y URL |
+| 5 | v10 → v11 completa | `OTA,disponible,actual=10,remota=11,size=1295728`; descarga con `Update.write` en la ranura pasiva, SHA-256 correcto, `OTA,ok=1,version=11`, reinicio y `OTA,arranque-nuevo,fw=11,intento=1` |
+| 6 | Confirmación de arranque | A los 90 s, `OTA,arranque-ok,fw=11`; `READY,BLINK,11`; NVS, token y red intactos; la siguiente comprobación da `OTA,sin-novedad,actual=11,remota=11` |
+| 7 | Reversión automática | Se publicó una v12 que ejecuta `abort()` al arrancar: se instaló en `app0`, hubo `intento=1`, `intento=2` y en el tercero `OTA,reversion,slot=app1,error=0`; la unidad volvió a la v11 (la ranura `app1`) |
+| 8 | Versión fallida recordada | Tras revertir, `OTA,listo,fw=11,…,fallo=12`; la comprobación automática responde `OTA,omitida,version=12,motivo=fallo-anterior` y no reinstala la v12 |
+
+La pantalla muestra `ACTUALIZANDO`, el porcentaje y «No apagues el equipo»
+durante la descarga; con el resultado `OTA,ok=1` reinicia sola. Queda pendiente
+probar contra el alojamiento HTTPS real de la flota, la pérdida de energía a
+mitad de descarga (la ranura activa no se toca, pero conviene confirmarlo en
+hardware) y el ritmo automático cada 6 h en operación continua; el disparo
+manual (`OTA`) y la revocación por USB están verificados.
 
 ## 5. Prueba de la tarjeta virtual (ID-1 / CR80)
 

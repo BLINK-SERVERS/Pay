@@ -3,8 +3,8 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-02 |
-| Versión | 1.7.0 |
-| Fecha | 2026-11-01 |
+| Versión | 1.7.1 |
+| Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 26514 · ISO/IEC/IEEE 42010 |
 
@@ -41,7 +41,7 @@ flowchart LR
 | BLINK POS | React 19 · Vite 8 · Konsta · Supabase JS | GitHub Pages rama `gh-pages` + Cloudflare | Comercio: ventas, caja, catálogo (fuera de esta suite). |
 | Backend | Supabase (PostgREST + PostgreSQL 17.11) | Gestionado | Datos, RLS, RPC `bt_*`, pgcrypto. |
 | Firmware lector | ESP32 + MFRC522 (Arduino) | Flasheo local | Emite `READY,BLINK,1`, `CARD,<UID>`, `PONG`. |
-| Firmware validador | ESP32 + MFRC522 + GPS NEO-6M + ST7789 1,54" (Wi-Fi integrado) | Flasheo local | Cobro offline, sincronización con token. |
+| Firmware validador | ESP32 + MFRC522 + GPS NEO-6M + ST7789 1,54" (Wi-Fi integrado) | Flasheo local y OTA desde la v10 | Cobro offline, sincronización con token y actualización remota verificada por SHA-256 con reversión. |
 | DNS | Cloudflare (zona `blink.com.ve`) | Gestionado | `www`, `pasajes` (redirección) y correo. |
 
 ## 3. Flujos principales

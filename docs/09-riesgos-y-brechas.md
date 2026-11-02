@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-09 |
-| Versión | 1.12.0 |
+| Versión | 1.13.0 |
 | Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 12207 (riesgos) · ISO/IEC 27001 (A.5.7) |
@@ -38,6 +38,7 @@ Escalas: probabilidad e impacto **A**lta / **M**edia / **B**aja. Estado:
 | R-21 | El contador de intentos de PIN se lee y se escribe sin bloquear la fila: dos intentos simultáneos pueden perder incrementos y alargar un ataque de fuerza bruta. | B | M | Usar `select … for update` o un `update … returning` atómico. | **Abierto** |
 | R-22 | Los CSV exportados por el back-office no neutralizan celdas que empiezan por `=`, `+`, `-` o `@`: un titular o serial malicioso se ejecuta como fórmula al abrir el archivo en Excel o LibreOffice. | B | M | Prefijar un apóstrofo a esas celdas en `descargarCsv` y añadir una prueba. | **Abierto** |
 | R-23 | TARJETA y BACK-OFFICE se publican bajo el mismo origen `*.github.io`: `localStorage`, cookies y el service worker son compartidos. Una inyección o un recurso comprometido en una aplicación alcanza la sesión guardada de la otra. | M | M | Publicar cada aplicación en un subdominio propio o aislar la sesión y el almacenamiento (amplía R-11). | **Abierto** |
+| R-24 | El manifiesto OTA del validador es público y define qué binario se instala: quien pueda reemplazarlo en el alojamiento publica firmware en toda la flota. El SHA-256 solo detecta corrupción de la descarga, no un servidor comprometido. | B | A | Bucket de solo lectura pública con escritura restringida a la cuenta de publicación y credenciales rotables; HTTPS obligatorio en producción; revisar el hash y la versión antes de publicar; recuperación por USB si una unidad no arranca. | **Abierto** (depende del alojamiento que elija el operador) |
 
 ## 2. Brechas funcionales frente al diseño técnico
 
@@ -121,6 +122,7 @@ implementación:
 | D-11 | La aprobación de recargas no verifica que exista su movimiento y la sincronización de toques no usa `ON CONFLICT`. | Una recarga podría acreditarse sin historial y dos sincronizaciones simultáneas podrían abortar el lote (BLINK-DOC-15 §9, F-01/F-02). | Media |
 | D-12 | `trips_telemetry.chip_counter` se guarda pero no se compara con la secuencia esperada por tarjeta. | La detección de replay o de un contador retrocedido es manual; falta una consulta o alerta automática (BLINK-DOC-16 §5.3). | Media |
 | D-13 | La fórmula tarifaria vive en dos lenguajes (`tarifa.ts` y `bt_cotizar_recarga`). | Una divergencia haría que la vista previa no coincida con lo guardado; el servidor manda, pero el pasajero vería otro monto. | Media |
+| D-14 | La OTA solo se probó con HTTP en red local: falta validar el alojamiento HTTPS real, el corte de energía a mitad de descarga y el ciclo automático de 6 h en operación continua. | Un fallo en esos escenarios aparecería con la flota ya desplegada; la recuperación por USB sigue disponible (BLINK-DOC-22 §10). | Media |
 
 ## 4. Limitaciones conocidas de la plataforma
 
