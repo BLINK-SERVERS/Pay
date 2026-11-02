@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-06 |
-| Versión | 1.8.0 |
+| Versión | 1.9.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Norma | ISO/IEC/IEEE 12207 (operación y mantenimiento) |
@@ -471,33 +471,49 @@ Los sketches **no están en los repositorios**; viven en `~/BLINK/firmware`
 
 Hasta el firmware 8 cambiar de red exigía consola serie (`WIFI,ssid,clave`).
 Desde el firmware 9 la unidad levanta un punto de acceso temporal con una
-página propia; el chofer lo hace desde su teléfono.
+página propia; el chofer lo hace desde su teléfono. La revisión del 2026-11-01
+redujo el flujo a tres pasos y eliminó el reinicio cuando la red no conecta;
+el análisis de usabilidad está en BLINK-DOC-21.
 
 | Paso | Qué hace el operador | Qué hace el equipo |
 | --- | --- | --- |
 | 1 | Enciende el validador. | Sin red guardada, a los 2 s abre la ventana y la pantalla muestra un **código QR** (29×29 módulos, 185 px) con `ESCANEA` debajo: lleva `WIFI:T:nopass;S:BLINK-XXXX;P:;;`. Con red guardada pero sin enlace, lo muestra a los 20 s. |
-| 2 | Apunta la cámara del teléfono al QR y acepta unirse a `BLINK-XXXX` (o se une a mano: red abierta, sin clave). | Levanta el AP y el portal cautivo (`DNSServer` + `WebServer` en 192.168.4.1); registra `PORTAL,clientes=1` al entrar el teléfono y repinta la pantalla. |
-| 3 | Lee en la pantalla `YA CONECTADO`, abre el navegador en `192.168.4.1` y acepta «sin Internet» si el teléfono avisa. | Sirve la página de configuración; cualquier otra ruta redirige a `/`. La vista de instrucciones no lleva la barra de BLINK ni la tarifa; si el teléfono se desconecta (`PORTAL,clientes=0`) vuelve el QR. |
-| 4 | Pulsa «Buscar redes» (o escribe el SSID), pone la clave y **Guardar y conectar**. | Guarda en NVS, reaplica `WiFi.begin()`, registra `PORTAL,guardado,red=…` y baja el AP 2,5 s después. |
-| 5 | Espera la pantalla **CONECTADA** con IP. | Entra en modo estación, pide hora por NTP y sincroniza. |
+| 2 | Apunta la cámara del teléfono al QR y acepta unirse a `BLINK-XXXX` (o se une a mano: red abierta, sin clave). | Levanta el AP y el portal cautivo (`DNSServer` + `WebServer` en 192.168.4.1); registra `PORTAL,clientes=1` al entrar el teléfono y repinta la pantalla con `YA CONECTADO`. |
+| 3 | Abre el navegador en `192.168.4.1` y acepta «sin Internet» si el teléfono avisa. | Sirve la página guiada: tres pasos numerados y la **lista de redes ya barrida** al cargar (`/redes`), sin pulsar «Buscar redes». Cualquier otra ruta redirige a `/`. |
+| 4 | **Toca su red** en la lista (el nombre se rellena solo), escribe la clave —puede pulsar «Ver»— y toca **Guardar y conectar**. | Guarda en NVS, aplica las credenciales 800 ms después y registra `PORTAL,guardado,red=…,intento=N`. La página pasa a «Conectando a …». |
+| 5 | Espera el resultado en el teléfono. | Comprueba el enlace durante 25 s. **Si conecta**, registra `PORTAL,conectado,red=…,ip=…`, la página muestra «Conexión lista» y el AP se cierra 10 s después (`PORTAL,cerrado`). **Si no conecta**, registra `PORTAL,fallo,…,intento=N`, deja el AP abierto, extiende la ventana a 3 min y la página ofrece «Volver a intentar» sin reiniciar. |
+| 6 | Vuelve a la pantalla del validador: **CONECTADA** con la IP. | Entra en modo estación, pide hora por NTP y sincroniza; los cobros encolados suben solos. |
 
 Detalles operativos:
 
 - La ventana dura **5 minutos** y no se reabre sola en el mismo arranque: si se
-  cierra sin guardar, apagar y encender el equipo.
-- Se recuerda **una** red a la vez. La página trae «Olvidar red guardada»
-  (equivalente a `OLVIDAR_WIFI`) y «Terminar configuracion» (baja el AP).
-- Por consola serie: `CONFIGURAR_WIFI` abre la ventana a pedido y
-  `CERRAR_PORTAL` la cierra; el registro del equipo lo confirma con
+  cierra sin guardar, apagar y encender el equipo. Tras un fallo de conexión se
+  extiende a **3 minutos** para corregir la clave, sin reiniciar.
+- Se recuerda **una** red a la vez. «Más opciones» trae «Olvidar red guardada»
+  (equivalente a `OLVIDAR_WIFI`, que conserva el token) y «Terminar
+  configuración» (baja el AP en 1,2 s).
+- Por consola serie: `CONFIGURAR_WIFI` abre la ventana a pedido,
+  `CERRAR_PORTAL` la cierra y `WIFI,ssid,clave` fija una red (el analizador
+  separa por comas; el comando `WIFI` va sin espacios). El registro confirma
   `PORTAL,abierto,red=…,ip=…,min=5` / `PORTAL,cerrado`.
+- Estados de la vinculación en consola: `PORTAL,guardado,…,intento=N`,
+  `PORTAL,conectado,red=…,ip=…`, `PORTAL,fallo,…,intento=N` y la pantalla
+  `PANTALLA,portal=1` (QR), `2` (instrucciones), `3` (conectando), `4`
+  (conectada) o `5` (fallo).
+- La decisión de éxito exige que el SSID asociado sea el elegido; así un equipo
+  todavía unido a la red anterior no declara un falso positivo (ADR-24).
 - El AP es **abierto** mientras está activo (R-16 en BLINK-DOC-09). No expone
   el token, pero sí permite cambiar la red: no dejarlo abierto en la calle ni
   usarlo como red de trabajo del vehículo.
 
-Prueba en banco (2026-11-01, unidad MAC `1C:60:8B:DF:94:8C`): AP
-`BLINK-948C` visible, `/` y `/redes` respondiendo, guardado contra un hotspot
-temporal, unión automática en segundos, y tras reiniciar `INFO` con
-`red=conectada,ip=10.42.0.89,sync=…` y `SYNC,ok=1`.
+Prueba en banco (2026-11-01, unidad MAC `1C:60:8B:DF:94:8C`, firmware compilado
+en 1 279 347 B, 97 %): AP `BLINK-948C` visible; `/` responde 8 147 B con los
+tres pasos y la lista automática; un guardado contra `RED-QUE-NO-EXISTE` pasa a
+`conectando` y a los ~25 s a `fallo` con la ventana en 3 min; un guardado contra
+el hotspot `BLINK-PRUEBA` pasa a `conectando` en 2 s, `ok` en 4 s y cierra el AP
+10 s después (`PORTAL,conectado,red=BLINK-PRUEBA,ip=10.42.0.89`). El reintento
+desde el fallo usa el mismo manejador y la ventana sigue abierta; la secuencia
+completa con un teléfono real es la prueba de campo pendiente (B-34).
 
 El QR se verificó generando la misma matriz en el host con la biblioteca
 QrBlink y decodificándola con OpenCV: devuelve
@@ -506,19 +522,26 @@ lectura física con la cámara de un teléfono queda como comprobación pendient
 
 ### 6.2 Diseño de la pantalla de configuración
 
-Ninguna de las dos vistas de este modo dibuja la cabecera de BLINK, la tarifa
-ni la cola: el chofer solo necesita el dato del momento.
+Ninguna de las vistas de este modo dibuja la cabecera de BLINK, la tarifa ni la
+cola: el chofer solo necesita el dato del momento. La etapa de la vinculación
+manda sobre la vista de clientes: mientras se está conectando, el resultado o
+el fallo, la pantalla no vuelve al QR aunque el teléfono se desconecte.
 
 | Vista | Cuándo se pinta | Contenido (240×240) |
 | --- | --- | --- |
 | QR | Ventana abierta y ningún teléfono unido | QR blanco sobre negro de 185 px con 4 módulos de silencio y 5 px por módulo, desde y=12; `ESCANEA` en blanco 2× (y=205) y `con la camara del telefono` en gris 1× (y=230) |
-| Instrucciones | Al menos un teléfono unido (`PORTAL,clientes≥1`) | `YA CONECTADO` en verde 2× (y=44), `Abre en el navegador` gris 1× (y=92), `192.168.4.1` blanco 2× (y=106), `y elige tu red Wi-Fi` gris 1× (y=138) y `quedan N min` ámbar 1× (y=198) |
+| Instrucciones | Al menos un teléfono unido (`PORTAL,clientes≥1`) y sin etapa activa | `YA CONECTADO` en verde 2× (y=44), `Abre en el navegador` gris 1× (y=92), `192.168.4.1` blanco 2× (y=106), `y elige tu red Wi-Fi` gris 1× (y=138) y `quedan N min` ámbar 1× (y=198) |
+| Conectando | 800 ms después de guardar (`PORTAL_CONECTANDO`) | `CONECTANDO` blanco 2× (y=48), `a la red` gris 1× (y=88), el SSID en blanco 2× (y=106; 1× si supera 19 caracteres), `Espera unos segundos` gris 1× (y=168) y `No cierres la pagina` gris 1× (y=186) |
+| Conectada | Enlace confirmado (`PORTAL_LISTO`) | `CONECTADA` verde 2× (y=44), la IP blanca 2× (y=96), `ya tiene internet` gris 1× (y=142) y `Puedes cerrar el telefono` blanco 1× (y=172) |
+| No se pudo conectar | 25 s sin enlace (`PORTAL_FALLO`) | `NO SE PUDO` y `CONECTAR` en rojo 2× (y=44 y 68), el SSID blanco (y=116), `Revisa la clave` y `en el telefono` blancos 1× (y=156 y 172) y `y vuelve a intentar` ámbar 1× (y=202) |
 
 La vista de instrucciones se repinta entera al entrar el primer cliente y solo
 se refresca la línea de minutos cada segundo; con el último cliente fuera
-vuelve el QR. Si la matriz no cupiera, la pantalla muestra `ERROR QR` con el
-nombre de la red y la consola registra `PANTALLA,qr=error,datos=…` (ver
-BLINK-DOC-18 §4.3).
+vuelve el QR. Las vistas de conectando, conectada y fallo se pintan una sola
+vez por cambio de etapa y no muestran la cuenta atrás. Al cerrarse la ventana
+la pantalla vuelve al panel de reposo. Si la matriz no cupiera, la pantalla
+muestra `ERROR QR` con el nombre de la red y la consola registra
+`PANTALLA,qr=error,datos=…` (ver BLINK-DOC-18 §4.3).
 
 ## 7. Monitoreo y alertas
 

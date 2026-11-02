@@ -3,11 +3,11 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-00 |
-| Versión | 1.15.0 |
+| Versión | 1.16.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
-| Revisión | 15 |
+| Revisión | 16 |
 | Normas de referencia | ISO 9001:2015 §7.5 · ISO/IEC/IEEE 12207:2017 · ISO/IEC/IEEE 26511/26512/26513/26514/26515 · ISO/IEC 25010 · ISO/IEC 27001:2022 |
 
 ## 1. Propósito
@@ -77,6 +77,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | BLINK-DOC-18 | [Interfaz datáfono 240×240 (ISO-UI-240-REV2)](18-interfaz-datofono-240.md) | 9241-3 · 25010 · 26514 |
 | BLINK-DOC-19 | [Motor tarifario y recarga por pasajes](19-motor-tarifario-y-recarga-por-pasajes.md) | 29148 · 25010 · 9241-210 · 20022 |
 | BLINK-DOC-20 | [Términos legales y cumplimiento tarifario](20-terminos-legales-y-cumplimiento.md) | 29148 · 25010 · 9241-210 |
+| BLINK-DOC-21 | [Usabilidad de la vinculación Wi-Fi del validador](21-usabilidad-vinculacion-wifi.md) | 9241-11 · 9241-110 · 9241-210 · 25010 · 26514 |
 | — | [CHANGELOG](../CHANGELOG.md) | Keep a Changelog 1.1.0 + SemVer |
 
 ## 4. Convenciones de esta suite
@@ -114,6 +115,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | 1.13.0 | 2026-11-01 | Nuevo BLINK-DOC-20: términos `LEG-TER-001` en el portal, separación entre pasaje y tasa administrativa en el recibo, veredicto de la Gaceta 43.335 y hallazgo B-32 (500 Bs frente a la referencia nacional de 100 Bs), más B-33 (descuentos no implementados) y R-14/R-15; ADR-21 a ADR-23; DOC-01, DOC-02, DOC-07, DOC-08 y DOC-09 actualizados. | Equipo BLINK |
 | 1.14.0 | 2026-11-01 | Firmware 9: configuración del Wi-Fi del validador desde el teléfono (AP `BLINK-XXXX` + portal cautivo en 192.168.4.1, ventana de 5 minutos); B-29 cerrada y R-16 abierta; DOC-06 §6.1, DOC-07 §4.11, DOC-08 §2.2, DOC-18 §4.3 y DOC-09 1.10.0. | Equipo BLINK |
 | 1.15.0 | 2026-11-01 | El validador arranca la ventana de configuración con un **código QR** (`WIFI:T:nopass;S:BLINK-XXXX;P:;;`) y solo muestra las instrucciones cuando detecta un teléfono unido; sin cabecera de BLINK ni tarifa. DOC-06 §6.1 y nuevo §6.2, DOC-07 §4.11 (pruebas 12–16), DOC-08 §2.2 y DOC-18 §4.3. | Equipo BLINK |
+| 1.16.0 | 2026-11-01 | Nuevo BLINK-DOC-21: usabilidad ISO de la vinculación Wi-Fi (9241-11/110/210, 25010, 26514), flujo de tres pasos con lista automática, espera de 25 s, resultado y reintento sin reiniciar (ADR-24 a ADR-26); pantallas CONECTANDO/CONECTADA/NO SE PUDO CONECTAR y corrección del falso positivo; B-34 y B-35; DOC-06, DOC-07, DOC-08, DOC-09 y DOC-18 actualizados. | Equipo BLINK |
 
 Reglas de mantenimiento:
 

@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-07 |
-| Versión | 1.12.0 |
+| Versión | 1.13.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26513 · ISO/IEC 25010 |
@@ -453,36 +453,44 @@ referencia de Bs 100 y la competencia es municipal (B-32).
 ### 4.11 Configuración Wi-Fi desde el teléfono (firmware 9, 2026-11-01)
 
 Prueba en la unidad física (ESP32-D0WD-V3, MAC `1C:60:8B:DF:94:8C`,
-`/dev/ttyUSB0`), compilada en 1 265 479 B (96 % de la partición por defecto) y
-verificada por hash al flashear. El banco se armó con un hotspot temporal del
+`/dev/ttyUSB0`), compilada en **1 279 347 B (97 % de la partición por defecto)**
+y verificada por hash al flashear. El banco se armó con un hotspot temporal del
 portátil (`BLINK-PRUEBA`) y el puerto serie se abrió con DTR y RTS en bajo para
-leer los registros. La pantalla QR se añadió después y se compiló en
-1 271 599 B (97 %); las pruebas 13–16 la cubren.
+leer los registros. La tabla cubre la primera versión (portal básico), la
+pantalla QR y la revisión de usabilidad del 2026-11-01 (espera de 25 s,
+resultado y reintento).
 
 | # | Prueba | Resultado |
 | --- | --- | --- |
 | 1 | Arranque sin credenciales | A los ~2 s la unidad registra `PORTAL,abierto,red=BLINK-948C,ip=192.168.4.1,min=5,qr=WIFI:T:nopass;S:BLINK-948C;P:;;` y la pantalla pasa a `VISTA_CONFIG` con el QR |
-| 2 | Punto de acceso | `nmcli` lo ve abierto (sin seguridad, señal 92); el portátil obtiene 192.168.4.2 y conserva Internet por la interfaz cableada |
+| 2 | Punto de acceso | `nmcli` lo ve abierto (sin seguridad, señal 87–92); el portátil obtiene 192.168.4.2 y conserva Internet por la interfaz cableada |
 | 3 | Portal cautivo | `/` devuelve 200 con la página; `/generate_204` (sondeo de Android) responde 302 a `http://192.168.4.1/` |
-| 4 | Buscar redes | `/redes` lista 5–7 redes deduplicadas y ordenadas por señal, en 2–4 s; el registro confirma `PORTAL,redes=7` |
-| 5 | Guardar | `POST /guardar` con SSID y clave responde 200 con el aviso «Guardado»; el equipo registra `PORTAL,guardado,red=BLINK-PRUEBA` y baja el AP 2,5 s después |
-| 6 | Unión inmediata | El punto de acceso del portátil ve al cliente `8c:94:df:8b:60:1c` con IP 10.42.0.89 |
-| 7 | Persistencia al reiniciar | Tras reiniciar, `INFO` muestra `red=conectada,ip=10.42.0.89,token=1` sin intervención, y la sincronización automática devuelve `SYNC,ok=1,enviados=0,…` (la cola de 10 cobros se subió en esa pasada) |
+| 4 | Barrido de redes | `/redes` lista 6–7 redes deduplicadas y ordenadas por señal en 2–4 s; el registro confirma `PORTAL,redes=7` |
+| 5 | Fallo de conexión (nuevo) | `POST /guardar` con `RED-QUE-NO-EXISTE` responde 200; `/estado` pasa a `conectando` a los 2–8 s y a `fallo` a los ~22–25 s; `min` sube de 4 a 3 (ventana extendida a 3 min); serie: `PORTAL,guardado,red=RED-QUE-NO-EXISTE,intento=1`, `PORTAL,fallo,…,intento=1`, `PANTALLA,portal=3` → `5` |
+| 6 | Éxito con hotspot (nuevo) | `POST /guardar` 200 en 0,14 s; `/estado` `conectando` a los 2 s y `ok` a los 4 s; el AP deja de responder a los ~14 s (10 s después del éxito); serie: `PORTAL,guardado,…,intento=1`, `PORTAL,conectado,red=BLINK-PRUEBA,ip=10.42.0.89`, `PANTALLA,portal=3` → `4`, `PORTAL,cerrado` |
+| 7 | Falso positivo corregido | Antes del arreglo, un equipo ya unido a una red declaraba `ok` en el instante del `POST` (`conectado` antes de `guardado`) porque se evaluaba `conectada()` antes de aplicar las credenciales. Ahora se exige `aplicarEn == 0` y que el SSID asociado sea el elegido; la secuencia pasa por `conectando → ok` |
 | 8 | Arranque con red guardada inalcanzable | La ventana se abre a los 20 s de seguir «buscando», una sola vez por arranque |
-| 9 | Olvidar red | `OLVIDAR_WIFI` deja `red=sin-wifi` y la ventana vuelve a abrirse sola |
-| 10 | Comandos de consola | `CONFIGURAR_WIFI` → `OK,portal=1,red=BLINK-948C`; `CERRAR_PORTAL` → `PORTAL,cerrado` / `OK,portal=0` |
+| 9 | Olvidar red | `OLVIDAR_WIFI` deja `RED,estado=sin-wifi` y conserva el token (`token=1`); al reiniciar sin credenciales la ventana se abre sola a los 2 s |
+| 10 | Comandos de consola | `CONFIGURAR_WIFI` → `OK,portal=1,red=BLINK-948C`; `CERRAR_PORTAL` → `PORTAL,cerrado` / `OK,portal=0`; `WIFI,ssid,clave` une la estación y cierra el portal. El analizador separa por comas: `WIFI BLINK-PRUEBA …` devuelve `ERROR,comando=…` |
 | 11 | Estabilidad de la ventana | A los 75 s de abierto el AP seguía anunciándose y `/` respondía 200, sin reinicios ni caída del servidor web |
 | 12 | Pantalla QR | La consola registra `PANTALLA,qr=1,modulos=29,px=185` al abrir la ventana: 185 px de lado, 5 px por módulo y 4 de silencio |
 | 13 | Cambio a instrucciones | Al unirse el portátil, `PORTAL,clientes=1` y la pantalla pasa a `YA CONECTADO` con `192.168.4.1` y los minutos; sin barra de BLINK |
 | 14 | Vuelta al QR | Al desconectar el portátil, `PORTAL,clientes=0` y se repinta el QR (`PANTALLA,qr=1,…`); la cuenta atrás deja de refrescarse |
 | 15 | Legibilidad del código | La misma matriz generada en el host con QrBlink se decodifica como `WIFI:T:nopass;S:BLINK-948C;P:;;` a 1:1 y a 0,5× (2,5 px por módulo) con `cv2.QRCodeDetector`; falla a 0,3×, por debajo del tamaño de píxel útil |
-| 16 | Lectura con cámara real | No verificada: las cámaras del portátil no encuadran el panel. Pendiente de que el operador apunte un teléfono al QR |
+| 16 | Lectura con cámara real | No verificada: las cámaras del portátil no encuadran el panel. Pendiente de que el operador apunte un teléfono al QR (B-34) |
+| 17 | Pantallas de etapa | Los modos `3`, `4` y `5` se pintan con el SSID, la IP y el mensaje de reintento; la pantalla no vuelve al QR mientras hay una etapa activa |
+| 18 | Lista automática e interacción | Con la página abierta en un navegador de escritorio aparecen 7 redes sin pulsar nada; tocar una rellena el campo, la marca como activa y enfoca la clave; «Ver» revela la contraseña y cambia a «Ocultar»; «Actualizar lista» vuelve a barrer; «Más opciones» muestra «Olvidar red guardada» y «Terminar configuración» |
+| 19 | Textos y contraste | La página servida (8 147 B) contiene «Contraseña», «Dirección», «Más opciones» y «mayúsculas y minúsculas»; los contrastes medidos van de 6,18:1 (botón) a 16,96:1 (texto) |
 
 El AP de configuración es abierto (R-16 en BLINK-DOC-09) y la ventana dura
 5 minutos; ambas condiciones están en la página y en el manual de operación
 (BLINK-DOC-06 §6.1). El barrido de redes necesitó un reintento: con la estación
 insistiendo a una red inexistente el controlador rechazaba `scanNetworks()` y
 la lista salía vacía; la corrección pausa el intento 350 ms y repite.
+
+La verificación de usabilidad completa está en BLINK-DOC-21 §9. Queda pendiente
+la secuencia «fallo → reintento → éxito» con un teléfono real y la lectura del
+QR con cámara, porque el portátil tiene una sola radio Wi-Fi (B-34).
 
 ## 5. Prueba de la tarjeta virtual (ID-1 / CR80)
 

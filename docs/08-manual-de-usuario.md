@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-08 |
-| Versión | 1.8.0 |
+| Versión | 1.9.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 26511 · 26512 |
@@ -124,6 +124,9 @@ por USB a la estación del back-office cuando hay que enrolar tarjetas nuevas.
 
 ### 2.2 Conectar el validador a un Wi-Fi (hotspot del teléfono)
 
+Solo hay que tocar la red en una lista: **no hace falta escribir el nombre** ni
+usar la computadora. El equipo crea una red temporal y su propia página.
+
 1. Enciende el validador. Si nunca se configuró (o la red guardada no aparece),
    a los pocos segundos la pantalla muestra un **código QR** con la palabra
    `ESCANEA`: es el atajo para unirse a la red del equipo (`BLINK-948C` en la
@@ -132,16 +135,24 @@ por USB a la estación del back-office cuando hay que enrolar tarjetas nuevas.
    `BLINK-XXXX`. También puedes hacerlo a mano en los ajustes de Wi-Fi: la red
    no tiene contraseña. Si el teléfono dice «sin Internet», elige quedarte
    conectado igual.
-3. La pantalla cambia sola a `YA CONECTADO` y te dice que abras `192.168.4.1`
-   en el navegador. La página se abre automáticamente; si no, escribe esa
-   dirección.
-4. Pulsa **Buscar redes** y elige tu hotspot (o escribe su nombre), pon la
-   contraseña y pulsa **Guardar y conectar**.
-5. Vuelve a la pantalla del validador: cuando dice **CONECTADA** ya está en
-   línea y empieza a subir los cobros.
+3. La pantalla del validador cambia sola a `YA CONECTADO` y te indica que abras
+   `192.168.4.1`. La página se abre automáticamente; si no, escribe esa
+   dirección en el navegador.
+4. En la página verás **tu red en una lista, con su nombre y barras de señal**.
+   Toca la red de tu hotspot (el nombre se rellena solo), escribe la
+   contraseña —puedes pulsar **Ver** para comprobarla— y toca **Guardar y
+   conectar**.
+5. Espera unos segundos. La página muestra «Conectando a …» y después
+   **Conexión lista** con la dirección del equipo. La pantalla del validador
+   dice **CONECTADA**. Ya puedes cerrar la página y desconectar el teléfono de
+   la red `BLINK-XXXX`; los cobros empiezan a subir solos.
 
-La ventana dura 5 minutos. Si se cierra antes de guardar, apaga y enciende el
-equipo para repetir. Más detalle en BLINK-DOC-06 §6.1.
+Si aparece **No se pudo conectar**, no hace falta apagar el equipo: revisa que
+el hotspot esté encendido y que la contraseña sea la correcta, toca **Volver a
+intentar** y repite el paso 4. El equipo te da 3 minutos para corregir.
+
+La ventana dura 5 minutos. Si se cierra antes de terminar, apaga y enciende el
+equipo para repetir. Más detalle en BLINK-DOC-06 §6.1 y BLINK-DOC-21.
 
 ### 2.3 Usar el lector en la estación
 

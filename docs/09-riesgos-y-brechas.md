@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-09 |
-| Versión | 1.10.0 |
+| Versión | 1.11.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Normas | ISO/IEC/IEEE 12207 (riesgos) · ISO/IEC 27001 (A.5.7) |
@@ -73,6 +73,8 @@ implementación:
 | B-31 | Batería Li-Po 2000 mAh, TP4056, buzzer y autonomía no validados en la unidad física. | M | Falta la prueba de campo antes de operación continua (BLINK-DOC-19 §9). |
 | B-32 | No hay decreto, ordenanza ni acta municipal que homologue los Bs 500 por pasaje; la Gaceta Oficial N.º 43.335 fija una referencia nacional de Bs 100 para el pasaje urbano y exhorta a las alcaldías a armonizar. | A | La tarifa aplicada y acreditada sigue siendo la de la tarjeta (hoy Bs 500) y los términos lo declaran así, sin llamarla oficial nacional; el propietario debe aportar el instrumento municipal que la respalde o ajustar `settings.publico.tarifario.base` (BLINK-DOC-20 §3, R-14). |
 | B-33 | La Gaceta 43.335 prevé gratuidad (mujeres ≥ 50, hombres ≥ 60, personas con discapacidad), 50 % para estudiantes y 20 % en feriados; ninguna de esas reglas existe en el tarifario ni en el validador. | M | Todo pasajero paga la tarifa plena; aplicar los descuentos exige categoría verificable en la tarjeta o en la cuenta, reglas en `bt_cotizar_recarga` y en el chip, y no está aprobado como alcance (BLINK-DOC-20 §3, R-15). |
+| B-34 | La vinculación Wi-Fi se verificó en banco con un hotspot de portátil y un navegador de escritorio, pero no con choferes reales ni con el navegador de un teléfono; no hay datos de eficacia, tiempo de tarea ni satisfacción. | M | El protocolo de medición está listo (BLINK-DOC-21 §10): 5–8 choferes, tres tareas, SUS ≥ 75. Ejecutarlo antes de la producción en serie y ajustar textos u objetivos con el resultado. |
+| B-35 | La vinculación declara éxito con el enlace asociado (`WL_CONNECTED`), no con Internet alcanzable: un hotspot sin datos deja la unidad «conectada» y sin subir cobros, y la banda amarilla no aparece porque solo mira el enlace. | M | El comportamiento está documentado (BLINK-DOC-21 §12); los cobros quedan en local y suben cuando vuelva la red. Una sonda HTTP de salud queda fuera de este cambio. |
 
 ## 3. Deuda técnica
 
@@ -137,13 +139,20 @@ implementación:
 | 21 | Someter la hoja legal a revisión de un abogado antes de imprimirla en las tarjetas y de la campaña pública (R-15). | Propietario | Corto |
 | 22 | Definir si se implementan las gratuitades y descuentos de la Gaceta 43.335 y, en su caso, cómo se verifica la condición del pasajero (B-33). | Producto | Medio |
 | 23 | Cerrar R-16: proteger el AP de configuración con clave WPA2 por unidad impresa en la etiqueta, o abrirlo solo con un botón físico y un LED que avise. | Desarrollo | Corto |
+| 24 | Ejecutar el protocolo de medición de usabilidad con 5–8 choferes y ajustar textos u objetivos según el resultado (B-34). | Producto · Desarrollo | Corto |
+| 25 | Añadir una sonda de Internet antes de declarar «conectado» y reflejarla en la banda de estado (B-35). | Desarrollo | Medio |
 
 ## 6. Revisión
 
 Este registro se actualiza al cerrar cada hito. La última revisión corresponde al
-2026-11-01 y acompañó el modo de configuración Wi-Fi del validador (firmware 9):
-se cerró B-29 (ya no hace falta consola para cambiar de red) y se añadió R-16
-(el AP de configuración es abierto mientras dura la ventana).
+2026-11-01 y acompañó la revisión de usabilidad de la vinculación Wi-Fi
+(BLINK-DOC-21, firmware 9): se añadieron B-34 (falta la medición con choferes
+reales y con el navegador de un teléfono) y B-35 (se confirma el enlace, no el
+alcance de Internet); R-16 sigue abierto.
+La revisión anterior, del 2026-11-01, acompañó el modo de configuración Wi-Fi del
+validador (firmware 9): se cerró B-29 (ya no hace falta consola para cambiar de
+red) y se añadió R-16 (el AP de configuración es abierto mientras dura la
+ventana).
 La revisión anterior, del 2026-11-01, acompañó la capa legal del portal
 (LEG-TER-001 y Gaceta Oficial N.º 43.335, BLINK-DOC-20): se añadieron R-14
 (tarifa sin homologar publicada en términos) y R-15 (la hoja no es una revisión

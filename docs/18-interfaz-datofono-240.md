@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-18 |
-| Versión | 1.2.0 |
+| Versión | 1.3.0 |
 | Fecha | 2026-11-01 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
@@ -114,8 +114,8 @@ el pasajero y el conductor sepan que los cobros se están guardando en local
 Cuando el validador abre su punto de acceso temporal, la pantalla deja el panel
 de reposo y muestra la vista `VISTA_CONFIG`. **No lleva cabecera, tarifa, cola
 ni latido**: solo el dato que el chofer necesita en ese momento. La vista tiene
-dos estados que se alternan según los teléfonos unidos al AP
-(`PORTAL,clientes=N`).
+cinco estados: QR, instrucciones, conectando, conectada y fallo. La etapa de la
+vinculación manda sobre el número de teléfonos unidos (`PORTAL,clientes=N`).
 
 **Estado 1 — nadie conectado: código QR.**
 
@@ -141,12 +141,43 @@ muestra `ERROR QR` con el nombre de la red y la consola informa
 | Cuenta (y 198) | `quedan N min` en ámbar, 1×; se repinta solo esta línea cada segundo |
 
 Al entrar el primer cliente se repinta la vista completa; al salir el último
-(`PORTAL,clientes=0`) vuelve el QR. Mientras `VISTA_CONFIG` está activa el
-refresco de estado de 3 s no repinta, para no pisar el mensaje. Al cerrar la
-ventana la pantalla vuelve al panel de reposo. La lógica de provisión está en
-BLINK-DOC-06 §6.1 y las pruebas en BLINK-DOC-07 §4.11; el QR se verificó
-decodificando la misma matriz fuera del equipo, pero la lectura con la cámara
-de un teléfono aún no se ha comprobado en hardware.
+(`PORTAL,clientes=0`) vuelve el QR.
+
+**Estado 3 — conectando (`PORTAL_CONECTANDO`).**
+
+| Franja | Contenido |
+| --- | --- |
+| Título (y 48) | `CONECTANDO` en blanco, 2× |
+| Red (y 88–106) | `a la red` en gris, 1×, y el SSID en blanco, 2× (1× si supera 19 caracteres) |
+| Ayuda (y 168–186) | `Espera unos segundos` y `No cierres la pagina` en gris, 1× |
+
+**Estado 4 — conectada (`PORTAL_LISTO`).**
+
+| Franja | Contenido |
+| --- | --- |
+| Título (y 44) | `CONECTADA` en verde, 2× |
+| Dirección (y 96) | IP asignada en blanco, 2× |
+| Ayuda (y 142–172) | `ya tiene internet` en gris 1× y `Puedes cerrar el telefono` en blanco 1× |
+
+Se mantiene 10 s (`PORTAL_CIERRE_OK_MS`) y el AP se cierra solo; después vuelve
+el panel de reposo.
+
+**Estado 5 — fallo (`PORTAL_FALLO`).**
+
+| Franja | Contenido |
+| --- | --- |
+| Título (y 44–68) | `NO SE PUDO` y `CONECTAR` en rojo, 2× |
+| Red (y 116) | SSID en blanco, 2× (1× si supera 19 caracteres) |
+| Ayuda (y 156–172) | `Revisa la clave` y `en el telefono` en blanco, 1× |
+| Reintento (y 202) | `y vuelve a intentar` en ámbar, 1× |
+
+El AP sigue abierto hasta 3 minutos (`PORTAL_FALLO_MS`) para corregir la clave
+desde el mismo teléfono, sin reiniciar el equipo. Las etapas 3–5 se pintan una
+vez por cambio y no muestran la cuenta atrás; si la ventana se cierra, la
+pantalla vuelve al panel. La lógica de provisión está en BLINK-DOC-06 §6.1, la
+prueba en BLINK-DOC-07 §4.11 y el análisis de usabilidad en BLINK-DOC-21. El QR
+se verificó decodificando la misma matriz fuera del equipo; la lectura con la
+cámara de un teléfono aún no se ha comprobado en hardware.
 
 ## 5. Transacción aprobada (2,5 s)
 
@@ -312,6 +343,10 @@ de 6×8 px queda por debajo del umbral y se registra como brecha (B-25).
 | 2026-11-01 | Dibujo del QR | `PANTALLA,qr=1,modulos=29,px=185` (185 px, 5 px por módulo, 4 de silencio) |
 | 2026-11-01 | Teléfono unido y retirado | `PORTAL,clientes=1` cambia a `YA CONECTADO` con `192.168.4.1`; `PORTAL,clientes=0` vuelve a pintar el QR |
 | 2026-11-01 | Decodificación del QR | La misma matriz generada en el host con QrBlink devuelve `WIFI:T:nopass;S:BLINK-948C;P:;;` con `cv2.QRCodeDetector` a 1:1 y a 0,5× |
+| 2026-11-01 | Compilación de la revisión de usabilidad | 1 279 347 bytes (97 %), 52 772 bytes de RAM (16 %) |
+| 2026-11-01 | Etapa conectando y fallo | `PORTAL,guardado,…,intento=1`, `PORTAL,fallo,…,intento=1` y `PANTALLA,portal=3` → `5`; el AP siguió abierto con la ventana en 3 min |
+| 2026-11-01 | Etapa conectada | `PORTAL,conectado,red=BLINK-PRUEBA,ip=10.42.0.89`, `PANTALLA,portal=4` y `PORTAL,cerrado` 10 s después |
+| Pendiente | Ver las tres pantallas nuevas en el panel | Confirmar textos, IP y contraste a plena luz; no se fotografió el panel |
 | Pendiente | Escanear el QR con la cámara de un teléfono | Que el sistema proponga unirse a `BLINK-948C` y que la pantalla cambie sola a las instrucciones |
 | Pendiente | Toque real con la maestra | Ver el verde con `ISO-00` y volver al panel a los 2,5 s |
 | Pendiente | Toque sin saldo | Ver el rojo con `SALDO INSUFICIENTE` durante 3 s |
