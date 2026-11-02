@@ -344,7 +344,8 @@ de 6×8 px queda por debajo del umbral y se registra como brecha (B-25).
 | 2026-11-01 | Teléfono unido y retirado | `PORTAL,clientes=1` cambia a `YA CONECTADO` con `192.168.4.1`; `PORTAL,clientes=0` vuelve a pintar el QR |
 | 2026-11-01 | Decodificación del QR | La misma matriz generada en el host con QrBlink devuelve `WIFI:T:nopass;S:BLINK-948C;P:;;` con `cv2.QRCodeDetector` a 1:1 y a 0,5× |
 | 2026-11-01 | Compilación de la revisión de usabilidad | 1 279 347 bytes (97 %), 52 772 bytes de RAM (16 %) |
-| 2026-11-02 | Compilación de la auditoría (firmware 9) | 1 279 639 bytes (97 %), 52 772 bytes de RAM (16 %) |
+| 2026-11-02 | Compilación de la auditoría (firmware 9) | 1 279 639 bytes (97 % de la tabla por defecto), 52 772 bytes de RAM (16 %) |
+| 2026-11-02 | Partición de 3 MB (`huge_app`) | 1 279 655 bytes (40 %), ~1,8 MB libres; arranque, token y placa conservados |
 | 2026-11-01 | Etapa conectando y fallo | `PORTAL,guardado,…,intento=1`, `PORTAL,fallo,…,intento=1` y `PANTALLA,portal=3` → `5`; el AP siguió abierto con la ventana en 3 min |
 | 2026-11-01 | Etapa conectada | `PORTAL,conectado,red=BLINK-PRUEBA,ip=10.42.0.89`, `PANTALLA,portal=4` y `PORTAL,cerrado` 10 s después |
 | Pendiente | Ver las tres pantallas nuevas en el panel | Confirmar textos, IP y contraste a plena luz; no se fotografió el panel |

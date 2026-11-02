@@ -193,7 +193,9 @@ cambio se justificó con la métrica RU-03 y se verificó en la unidad física.
 ## 9. Verificación en banco (2026-11-01)
 
 Unidad ESP32-D0WD-V3, MAC `1C:60:8B:DF:94:8C`, `/dev/ttyUSB0`. Firmware
-compilado en **1 279 639 B (97 %)** y flasheado con verificación por hash. El
+compilado en **1 279 639 B** (97 % de la tabla por defecto) y flasheado con
+verificación por hash; el build del 2026-11-02 con `huge_app` ocupa 1 279 655 B
+(40 % de 3 MB). El
 banco usó un hotspot temporal del portátil (`BLINK-PRUEBA`,
 `10.42.0.1/24`) y el puerto serie con DTR y RTS en bajo.
 

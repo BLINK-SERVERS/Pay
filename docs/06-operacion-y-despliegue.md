@@ -450,9 +450,21 @@ Supabase.
 Compilar y flashear:
 
 ```bash
+# Lector (sin partición especial)
 arduino-cli compile --fqbn esp32:esp32:esp32 ~/BLINK/firmware/lector
 arduino-cli upload  --fqbn esp32:esp32:esp32 -p /dev/ttyUSB0 ~/BLINK/firmware/lector
+
+# Validador (3 MB de aplicación, sin OTA; actualización solo por USB)
+rsync -a --exclude .git --exclude README.md ~/BLINK/firmware/validador/ /tmp/BLINK_Validador/
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app /tmp/BLINK_Validador
+arduino-cli upload  --fqbn esp32:esp32:esp32:PartitionScheme=huge_app \
+                    -p /dev/ttyUSB0 /tmp/BLINK_Validador
 ```
+
+El validador ocupa 1 279 655 B: 40 % de la partición de 3 MB y 97 % de la
+tabla por defecto. Se usa `huge_app` para dejar ~1,8 MB libres a GPS, batería y
+zumbador; el `--fqbn` debe ser idéntico al compilar y al subir. La NVS está en
+`0x9000` en ambos esquemas, así que el cambio conserva red, token y colas.
 
 Enrolado manual (consola serie del validador):
 
@@ -463,9 +475,11 @@ ENROLAR,G-00001-001-N,50000,1,0484CC62
 `serial, saldo inicial, fare_type, UID`. El UID debe coincidir con
 `cards.chip_uid` (se registra con `bt_enrolar_tarjeta`).
 
-Los sketches **no están en los repositorios**; viven en `~/BLINK/firmware`
-(enlaces desde `~/Arduino`). Trasladarlos a un repositorio es una brecha abierta
-(BLINK-DOC-09 R-04).
+El sketch del validador tiene **repositorio git propio** en
+`~/BLINK/firmware/validador` (sin remoto); el del lector vive en
+`~/BLINK/firmware/lector` sin repositorio. Ambos están enlazados desde
+`~/Arduino` y se compilan desde una copia en `/tmp` con el nombre exigido por
+Arduino.
 
 ### 6.1 Configurar el Wi-Fi del validador desde el teléfono (firmware 9)
 

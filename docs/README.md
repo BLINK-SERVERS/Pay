@@ -3,11 +3,11 @@
 | Campo | Valor |
 | --- | --- |
 | Código | BLINK-DOC-00 |
-| Versión | 1.17.0 |
+| Versión | 1.18.0 |
 | Fecha | 2026-11-02 |
 | Estado | Vigente |
 | Autor | Equipo BLINK (desarrollo asistido) |
-| Revisión | 17 |
+| Revisión | 18 |
 | Normas de referencia | ISO 9001:2015 §7.5 · ISO/IEC/IEEE 12207:2017 · ISO/IEC/IEEE 26511/26512/26513/26514/26515 · ISO/IEC 25010 · ISO/IEC 27001:2022 |
 
 ## 1. Propósito
@@ -117,6 +117,7 @@ normas de documentación de software ISO/IEC/IEEE 26511 a 26515.
 | 1.15.0 | 2026-11-01 | El validador arranca la ventana de configuración con un **código QR** (`WIFI:T:nopass;S:BLINK-XXXX;P:;;`) y solo muestra las instrucciones cuando detecta un teléfono unido; sin cabecera de BLINK ni tarifa. DOC-06 §6.1 y nuevo §6.2, DOC-07 §4.11 (pruebas 12–16), DOC-08 §2.2 y DOC-18 §4.3. | Equipo BLINK |
 | 1.16.0 | 2026-11-01 | Nuevo BLINK-DOC-21: usabilidad ISO de la vinculación Wi-Fi (9241-11/110/210, 25010, 26514), flujo de tres pasos con lista automática, espera de 25 s, resultado y reintento sin reiniciar (ADR-24 a ADR-26); pantallas CONECTANDO/CONECTADA/NO SE PUDO CONECTAR y corrección del falso positivo; B-34 y B-35; DOC-06, DOC-07, DOC-08, DOC-09 y DOC-18 actualizados. | Equipo BLINK |
 | 1.17.0 | 2026-11-02 | Auditoría completa de firmware, TARJETA, BACK-OFFICE y documentación: trece defectos de firmware corregidos (B-36 a B-48), siete riesgos nuevos (R-17 a R-23), ocho brechas de las aplicaciones (B-49 a B-56) y quince desajustes documentales corregidos (DOC-01, DOC-02, DOC-03, DOC-04, DOC-06, DOC-09, DOC-14, DOC-18, DOC-21, DOC-00, README del back-office y firmware); compilación 1 279 639 B (97 %) y verificación en hardware del portal de configuración. | Equipo BLINK |
+| 1.18.0 | 2026-11-02 | El validador pasa a la partición de 3 MB (`PartitionScheme=huge_app`, sin OTA): el binario de 1 279 655 B baja del 97 % al 40 % y deja ~1,8 MB para GPS, batería, zumbador y futuras funciones. La NVS en `0x9000` conserva red, token y colas; DOC-06, DOC-07, DOC-18 y DOC-21 actualizados con los comandos y el porcentaje real. | Equipo BLINK |
 
 Reglas de mantenimiento:
 
