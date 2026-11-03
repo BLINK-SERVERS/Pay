@@ -7,6 +7,40 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+## [1.8.0] — 2026-11-03
+
+### Añadido
+
+- **Acceso con huella o rostro** en dispositivos compatibles mediante WebAuthn
+  (`src/lib/biometria.ts`): tras el primer acceso con PIN, el portal ofrece
+  activar una credencial de plataforma (`authenticatorAttachment: "platform"`,
+  `userVerification: "required"`). En los siguientes arranques, una pantalla de
+  desbloqueo permite abrir la billetera verificando la biometría, sin escribir
+  cédula ni PIN.
+- **Hoja de activación** tras el primer inicio de sesión, con instrucciones y
+  opción «Ahora no»; no se vuelve a ofrecer para la misma cédula.
+- **Perfil › Seguridad** permite activar o desactivar el acceso con huella e
+  indica cuándo no está disponible en el navegador.
+- **BLINK-DOC-23** con el diseño, el modelo de amenazas, los flujos, los
+  límites y las decisiones ADR-29/ADR-30.
+
+### Cambiado
+
+- El cierre por inactividad de 30 minutos ya no expulsa la sesión cuando hay
+  biometría activa: muestra la pantalla de desbloqueo. Sin biometría se
+  mantiene el cierre de sesión completo.
+- La sesión guardada con biometría ya no se restaura sola al recargar: primero
+  se exige la verificación del teléfono.
+
+### Seguridad
+
+- Solo se guarda el **token de sesión** (`blink.tarjeta.biometria.v1`), nunca el
+  PIN. El token caduca a las 12 horas, se borra al cerrar sesión y se renueva
+  con cada acceso por PIN; la credencial del teléfono se conserva para volver a
+  enlazarla. Una copia con fecha futura, caducada o incoherente se descarta.
+- BLINK no recibe ni almacena datos biométricos: la verificación ocurre en el
+  autenticador del dispositivo.
+
 ## [1.7.0] — 2026-11-01
 
 ### Añadido

@@ -32,7 +32,8 @@ export type IconName =
   | "actualizar"
   | "punto"
   | "mas"
-  | "correo";
+  | "correo"
+  | "huella";
 
 const trazos: Record<IconName, React.ReactNode> = {
   tarjeta: (
@@ -223,6 +224,15 @@ const trazos: Record<IconName, React.ReactNode> = {
     </>
   ),
   punto: <circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none" />,
+  huella: (
+    <>
+      <path d="M12 3.7a8.3 8.3 0 0 1 8.3 8.3" />
+      <path d="M3.7 12A8.3 8.3 0 0 1 8 4.6" />
+      <path d="M7.2 19.9A9.4 9.4 0 0 1 6 15.9a6 6 0 0 1 12 0c0 1.4.2 2.7.6 3.9" />
+      <path d="M12 9.9a3 3 0 0 1 3 3c0 2.8.6 5.4 1.6 7.7" />
+      <path d="M8.9 20.3A12 12 0 0 1 8 15.9a4 4 0 0 1 2-3.4" />
+    </>
+  ),
 };
 
 export function Icon({

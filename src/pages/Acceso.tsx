@@ -3,6 +3,7 @@ import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
 import { Hoja } from "../components/Hoja";
 import { HojaLegal } from "../components/HojaLegal";
+import { mensajeBiometria } from "../lib/biometria";
 import { ErrorBlink } from "../lib/repo";
 import { repositorio, type Repositorio } from "../lib/repo";
 import {
@@ -24,9 +25,21 @@ interface Props {
   alEntrar: (sesion: Sesion) => void;
   /** Tarifa vigente que se muestra en los términos legales. */
   tarifa?: number;
+  /** Cuenta con sesión guardada que puede desbloquearse con biometría. */
+  biometria?: { nombre: string; cedula: string } | null;
+  alEntrarConBiometria?: () => Promise<void>;
+  /** Aviso que dejó una sesión vencida o revocada. */
+  avisoInicial?: string | null;
 }
 
-export function Acceso({ repo = repositorio, alEntrar, tarifa = 500 }: Props) {
+export function Acceso({
+  repo = repositorio,
+  alEntrar,
+  tarifa = 500,
+  biometria = null,
+  alEntrarConBiometria,
+  avisoInicial = null,
+}: Props) {
   const [modo, setModo] = useState<Modo>("entrar");
 
   // Entrar
@@ -49,7 +62,7 @@ export function Acceso({ repo = repositorio, alEntrar, tarifa = 500 }: Props) {
   const [pagoCedula, setPagoCedula] = useState("");
 
   const [errores, setErrores] = useState<Record<string, string>>({});
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(avisoInicial);
   const [enviando, setEnviando] = useState(false);
   const [ayuda, setAyuda] = useState(false);
   const [legalAbierto, setLegalAbierto] = useState(false);
@@ -90,6 +103,19 @@ export function Acceso({ repo = repositorio, alEntrar, tarifa = 500 }: Props) {
           : "No pudimos completar la operación. Inténtalo de nuevo."
       );
       setPin("");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function entrarConBiometria() {
+    if (enviando || !alEntrarConBiometria) return;
+    setEnviando(true);
+    setAviso(null);
+    try {
+      await alEntrarConBiometria();
+    } catch (error) {
+      setAviso(mensajeBiometria(error));
     } finally {
       setEnviando(false);
     }
@@ -215,6 +241,26 @@ export function Acceso({ repo = repositorio, alEntrar, tarifa = 500 }: Props) {
 
         {modo === "entrar" ? (
           <form className="acceso__form" onSubmit={enviarLogin} noValidate>
+            {biometria && alEntrarConBiometria && (
+              <button
+                type="button"
+                className="boton--biometria"
+                onClick={() => void entrarConBiometria()}
+                disabled={enviando}
+              >
+                <span className="boton--biometria__icono">
+                  <Icon name="huella" />
+                </span>
+                <span className="boton--biometria__texto">
+                  <strong>Entrar con huella o rostro</strong>
+                  <span>
+                    {biometria.nombre} · {biometria.cedula}
+                  </span>
+                </span>
+                <Icon name="adelante" />
+              </button>
+            )}
+
             <div className="campo">
               <label className="campo__etiqueta" htmlFor="cedula">
                 Cédula del titular

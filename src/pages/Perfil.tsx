@@ -3,6 +3,7 @@ import { Hoja } from "../components/Hoja";
 import { HojaLegal } from "../components/HojaLegal";
 import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
+import { mensajeBiometria } from "../lib/biometria";
 import { ErrorBlink } from "../lib/repo";
 import { erroresDatosPago, validarPin } from "../lib/dominio";
 import {
@@ -37,6 +38,10 @@ interface Props {
   alCambiarPin: (actual: string, nuevo: string) => Promise<void>;
   alActualizarPago: (datos: DatosPago) => Promise<Cuenta>;
   alVincular: () => void;
+  biometriaSoportada: boolean;
+  biometriaActiva: boolean;
+  alActivarBiometria: () => Promise<void>;
+  alDesactivarBiometria: () => void;
   alSalir: () => void;
 }
 
@@ -51,6 +56,10 @@ export function Perfil({
   alCambiarPin,
   alActualizarPago,
   alVincular,
+  biometriaSoportada,
+  biometriaActiva,
+  alActivarBiometria,
+  alDesactivarBiometria,
   alSalir,
 }: Props) {
   const [pinAbierto, setPinAbierto] = useState(false);
@@ -61,6 +70,8 @@ export function Perfil({
   const [legalAbierto, setLegalAbierto] = useState(false);
   const [exito, setExito] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [guardandoBiometria, setGuardandoBiometria] = useState(false);
+  const [errorBiometria, setErrorBiometria] = useState<string | null>(null);
 
   const [pagoAbierto, setPagoAbierto] = useState(false);
   const [pagoPropio, setPagoPropio] = useState(cuenta.datosPago.propio);
@@ -101,6 +112,23 @@ export function Perfil({
       );
     } finally {
       setGuardando(false);
+    }
+  }
+
+  async function alternarBiometria() {
+    if (guardandoBiometria) return;
+    setErrorBiometria(null);
+    if (biometriaActiva) {
+      alDesactivarBiometria();
+      return;
+    }
+    setGuardandoBiometria(true);
+    try {
+      await alActivarBiometria();
+    } catch (fallo) {
+      setErrorBiometria(mensajeBiometria(fallo));
+    } finally {
+      setGuardandoBiometria(false);
     }
   }
 
@@ -307,9 +335,56 @@ export function Perfil({
           </span>
           <Icon name="adelante" />
         </button>
+
+        {biometriaSoportada ? (
+          <button
+            type="button"
+            className="fila-accion"
+            onClick={() => void alternarBiometria()}
+            disabled={guardandoBiometria}
+          >
+            <span className="fila-accion__icono">
+              <Icon name="huella" />
+            </span>
+            <span className="fila-accion__texto">
+              <strong>
+                {biometriaActiva ? "Desactivar acceso con huella" : "Activar acceso con huella"}
+              </strong>
+              <span>
+                {biometriaActiva
+                  ? "Este teléfono desbloquea tu sesión guardada"
+                  : "Entra con tu huella o rostro durante 12 horas"}
+              </span>
+            </span>
+            {guardandoBiometria ? (
+              <span className="girador" aria-label="Guardando" />
+            ) : (
+              <Icon name={biometriaActiva ? "check" : "adelante"} />
+            )}
+          </button>
+        ) : (
+          <div className="fila-accion fila-accion--estatica">
+            <span className="fila-accion__icono">
+              <Icon name="huella" />
+            </span>
+            <span className="fila-accion__texto">
+              <strong>Acceso con huella</strong>
+              <span>No disponible en este navegador o dispositivo</span>
+            </span>
+          </div>
+        )}
+
+        {errorBiometria && (
+          <div className="aviso aviso--peligro" role="alert">
+            <Icon name="alerta" />
+            <p>{errorBiometria}</p>
+          </div>
+        )}
+
         <p className="panel__nota">
-          La sesión se cierra sola a las 12 horas. El PIN nunca se envía a un tercero; se
-          verifica contra su hash.
+          La huella o el rostro los verifica tu teléfono: BLINK no los recibe ni los guarda.
+          Desbloquean la sesión guardada y no sustituyen al PIN. La sesión se cierra sola a
+          las 12 horas.
         </p>
       </section>
 

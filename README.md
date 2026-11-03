@@ -7,7 +7,7 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 - **Panel administrativo:** https://blink-servers.github.io/BACKOFFICE/
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 1.7.0 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 1.8.0 · [CHANGELOG](CHANGELOG.md)
 
 ## Qué hace
 
@@ -17,6 +17,9 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 - Saldo, movimientos, tarjeta virtual con giro 3D y código de barras Code 128.
 - Recarga reportada por Pago Móvil con comprobante en revisión.
 - Cambio de PIN y de datos de pago.
+- **Acceso con huella o rostro** en teléfonos compatibles: desbloquea la sesión
+  guardada de 12 horas sin escribir la cédula ni el PIN (WebAuthn). El PIN sigue
+  siendo la llave de respaldo y el único medio para entrar en un teléfono nuevo.
 - Apertura sin conexión con la última tarjeta sincronizada.
 
 Sin variables de entorno la app funciona en **modo demostración** con datos
@@ -57,6 +60,11 @@ datos:
    sincronización. La copia local caduca a las 12 horas de la última vez que
    hubo red y se borra al cerrar sesión. Abre el portal una vez con internet
    para recibir actualizaciones.
+5. Tras el primer acceso, el portal ofrece **activar el acceso con huella o
+   rostro**; también se activa o desactiva en **Perfil › Seguridad**. La
+   biometría desbloquea la sesión guardada, no sustituye al PIN, y se desactiva
+   al cerrar sesión: la credencial queda en el teléfono y se vuelve a enlazar
+   con el siguiente acceso por PIN.
 
 No borres los datos del sitio: se lleva el armazón offline y la copia de la
 tarjeta.
@@ -67,7 +75,7 @@ tarjeta.
 npm ci
 npm run dev        # http://localhost:5173
 npm run typecheck
-npm test           # 87 pruebas
+npm test           # 97 pruebas
 npm run build
 npm run lote       # genera un lote de seriales y la hoja de impresión
 ```
@@ -115,6 +123,7 @@ Cada push a `main` dispara `.github/workflows/pages.yml`: `typecheck` → `test`
 | [docs/08-manual-de-usuario.md](../docs/08-manual-de-usuario.md) | Guía del pasajero, chofer y operación. |
 | [docs/10-guia-de-retoma.md](../docs/10-guia-de-retoma.md) | Cómo continuar el desarrollo. |
 | [docs/12-enrolado-de-lotes.md](../docs/12-enrolado-de-lotes.md) | Producción física de lotes. |
+| [docs/23-acceso-biometrico.md](../docs/23-acceso-biometrico.md) | Acceso con huella o rostro (WebAuthn), límites y modelo de amenazas. |
 
 ## Base de datos compartida
 
