@@ -7,6 +7,69 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+## [2.1.0] — 2026-11-04
+
+### Añadido
+
+- **Transferencia de saldo entre tarjetas** (`src/pages/Transferir.tsx` y
+  `bt_transferir_saldo` en `0022_transferencias.sql`): desde la quinta pestaña
+  se elige la tarjeta de destino por serial, el monto y se confirma con el PIN
+  del titular. Sirve para tarjetas de la misma cuenta o de otra persona.
+  Devuelve comprobante con número de referencia, saldo anterior y resultante,
+  y aparece como movimiento «Transferencia» en ambas billeteras.
+- **Topes y disponibilidad**: límite por operación y por día configurables en
+  `ajustes` (5.000 y 20.000 Bs por defecto), PIN con el mismo bloqueo de cinco
+  intentos del acceso y disponibilidad acotada a lo que el chip también puede
+  descontar, para no dejar el plástico con saldo negativo (ADR-39).
+- **Idempotencia por clave**: cada intento lleva una clave UUID; un reintento
+  por corte de red devuelve la misma transferencia en lugar de mover el dinero
+  dos veces (ADR-37).
+- **Ajustes firmados del chip** (`card_adjustments`): la nube registra el
+  crédito del destino y el débito del origen como pendientes que el validador
+  aplica y acusa en su siguiente sincronización; `virtual_balance` sigue siendo
+  el libro mayor autoritativo (ADR-38).
+- **BLINK-DOC-26** con el contrato, la matriz de amenazas y las consultas
+  operativas; RF-20 en BLINK-DOC-01 y manual del pasajero en BLINK-DOC-08 §1.11.
+
+### Cambiado
+
+- La navegación pasa a **cinco secciones**: Inicio, Movimientos, Recargar,
+  Transferir y Perfil, tanto en la barra de pestañas del teléfono como en la
+  barra lateral de la computadora. El inspector reconoce el detalle de una
+  transferencia.
+- La copia local sube a la **versión 5** para guardar el disponible y los
+  ajustes pendientes; el armazón del service worker pasa a
+  `blink-tarjeta-v7`.
+- `bt_validador_sincronizar` aplica primero los acuses de recargas y ajustes y
+  después los toques, acota `chip_balance_after` y no sobrescribe el libro
+  mayor.
+
+### Corregido (seguridad, `0021_endurece_acceso.sql`)
+
+- El segundo factor del back-office se exige **por sesión** (`account_sessions.mfa`)
+  y no solo por operador: una sesión abierta antes de activar TOTP ya no evita
+  el código.
+- Los códigos TOTP no se pueden repetir dentro de su ventana
+  (`totp_ultimo_contador`).
+- El cambio de PIN queda sujeto al mismo contador de intentos que el acceso.
+- La vinculación de tarjetas tiene límite por cuenta y ventana de tiempo, y las
+  entradas y vinculaciones bloquean la fila (`for update`) para evitar carreras.
+- La recarga solo se acepta sobre tarjetas activas y vigentes.
+
+### Pruebas
+
+- `npm run typecheck` limpio; `npm test`: 108 pruebas en 9 archivos.
+- `simulacion/flujo.mjs` cubre la transferencia entre tarjetas de la misma
+  cuenta y hacia otra cuenta, el reintento idempotente y los ajustes del chip.
+- `npm run verificar:hig`: 78 comprobaciones correctas con la quinta sección.
+
+### Riesgos
+
+- El firmware 9 ignora los ajustes negativos: el plástico emisor conserva el
+  importe hasta que se actualice a la versión 10 (**R-27**, **B-60**). El saldo
+  virtual ya está debitado y la transferencia queda registrada; la corrección
+  del chip es la acción 39 de BLINK-DOC-09.
+
 ## [2.0.0] — 2026-11-03
 
 ### Añadido

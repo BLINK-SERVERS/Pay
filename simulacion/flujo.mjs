@@ -249,7 +249,131 @@ try {
   assert.match(duplicado ?? "", /bt:duplicada/);
   ok("la misma referencia otra vez se rechaza (bt:duplicada)");
 
-  paso(10, "Resumen operativo");
+  paso(10, "Pasajera: transferencia de saldo entre sus dos tarjetas");
+  const transferir = (destino, monto, pin, clave = crypto.randomUUID()) =>
+    rpc("bt_transferir_saldo", {
+      p_token: token,
+      p_origen: seriales[0],
+      p_destino: destino,
+      p_monto: monto,
+      p_pin: pin,
+      p_clave: clave,
+    });
+
+  const pinMalo = await transferir(seriales[1], 500, "000000");
+  assert.equal(pinMalo.error, "credenciales");
+
+  const mismaTarjeta = await transferir(seriales[0], 500, "258036");
+  assert.equal(mismaTarjeta.error, "datos");
+
+  const sinSaldo = await transferir(seriales[1], 600, "258036");
+  assert.equal(sinSaldo.error, "datos");
+
+  const sobreTope = await transferir(seriales[1], 5001, "258036");
+  assert.equal(sobreTope.error, "datos");
+
+  const desconocida = await transferir("G-99999-999-Z", 500, "258036");
+  assert.equal(desconocida.error, "sin-tarjeta");
+  ok("PIN, misma tarjeta, saldo insuficiente, tope y destino inválido rechazados");
+
+  const clave = crypto.randomUUID();
+  const transferencia = await transferir(seriales[1], 500, "258036", clave);
+  assert.equal(transferencia.repetida, false);
+  assert.equal(Number(transferencia.transferencia.monto), 500);
+  assert.equal(Number(transferencia.transferencia.origen.saldo), 0);
+  assert.equal(Number(transferencia.transferencia.destino.saldo), 500);
+  assert.equal(transferencia.transferencia.destino.titular, "Ana S.");
+  assert.equal(Number(transferencia.movimiento.monto), -500);
+  ok(
+    `transferidos 500 Bs de ${seriales[0]} a ${seriales[1]} · ` +
+      `origen 0 / destino 500`,
+  );
+
+  const repetida = await transferir(seriales[1], 500, "258036", clave);
+  assert.equal(repetida.repetida, true);
+  assert.equal(repetida.transferencia.id, transferencia.transferencia.id);
+  ok("la misma clave devuelve el comprobante sin descontar otra vez");
+
+  const { rows: saldos } = await db.query(
+    `select visible_id, virtual_balance, last_chip_balance
+       from public.cards where visible_id = any($1)`,
+    [[seriales[0], seriales[1]]],
+  );
+  const saldo = Object.fromEntries(saldos.map((f) => [f.visible_id, f]));
+  assert.equal(Number(saldo[seriales[0]].virtual_balance), 0);
+  assert.equal(Number(saldo[seriales[1]].virtual_balance), 500);
+  assert.equal(Number(saldo[seriales[0]].last_chip_balance), 500, "el chip aún tiene el saldo");
+  assert.equal(Number(saldo[seriales[1]].last_chip_balance), 0);
+
+  const { rows: ajustes } = await db.query(
+    `select monto, synced_to_chip from public.card_adjustments
+      where transfer_id = $1 order by monto`,
+    [transferencia.transferencia.id],
+  );
+  assert.equal(ajustes.length, 2);
+  assert.deepEqual(
+    ajustes.map((a) => Number(a.monto)),
+    [-500, 500],
+  );
+  assert.ok(ajustes.every((a) => a.synced_to_chip === false));
+  ok("quedan dos ajustes firmados pendientes de escribir en los chips");
+
+  const movimientosTransferencia = await rpc("bt_movimientos", {
+    p_token: token,
+    p_serial: seriales[0],
+    p_limite: 20,
+  });
+  assert.ok(
+    movimientosTransferencia.movimientos.some(
+      (m) => m.tipo === "transferencia" && Number(m.monto) === -500,
+    ),
+  );
+  ok("el extracto del portal muestra la salida");
+
+  paso(11, "Validador: entrega los ajustes al chip y cobra el saldo recibido");
+  const sync3 = await rpc("bt_validador_sincronizar_token", {
+    p_token: tokenValidador,
+  });
+  assert.equal(sync3.pendientes.length, 2, "deben bajar los dos ajustes");
+  const ajusteDestino = sync3.pendientes.find(
+    (p) => p.serial === seriales[1] && Number(p.monto) === 500,
+  );
+  const ajusteOrigen = sync3.pendientes.find(
+    (p) => p.serial === seriales[0] && Number(p.monto) === -500,
+  );
+  assert.ok(ajusteDestino && ajusteOrigen);
+
+  const sync4 = await rpc("bt_validador_sincronizar_token", {
+    p_token: tokenValidador,
+    p_taps: [
+      {
+        offline_id: `sim-tr-${Date.now()}`,
+        visible_id: seriales[1],
+        fare_charged: 500,
+        fare_type: 1,
+        chip_balance_after: 0,
+        tapped_at: new Date().toISOString(),
+      },
+    ],
+    p_recargas: [{ id: ajusteDestino.id }, { id: ajusteOrigen.id }],
+  });
+  assert.equal(sync4.procesadas, 1);
+  assert.equal(sync4.rechazadas.length, 0);
+  assert.equal(sync4.pendientes.length, 0);
+
+  const { rows: finales } = await db.query(
+    `select visible_id, virtual_balance, last_chip_balance
+       from public.cards where visible_id = any($1)`,
+    [[seriales[0], seriales[1]]],
+  );
+  const final = Object.fromEntries(finales.map((f) => [f.visible_id, f]));
+  assert.equal(Number(final[seriales[0]].virtual_balance), 0);
+  assert.equal(Number(final[seriales[0]].last_chip_balance), 0, "el débito llegó al chip");
+  assert.equal(Number(final[seriales[1]].virtual_balance), 0);
+  assert.equal(Number(final[seriales[1]].last_chip_balance), 0);
+  ok("ajustes acusados, viaje de 500 Bs cobrado y ambos plásticos en cero");
+
+  paso(12, "Resumen operativo");
   const [resumenFila] = await servicio(
     "select public.bt_resumen_operativo() as r",
   );

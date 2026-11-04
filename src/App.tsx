@@ -13,6 +13,7 @@ import { Inicio } from "./pages/Inicio";
 import { Movimientos } from "./pages/Movimientos";
 import { Perfil } from "./pages/Perfil";
 import { Recargar } from "./pages/Recargar";
+import { Transferir } from "./pages/Transferir";
 import { ajustesPorDefecto } from "./lib/ajustes";
 import {
   activarBiometria,
@@ -32,7 +33,17 @@ import { ErrorBlink, repositorio } from "./lib/repo";
 import { aplicarTema, leerTema, useConsultaMedio, useCopiar, type ModoTema } from "./lib/hooks";
 import { olvidarCopia } from "./lib/offline";
 import { formatearBs, formatearSerial } from "./lib/formato";
-import type { Ajustes, Cuenta, DatosPago, Movimiento, RecargaNueva, Sesion, Tarjeta } from "./lib/tipos";
+import type {
+  Ajustes,
+  Cuenta,
+  DatosPago,
+  Movimiento,
+  RecargaNueva,
+  ResultadoTransferencia,
+  Sesion,
+  Tarjeta,
+  TransferenciaNueva,
+} from "./lib/tipos";
 
 const CLAVE_SESION = "blink.tarjeta.sesion";
 const BLOQUEO_INACTIVO = 30 * 60 * 1000;
@@ -342,6 +353,13 @@ export function App() {
     return movimiento;
   }
 
+  async function transferir(solicitud: TransferenciaNueva): Promise<ResultadoTransferencia> {
+    if (!token) throw new Error("Sin sesión activa.");
+    const resultado = await repositorio.transferir(token, solicitud);
+    await refrescar();
+    return resultado;
+  }
+
   async function cambiarPin(actual: string, nuevo: string) {
     if (!token) throw new Error("Sin sesión activa.");
     await repositorio.cambiarPin(token, actual, nuevo);
@@ -359,7 +377,7 @@ export function App() {
     // El inspector refleja una selección de la pestaña en curso; al cambiar
     // de sección volvemos al resumen en lugar de arrastrar el detalle.
     setMovimientoActivo(null);
-    if (nueva === "inicio" || nueva === "movimientos") void refrescar();
+    if (nueva === "inicio" || nueva === "movimientos" || nueva === "transferir") void refrescar();
   }
 
   function cambiarTema(nuevo: ModoTema) {
@@ -494,6 +512,17 @@ export function App() {
             alInicio={() => cambiarPestana("inicio")}
             alVerMovimientos={() => cambiarPestana("movimientos")}
             alEditarPago={() => cambiarPestana("perfil")}
+          />
+        )}
+        {tarjeta && pestana === "transferir" && (
+          <Transferir
+            tarjeta={tarjeta}
+            tarjetas={sesion.tarjetas}
+            ajustes={ajustes}
+            alSeleccionarOrigen={setSerialActiva}
+            alTransferir={transferir}
+            alInicio={() => cambiarPestana("inicio")}
+            alVerMovimientos={() => cambiarPestana("movimientos")}
           />
         )}
         {pestana === "perfil" && (

@@ -1,4 +1,14 @@
-import type { Ajustes, Cuenta, DatosPago, Movimiento, RecargaNueva, Sesion, Tarjeta } from "./tipos";
+import type {
+  Ajustes,
+  Cuenta,
+  DatosPago,
+  Movimiento,
+  RecargaNueva,
+  ResultadoTransferencia,
+  Sesion,
+  Tarjeta,
+  TransferenciaNueva,
+} from "./tipos";
 import { AJUSTES_POR_DEFECTO } from "./tipos";
 import { ErrorBlink, type CodigoError, type Repositorio } from "./local";
 import {
@@ -208,6 +218,17 @@ export const repositorioNube: Repositorio = {
       p_banco: recarga.banco,
       p_referencia: recarga.referencia,
     }).then((r) => r.movimiento);
+  },
+
+  transferir(token, transferencia: TransferenciaNueva) {
+    return rpc<ResultadoTransferencia>("bt_transferir_saldo", {
+      p_token: token,
+      p_origen: transferencia.origen,
+      p_destino: transferencia.destino,
+      p_monto: transferencia.monto,
+      p_pin: transferencia.pin,
+      p_clave: transferencia.clave,
+    });
   },
 
   async cambiarPin(token, actual, nuevo) {

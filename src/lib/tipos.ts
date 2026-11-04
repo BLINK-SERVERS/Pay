@@ -27,7 +27,12 @@ export interface Tarjeta {
   tarifa: number;
 }
 
-export type TipoMovimiento = "recarga" | "viaje" | "devolucion" | "ajuste";
+export type TipoMovimiento =
+  | "recarga"
+  | "viaje"
+  | "devolucion"
+  | "ajuste"
+  | "transferencia";
 
 export type EstadoMovimiento = "aprobado" | "pendiente" | "rechazado";
 
@@ -58,6 +63,45 @@ export interface RecargaNueva {
   telefono: string;
   banco: string;
   referencia: string;
+}
+
+/** Orden de transferir saldo entre dos plásticos. */
+export interface TransferenciaNueva {
+  /** Serial de la tarjeta que entrega el saldo. */
+  origen: string;
+  /** Serial de la tarjeta que lo recibe. */
+  destino: string;
+  /** Bs enteros o con dos decimales. */
+  monto: number;
+  /** PIN de la cuenta dueña de la tarjeta de origen. */
+  pin: string;
+  /** Clave de idempotencia: un reintento devuelve el mismo comprobante. */
+  clave: string;
+}
+
+export interface TransferenciaLado {
+  serial: string;
+  /** Saldo después de aplicar la transferencia. */
+  saldo: number;
+  /** Titular enmascarado del destino: "Ana S.". */
+  titular?: string;
+}
+
+export interface Transferencia {
+  id: string;
+  clave: string;
+  monto: number;
+  at: string;
+  origen: TransferenciaLado;
+  destino: TransferenciaLado;
+}
+
+export interface ResultadoTransferencia {
+  transferencia: Transferencia;
+  /** Movimiento de salida en la tarjeta de origen. */
+  movimiento?: Movimiento;
+  /** true cuando la clave ya se había aplicado y no se repitió el cargo. */
+  repetida: boolean;
 }
 
 /** Banco emisor venezolano del directorio oficial (SUDEBAN). */
@@ -161,6 +205,10 @@ export interface Ajustes {
   pagoMovil: DatosPagoMovil;
   /** Tope de recarga por operación, en Bs (monto bruto transferido). */
   topeRecarga: number;
+  /** Tope de saldo por transferencia entre tarjetas, en Bs. */
+  topeTransferencia: number;
+  /** Tope de saldo transferido por cuenta en 24 h, en Bs. */
+  topeTransferenciaDiario: number;
   /** Parámetros del motor tarifario (BLINK-DOC-19). */
   tarifario: ParametrosTarifarios;
   /** Teléfono de atención al cliente. */
@@ -175,6 +223,8 @@ export const AJUSTES_POR_DEFECTO: Ajustes = {
     titular: "BLINK PASAJES, C.A.",
   },
   topeRecarga: 20000,
+  topeTransferencia: 5000,
+  topeTransferenciaDiario: 20000,
   tarifario: TARIFARIO_POR_DEFECTO,
   atencion: "0800-BLINK-00",
 };

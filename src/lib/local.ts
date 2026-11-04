@@ -6,12 +6,15 @@ import type {
   EstadoMovimiento,
   Movimiento,
   RecargaNueva,
+  ResultadoTransferencia,
   Sesion,
   Tarjeta,
+  Transferencia,
+  TransferenciaNueva,
 } from "./tipos";
 import { AJUSTES_POR_DEFECTO } from "./tipos";
 import { hashPin, verificarPin } from "./pin";
-import { formatearCedula, formatearSerial, formatearTelefono, soloDigitos } from "./formato";
+import { formatearCedula, formatearEntero, formatearSerial, formatearTelefono, soloDigitos } from "./formato";
 import { erroresDatosPago, validarPin, validarSerial } from "./dominio";
 
 export type CodigoError =
@@ -44,6 +47,7 @@ export interface Repositorio {
   vincular(token: string, serial: string): Promise<Sesion>;
   movimientos(token: string, serial: string): Promise<Movimiento[]>;
   reportarRecarga(token: string, serial: string, recarga: RecargaNueva): Promise<Movimiento>;
+  transferir(token: string, transferencia: TransferenciaNueva): Promise<ResultadoTransferencia>;
   cambiarPin(token: string, actual: string, nuevo: string): Promise<void>;
   actualizarPago(token: string, datosPago: DatosPago): Promise<Cuenta>;
   salir(token: string): Promise<void>;
@@ -62,6 +66,10 @@ const BLOQUEO_INTENTOS = 1000 * 60 * 5;
 
 const PIN_DEMO = "194628";
 
+/** Topes de la demostración: los mismos valores por defecto que publica la nube. */
+const TOPE_TRANSFERENCIA = AJUSTES_POR_DEFECTO.topeTransferencia;
+const TOPE_TRANSFERENCIA_DIARIO = AJUSTES_POR_DEFECTO.topeTransferenciaDiario;
+
 interface CuentaLocal extends Cuenta {
   pinHash: string;
 }
@@ -71,14 +79,22 @@ interface TarjetaLocal extends Tarjeta {
   cuenta: string;
 }
 
+interface TransferenciaLocal extends Transferencia {
+  /** Cédula (solo dígitos) de la cuenta que ordenó la transferencia. */
+  cuenta: string;
+}
+
 interface BaseLocal {
-  version: 4;
+  version: 5;
   cuentas: CuentaLocal[];
   tarjetas: TarjetaLocal[];
   movimientos: Movimiento[];
+  transferencias: TransferenciaLocal[];
   sesiones: Record<string, { cedula: string; expira: number }>;
   intentos: Record<string, { fallos: number; hasta: number }>;
 }
+
+type BaseLocalV4 = Omit<BaseLocal, "version" | "transferencias"> & { version: 4 };
 
 const TARIFA = 500;
 
@@ -320,12 +336,13 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
   };
 
   return {
-    version: 4,
+    version: 5,
     cuentas,
     tarjetas,
     movimientos: [pendiente, ...serie1, ...serie4, viaje2].sort(
       (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()
     ),
+    transferencias: [],
     sesiones: {},
     intentos: {},
   };
@@ -335,9 +352,19 @@ function leer(): BaseLocal | null {
   try {
     const crudo = localStorage.getItem(CLAVE);
     if (!crudo) return null;
-    const datos = JSON.parse(crudo) as BaseLocal;
-    if (datos.version !== 4) return null;
-    return datos;
+    const datos = JSON.parse(crudo) as BaseLocal | BaseLocalV4;
+    if (datos.version === 4) {
+      // La base demo anterior no tenía transferencias; se conserva la
+      // billetera y se le añade el libro vacío.
+      const migrada: BaseLocal = {
+        ...(datos as BaseLocalV4),
+        version: 5,
+        transferencias: [],
+      };
+      guardar(migrada);
+      return migrada;
+    }
+    return datos.version === 5 ? datos : null;
   } catch {
     return null;
   }
@@ -412,6 +439,60 @@ function abrirSesion(datos: BaseLocal, cuenta: CuentaLocal): Sesion {
   const token = crypto.randomUUID();
   datos.sesiones[token] = { cedula: cuenta.cedula, expira: Date.now() + VIDA_SESION };
   return sesionDe(datos, cuenta, token);
+}
+
+/**
+ * Verifica el PIN con el mismo límite de intentos que el acceso. Un fallo
+ * en una operación sensible (cambiar PIN, transferir) agota la cuenta
+ * igual que un fallo al entrar.
+ */
+async function exigirPin(datos: BaseLocal, cuenta: CuentaLocal, pin: string): Promise<void> {
+  const llave = soloDigitos(cuenta.cedula);
+  const intento = datos.intentos[llave];
+  if (intento && intento.hasta > Date.now()) {
+    const minutos = Math.ceil((intento.hasta - Date.now()) / 60000);
+    throw new ErrorBlink(
+      "credenciales",
+      `Demasiados intentos fallidos. Espera ${minutos} min o recupera tu PIN en atención al cliente.`
+    );
+  }
+
+  if (await verificarPin(pin, cuenta.pinHash)) {
+    if (intento) {
+      delete datos.intentos[llave];
+      guardar(datos);
+    }
+    return;
+  }
+
+  const fallos = (intento?.fallos ?? 0) + 1;
+  datos.intentos[llave] = {
+    fallos,
+    hasta: fallos >= MAX_INTENTOS ? Date.now() + BLOQUEO_INTENTOS : 0,
+  };
+  guardar(datos);
+  throw new ErrorBlink(
+    "credenciales",
+    fallos >= MAX_INTENTOS
+      ? "Demasiados intentos fallidos. Espera 5 min o recupera tu PIN en atención al cliente."
+      : "El PIN no coincide. Inténtalo de nuevo."
+  );
+}
+
+function terminacion(serial: string): string {
+  return serial.replace(/\D/g, "").slice(-4);
+}
+
+/** "Ana S.", como el comprobante del servidor. */
+function titularMascarado(nombre: string): string {
+  const partes = nombre.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "Titular de la tarjeta";
+  const inicial = partes[partes.length - 1][0] ?? "";
+  return `${partes[0]} ${inicial.toUpperCase()}.`;
+}
+
+function aTransferencia({ cuenta: _cuenta, ...transferencia }: TransferenciaLocal): Transferencia {
+  return { ...transferencia, origen: { ...transferencia.origen }, destino: { ...transferencia.destino } };
 }
 
 export const repositorioLocal: Repositorio = {
@@ -582,12 +663,141 @@ export const repositorioLocal: Repositorio = {
     return movimiento;
   },
 
+  async transferir(token, solicitud) {
+    const datos = await base();
+    const cuenta = porToken(datos, token);
+    const llave = soloDigitos(cuenta.cedula);
+    const clave = solicitud.clave.trim();
+
+    if (!clave) {
+      throw new ErrorBlink(
+        "datos",
+        "No pudimos identificar esta operación. Vuelve a intentarlo."
+      );
+    }
+
+    await exigirPin(datos, cuenta, solicitud.pin);
+
+    const previa = datos.transferencias.find((t) => t.clave === clave);
+    if (previa) {
+      if (previa.cuenta !== llave) {
+        throw new ErrorBlink("duplicada", "Esa operación ya fue registrada. Revisa Movimientos.");
+      }
+      return { transferencia: aTransferencia(previa), repetida: true };
+    }
+
+    const bruto = Number.isFinite(solicitud.monto) ? solicitud.monto : 0;
+    const monto = Math.round(bruto * 100) / 100;
+    if (monto <= 0) {
+      throw new ErrorBlink("datos", "Escribe un monto mayor que cero.");
+    }
+    if (Math.abs(monto - bruto) > 1e-9) {
+      throw new ErrorBlink("datos", "Usa como máximo dos decimales.");
+    }
+    if (monto > TOPE_TRANSFERENCIA) {
+      throw new ErrorBlink(
+        "datos",
+        `El tope por transferencia es ${formatearEntero(
+          TOPE_TRANSFERENCIA
+        )} Bs. Divide el monto en varias operaciones.`
+      );
+    }
+
+    const origen = tarjetaDe(datos, cuenta, solicitud.origen);
+    const destinoSerial = formatearSerial(solicitud.destino);
+    if (origen.serial === destinoSerial) {
+      throw new ErrorBlink("datos", "Elige una tarjeta distinta a la de origen.");
+    }
+
+    const destino = datos.tarjetas.find((t) => t.serial === destinoSerial);
+    if (!destino) {
+      throw new ErrorBlink("sin-tarjeta", "No encontramos la tarjeta de destino. Revisa el serial.");
+    }
+
+    if (origen.estado !== "activa") {
+      throw new ErrorBlink("bloqueada", "Tu tarjeta de origen no está activa. No se puede transferir.");
+    }
+    if (!destino.uid) {
+      throw new ErrorBlink("sin-enrolar", "La tarjeta de destino todavía no está enrolada.");
+    }
+    if (destino.estado !== "activa") {
+      throw new ErrorBlink("bloqueada", "La tarjeta de destino no está activa. No se puede transferir.");
+    }
+
+    const desde = Date.now() - 24 * 60 * 60 * 1000;
+    const usado = datos.transferencias
+      .filter((t) => t.cuenta === llave && new Date(t.at).getTime() > desde)
+      .reduce((total, t) => total + t.monto, 0);
+    if (usado + monto > TOPE_TRANSFERENCIA_DIARIO) {
+      throw new ErrorBlink(
+        "datos",
+        `El tope diario para transferir es ${formatearEntero(
+          TOPE_TRANSFERENCIA_DIARIO
+        )} Bs. Ya usaste ${formatearEntero(usado)} Bs en las últimas 24 horas.`
+      );
+    }
+
+    if (monto > origen.saldo) {
+      throw new ErrorBlink(
+        "datos",
+        `Solo puedes transferir ${formatearEntero(origen.saldo)} Bs de esta tarjeta.`
+      );
+    }
+
+    const at = new Date().toISOString();
+    origen.saldo = Math.round((origen.saldo - monto) * 100) / 100;
+    destino.saldo = Math.round((destino.saldo + monto) * 100) / 100;
+
+    const salida: Movimiento = {
+      id: `tr-${crypto.randomUUID()}`,
+      serial: origen.serial,
+      tipo: "transferencia",
+      monto: -monto,
+      saldoDespues: origen.saldo,
+      at,
+      detalle: `Transferencia a la tarjeta terminada en ${terminacion(destino.serial)}`,
+      estado: "aprobado",
+    };
+    const entrada: Movimiento = {
+      id: `tr-${crypto.randomUUID()}`,
+      serial: destino.serial,
+      tipo: "transferencia",
+      monto,
+      saldoDespues: destino.saldo,
+      at,
+      detalle: `Transferencia recibida de la tarjeta terminada en ${terminacion(origen.serial)}`,
+      estado: "aprobado",
+    };
+
+    const transferencia: TransferenciaLocal = {
+      id: crypto.randomUUID(),
+      clave,
+      monto,
+      at,
+      origen: { serial: origen.serial, saldo: origen.saldo },
+      destino: {
+        serial: destino.serial,
+        titular: titularMascarado(destino.titular.nombre),
+        saldo: destino.saldo,
+      },
+      cuenta: llave,
+    };
+
+    datos.transferencias = [transferencia, ...datos.transferencias].slice(0, 200);
+    datos.movimientos = [entrada, salida, ...datos.movimientos].slice(0, 300);
+    guardar(datos);
+
+    return {
+      transferencia: aTransferencia(transferencia),
+      movimiento: salida,
+      repetida: false,
+    };
+  },
+
   async cambiarPin(token, actual, nuevo) {
     const datos = await base();
     const cuenta = porToken(datos, token);
-    if (!(await verificarPin(actual, cuenta.pinHash))) {
-      throw new ErrorBlink("credenciales", "El PIN actual no coincide.");
-    }
+    await exigirPin(datos, cuenta, actual);
     const problema = validarPin(nuevo);
     if (problema) throw new ErrorBlink("pin-invalido", problema);
     if (nuevo === actual) {

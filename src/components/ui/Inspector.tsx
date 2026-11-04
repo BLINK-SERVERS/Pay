@@ -8,6 +8,7 @@ const ICONOS: Record<Movimiento["tipo"], NombreSimbolo> = {
   viaje: "autobus",
   devolucion: "actualizar",
   ajuste: "escudo",
+  transferencia: "transferir",
 };
 
 interface Props {

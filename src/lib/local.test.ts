@@ -204,3 +204,124 @@ describe("repositorio local", () => {
     await expect(repositorioLocal.sesion(token)).rejects.toMatchObject({ codigo: "sesion" });
   });
 });
+
+describe("transferencia de saldo en modo local", () => {
+  const ORIGEN = "G-00001-001-N";
+  const DESTINO = "G-00001-004-V";
+
+  async function abrir() {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    return token;
+  }
+
+  function solicitud(clave = crypto.randomUUID()) {
+    return {
+      origen: ORIGEN,
+      destino: DESTINO,
+      monto: 500,
+      pin: DEMO.pin,
+      clave,
+    };
+  }
+
+  it("mueve el saldo y deja un movimiento en cada tarjeta", async () => {
+    const token = await abrir();
+    const resultado = await repositorioLocal.transferir(token, solicitud());
+    expect(resultado.repetida).toBe(false);
+    expect(resultado.transferencia.origen.saldo).toBe(1000);
+    expect(resultado.transferencia.destino.saldo).toBe(1500);
+    expect(resultado.transferencia.destino.titular).toBe("Diego F.");
+    expect(resultado.movimiento).toMatchObject({
+      serial: ORIGEN,
+      tipo: "transferencia",
+      monto: -500,
+      saldoDespues: 1000,
+    });
+
+    const sesion = await repositorioLocal.sesion(token);
+    expect(sesion.tarjetas.find((t) => t.serial === ORIGEN)?.saldo).toBe(1000);
+    expect(sesion.tarjetas.find((t) => t.serial === DESTINO)?.saldo).toBe(1500);
+
+    const origen = await repositorioLocal.movimientos(token, ORIGEN);
+    const destino = await repositorioLocal.movimientos(token, DESTINO);
+    expect(origen.find((m) => m.tipo === "transferencia")).toMatchObject({
+      tipo: "transferencia",
+      monto: -500,
+    });
+    expect(destino.find((m) => m.tipo === "transferencia")).toMatchObject({
+      tipo: "transferencia",
+      monto: 500,
+    });
+  });
+
+  it("no repite el cargo con la misma clave", async () => {
+    const token = await abrir();
+    const clave = crypto.randomUUID();
+    const primera = await repositorioLocal.transferir(token, solicitud(clave));
+    const segunda = await repositorioLocal.transferir(token, solicitud(clave));
+    expect(primera.repetida).toBe(false);
+    expect(segunda.repetida).toBe(true);
+    expect(segunda.transferencia.id).toBe(primera.transferencia.id);
+    const sesion = await repositorioLocal.sesion(token);
+    expect(sesion.tarjetas.find((t) => t.serial === ORIGEN)?.saldo).toBe(1000);
+  });
+
+  it("rechaza el PIN incorrecto y bloquea tras cinco fallos", async () => {
+    const token = await abrir();
+    for (let intento = 0; intento < 4; intento += 1) {
+      await expect(
+        repositorioLocal.transferir(token, { ...solicitud(), pin: "000000" })
+      ).rejects.toMatchObject({ codigo: "credenciales" });
+    }
+    await expect(
+      repositorioLocal.transferir(token, { ...solicitud(), pin: "000000" })
+    ).rejects.toMatchObject({ codigo: "credenciales" });
+    await expect(repositorioLocal.entrar(DEMO.cedula, DEMO.pin)).rejects.toMatchObject({
+      codigo: "credenciales",
+    });
+  });
+
+  it("no transfiere a la misma tarjeta", async () => {
+    const token = await abrir();
+    await expect(
+      repositorioLocal.transferir(token, { ...solicitud(), destino: ORIGEN })
+    ).rejects.toMatchObject({ codigo: "datos" });
+  });
+
+  it("no deja transferir más que el saldo disponible", async () => {
+    const token = await abrir();
+    await expect(
+      repositorioLocal.transferir(token, { ...solicitud(), monto: 2000 })
+    ).rejects.toMatchObject({ codigo: "datos" });
+  });
+
+  it("aplica el tope por operación aunque haya saldo", async () => {
+    const token = await abrir();
+    await expect(
+      repositorioLocal.transferir(token, { ...solicitud(), monto: 5001 })
+    ).rejects.toBeInstanceOf(ErrorBlink);
+  });
+
+  it("no transfiere a una tarjeta bloqueada ni a un serial inexistente", async () => {
+    const token = await abrir();
+    await expect(
+      repositorioLocal.transferir(token, { ...solicitud(), destino: "G-00001-003-T" })
+    ).rejects.toMatchObject({ codigo: "bloqueada" });
+    await expect(
+      repositorioLocal.transferir(token, { ...solicitud(), destino: "G-00001-009-Z" })
+    ).rejects.toMatchObject({ codigo: "sin-tarjeta" });
+  });
+
+  it("puede enviar saldo a la tarjeta de otra cuenta", async () => {
+    const token = await abrir();
+    const resultado = await repositorioLocal.transferir(token, {
+      ...solicitud(),
+      destino: "G-00001-002-R",
+    });
+    expect(resultado.transferencia.destino).toMatchObject({
+      serial: "G-00001-002-R",
+      titular: "Carlos R.",
+      saldo: 500,
+    });
+  });
+});

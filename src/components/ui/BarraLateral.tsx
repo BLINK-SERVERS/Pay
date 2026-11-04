@@ -8,6 +8,7 @@ const SECCIONES: { id: Pestana; etiqueta: string; icono: NombreSimbolo }[] = [
   { id: "inicio", etiqueta: "Inicio", icono: "inicio" },
   { id: "movimientos", etiqueta: "Movimientos", icono: "movimientos" },
   { id: "recargar", etiqueta: "Recargar", icono: "recargar" },
+  { id: "transferir", etiqueta: "Transferir", icono: "transferir" },
   { id: "perfil", etiqueta: "Mi cuenta", icono: "perfil" },
 ];
 

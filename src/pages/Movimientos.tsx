@@ -4,12 +4,13 @@ import { MovimientoFila } from "../components/MovimientoFila";
 import { etiquetaDia, formatearBs, formatearEntero } from "../lib/formato";
 import type { Movimiento, Tarjeta } from "../lib/tipos";
 
-type Filtro = "todos" | "recarga" | "viaje";
+type Filtro = "todos" | "recarga" | "viaje" | "transferencia";
 
 const FILTROS: { id: Filtro; etiqueta: string }[] = [
   { id: "todos", etiqueta: "Todos" },
   { id: "recarga", etiqueta: "Recargas" },
   { id: "viaje", etiqueta: "Viajes" },
+  { id: "transferencia", etiqueta: "Transferencias" },
 ];
 
 interface Props {
@@ -97,7 +98,9 @@ export function Movimientos({ tarjeta, movimientos, seleccionadoId, alSelecciona
               ? "Aún no has pagado ningún pasaje con esta tarjeta."
               : filtro === "recarga"
                 ? "Todavía no has recargado esta tarjeta."
-                : "Cuando uses la tarjeta verás aquí cada viaje y cada recarga."}
+                : filtro === "transferencia"
+                  ? "Todavía no has transferido saldo con esta tarjeta."
+                  : "Cuando uses la tarjeta verás aquí cada viaje, recarga y transferencia."}
           </p>
         </div>
       ) : (

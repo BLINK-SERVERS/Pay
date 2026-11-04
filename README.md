@@ -1,13 +1,13 @@
 # BLINK TARJETA
 
-Portal del pasajero para consultar, vincular y recargar la tarjeta de transporte
-de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
+Portal del pasajero para consultar, vincular, recargar y transferir saldo de la
+tarjeta de transporte de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 
 - **Sitio publicado:** https://blink-servers.github.io/TARJETA/
 - **Panel administrativo:** https://blink-servers.github.io/BACKOFFICE/
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 2.0.0 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 2.1.0 · [CHANGELOG](CHANGELOG.md)
 
 ## Qué hace
 
@@ -16,6 +16,10 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 - Billetera con **varias tarjetas** por cuenta, vinculadas por el serial del reverso.
 - Saldo, movimientos, tarjeta virtual con giro 3D y código de barras Code 128.
 - Recarga reportada por Pago Móvil con comprobante en revisión.
+- **Transferencia de saldo entre tarjetas** de la misma cuenta o de otra
+  persona, con PIN del titular, tope por operación y por día, y comprobante con
+  número de referencia. La disponibilidad se acota a lo que el chip también
+  puede descontar, para no dejar el plástico sin saldo (BLINK-DOC-26).
 - Cambio de PIN y de datos de pago.
 - **Acceso con huella o rostro** en teléfonos compatibles: desbloquea la sesión
   guardada de 12 horas sin escribir la cédula ni el PIN (WebAuthn). El PIN sigue
@@ -62,8 +66,8 @@ datos:
    Añadir a pantalla de inicio**.
 3. Ábrelo desde el icono **BLINK**. A partir de ahí funciona en modo avión:
    muestra la tarjeta y el último saldo sincronizado.
-4. Sin red no se puede recargar, vincular otra tarjeta ni cambiar PIN o datos
-   de pago; la sesión guardada dura 12 horas y el saldo es el de la última
+4. Sin red no se puede recargar, transferir, vincular otra tarjeta ni cambiar
+   PIN o datos de pago; la sesión guardada dura 12 horas y el saldo es el de la última
    sincronización. La copia local caduca a las 12 horas de la última vez que
    hubo red y se borra al cerrar sesión. Abre el portal una vez con internet
    para recibir actualizaciones: si hay una versión nueva aparece el aviso
@@ -84,7 +88,7 @@ tarjeta.
 npm ci
 npm run dev        # http://localhost:5173
 npm run typecheck
-npm test           # 100 pruebas
+npm test           # 108 pruebas
 npm run verificar:hig   # capturas y 78 comprobaciones en Chromium
 npm run build
 npm run lote       # genera un lote de seriales y la hoja de impresión
@@ -101,7 +105,7 @@ VITE_SUPABASE_ANON_KEY=<clave publishable>
 
 ```text
 src/
-  pages/            Acceso, Inicio, Movimientos, Recargar, Perfil
+  pages/            Acceso, Inicio, Movimientos, Recargar, Transferir, Perfil
   components/       TarjetaVirtual, HojaVincular, PinEntrada, BarraTabs…
     BarraLateral    Barra lateral translúcida de macOS
     Inspector       Detalle del movimiento en escritorio
@@ -112,7 +116,7 @@ src/
     local.ts        espejo local del mismo contrato
     dominio.ts      validaciones de cédula, teléfono, serial, montos
   styles/           tokens, base y BEM de la app (tarjeta con cqw)
-supabase/migrations/ 0001…0020 (esquema compartido del ecosistema)
+supabase/migrations/ 0001…0022 (esquema compartido del ecosistema)
 scripts/lote.ts      generador de lotes y hoja imprimible
 scripts/verificar-hig.mjs  verificación visual y estructural HIG (Playwright)
 simulacion/          pila Docker, semilla y flujo completo
@@ -139,6 +143,7 @@ Cada push a `main` dispara `.github/workflows/pages.yml`: `typecheck` → `test`
 | [docs/12-enrolado-de-lotes.md](../docs/12-enrolado-de-lotes.md) | Producción física de lotes. |
 | [docs/23-acceso-biometrico.md](../docs/23-acceso-biometrico.md) | Acceso con huella o rostro (WebAuthn), límites y modelo de amenazas. |
 | [docs/25-rediseno-estetico-apple-hig.md](../docs/25-rediseno-estetico-apple-hig.md) | Rediseño Apple HIG: chasis iOS/macOS, SF Symbols y verificación. |
+| [docs/26-transferencia-de-saldo.md](../docs/26-transferencia-de-saldo.md) | Transferencia de saldo entre tarjetas: contrato, topes, idempotencia y ajustes del chip. |
 | [ISO-HIG-BLINK-001](../docs/diseno/ISO-HIG-BLINK-001_Documento_Maestro_Estetica_Apple.md) | Documento maestro de estética Apple (fuente de verdad visual). |
 
 ## Base de datos compartida

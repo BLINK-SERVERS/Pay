@@ -9,6 +9,7 @@ const TITULOS: Record<Pestana, string> = {
   inicio: "Inicio",
   movimientos: "Movimientos",
   recargar: "Recargar",
+  transferir: "Transferir saldo",
   perfil: "Mi cuenta",
 };
 

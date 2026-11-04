@@ -8,7 +8,7 @@
    se guardan solo recursos estáticos del alcance del worker y nunca se
    cachean respuestas de API ni de otros orígenes. */
 const PREFIJO = "blink-tarjeta-";
-const CACHE = PREFIJO + "v6";
+const CACHE = PREFIJO + "v7";
 const RAIZ = new URL("./", self.location).href;
 const ARMAZON = [
   RAIZ,

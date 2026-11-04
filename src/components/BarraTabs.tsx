@@ -1,12 +1,13 @@
 import { Icon, type IconName } from "./Icon";
 import { vibrar } from "../lib/hooks";
 
-export type Pestana = "inicio" | "movimientos" | "recargar" | "perfil";
+export type Pestana = "inicio" | "movimientos" | "recargar" | "transferir" | "perfil";
 
 const PESTANAS: { id: Pestana; etiqueta: string; icono: IconName }[] = [
   { id: "inicio", etiqueta: "Inicio", icono: "inicio" },
   { id: "movimientos", etiqueta: "Movimientos", icono: "movimientos" },
   { id: "recargar", etiqueta: "Recargar", icono: "recargar" },
+  { id: "transferir", etiqueta: "Transferir", icono: "transferir" },
   { id: "perfil", etiqueta: "Perfil", icono: "perfil" },
 ];
 

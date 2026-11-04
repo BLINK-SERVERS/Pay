@@ -37,6 +37,7 @@ import { SFBarcode as DBarcode } from "sf-symbols-lib/dualtone/SFBarcode";
 import { SFPersonFill as DPersonFill } from "sf-symbols-lib/dualtone/SFPersonFill";
 import { SFPerson2Fill as DPerson2Fill } from "sf-symbols-lib/dualtone/SFPerson2Fill";
 import { SFSparkles as DSparkles } from "sf-symbols-lib/dualtone/SFSparkles";
+import { SFArrowLeftArrowRight as DArrowLeftArrowRight } from "sf-symbols-lib/dualtone/SFArrowLeftArrowRight";
 import { SFCreditcard as MCreditcard } from "sf-symbols-lib/monochrome/SFCreditcard";
 import { SFHouse as MHouse } from "sf-symbols-lib/monochrome/SFHouse";
 import { SFListBullet as MListBullet } from "sf-symbols-lib/monochrome/SFListBullet";
@@ -75,6 +76,7 @@ import { SFBarcode as MBarcode } from "sf-symbols-lib/monochrome/SFBarcode";
 import { SFPersonFill as MPersonFill } from "sf-symbols-lib/monochrome/SFPersonFill";
 import { SFPerson2Fill as MPerson2Fill } from "sf-symbols-lib/monochrome/SFPerson2Fill";
 import { SFSparkles as MSparkles } from "sf-symbols-lib/monochrome/SFSparkles";
+import { SFArrowLeftArrowRight as MArrowLeftArrowRight } from "sf-symbols-lib/monochrome/SFArrowLeftArrowRight";
 
 /**
  * Puente entre la aplicación y SF Symbols.
@@ -94,6 +96,7 @@ export type NombreSimbolo =
   | "inicio"
   | "movimientos"
   | "recargar"
+  | "transferir"
   | "perfil"
   | "check"
   | "check-circulo"
@@ -145,6 +148,10 @@ const ICONOS: Record<
   inicio: { jerarquico: DHouse, monocromo: MHouse },
   movimientos: { jerarquico: DListBullet, monocromo: MListBullet },
   recargar: { jerarquico: DPlusCircle, monocromo: MPlusCircle },
+  transferir: {
+    jerarquico: DArrowLeftArrowRight,
+    monocromo: MArrowLeftArrowRight,
+  },
   perfil: { jerarquico: DPersonCropCircle, monocromo: MPersonCropCircle },
   check: { jerarquico: DCheckmark, monocromo: MCheckmark },
   "check-circulo": {
