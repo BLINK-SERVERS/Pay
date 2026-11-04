@@ -19,6 +19,8 @@ interface Props {
   alVerMovimientos: () => void;
   alVerPerfil: () => void;
   alAbrirPagoMovil: () => void;
+  seleccionadoId?: string | null;
+  alSeleccionarMovimiento?: (movimiento: Movimiento) => void;
 }
 
 function saludo(): string {
@@ -41,6 +43,8 @@ export function Inicio({
   alVerMovimientos,
   alVerPerfil,
   alAbrirPagoMovil,
+  seleccionadoId,
+  alSeleccionarMovimiento,
 }: Props) {
   const nombre = cuenta.nombres.split(" ")[0] ?? "";
   const recientes = movimientos.slice(0, 4);
@@ -255,7 +259,16 @@ export function Inicio({
             {recientes.length > 0 ? (
               <ul className="lista-movimientos">
                 {recientes.map((movimiento) => (
-                  <MovimientoFila key={movimiento.id} movimiento={movimiento} />
+                  <MovimientoFila
+                    key={movimiento.id}
+                    movimiento={movimiento}
+                    seleccionado={movimiento.id === seleccionadoId}
+                    alSeleccionar={
+                      alSeleccionarMovimiento
+                        ? () => alSeleccionarMovimiento(movimiento)
+                        : undefined
+                    }
+                  />
                 ))}
               </ul>
             ) : (

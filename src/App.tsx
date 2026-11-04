@@ -5,6 +5,9 @@ import { Desbloqueo } from "./components/Desbloqueo";
 import { Hoja } from "./components/Hoja";
 import { HojaVincular } from "./components/HojaVincular";
 import { Icon } from "./components/Icon";
+import { BarraLateral } from "./components/ui/BarraLateral";
+import { BarraSuperior } from "./components/ui/BarraSuperior";
+import { Inspector } from "./components/ui/Inspector";
 import { Acceso } from "./pages/Acceso";
 import { Inicio } from "./pages/Inicio";
 import { Movimientos } from "./pages/Movimientos";
@@ -26,7 +29,7 @@ import {
   type RegistroBiometria,
 } from "./lib/biometria";
 import { ErrorBlink, repositorio } from "./lib/repo";
-import { aplicarTema, leerTema, useCopiar, type ModoTema } from "./lib/hooks";
+import { aplicarTema, leerTema, useConsultaMedio, useCopiar, type ModoTema } from "./lib/hooks";
 import { olvidarCopia } from "./lib/offline";
 import { formatearBs, formatearSerial } from "./lib/formato";
 import type { Ajustes, Cuenta, DatosPago, Movimiento, RecargaNueva, Sesion, Tarjeta } from "./lib/tipos";
@@ -64,7 +67,9 @@ export function App() {
   const [restaurando, setRestaurando] = useState(true);
   const [pagoMovilAbierto, setPagoMovilAbierto] = useState(false);
   const [vinculoAbierto, setVinculoAbierto] = useState(false);
+  const [movimientoActivo, setMovimientoActivo] = useState<string | null>(null);
   const [copiado, copiar] = useCopiar();
+  const escritorio = useConsultaMedio("(min-width: 1080px)");
   const [bloqueo, setBloqueo] = useState<RegistroBiometria | null>(null);
   const [biometria, setBiometria] = useState<RegistroBiometria | null>(
     leerRegistroBiometria
@@ -78,6 +83,11 @@ export function App() {
   const ocultoDesde = useRef<number | null>(null);
 
   const token = sesion?.token ?? null;
+
+  const movimientoSeleccionado = useMemo(
+    () => movimientos.find((movimiento) => movimiento.id === movimientoActivo) ?? null,
+    [movimientos, movimientoActivo]
+  );
 
   const tarjeta = useMemo<Tarjeta | null>(() => {
     if (!sesion) return null;
@@ -177,6 +187,7 @@ export function App() {
     setPestana("inicio");
     setSaldoOculto(false);
     setBloqueo(null);
+    setMovimientoActivo(null);
     localStorage.removeItem(CLAVE_SESION);
     // El token se revoca en el servidor; la credencial del teléfono se
     // conserva para volver a enlazarla tras el próximo acceso con PIN.
@@ -345,6 +356,9 @@ export function App() {
 
   function cambiarPestana(nueva: Pestana) {
     setPestana(nueva);
+    // El inspector refleja una selección de la pestaña en curso; al cambiar
+    // de sección volvemos al resumen en lugar de arrastrar el detalle.
+    setMovimientoActivo(null);
     if (nueva === "inicio" || nueva === "movimientos") void refrescar();
   }
 
@@ -403,7 +417,22 @@ export function App() {
 
   return (
     <div className={`app app--${pestana}`}>
-      <main className="app__main" id="contenido">
+      <BarraLateral
+        pestana={pestana}
+        cuenta={sesion.cuenta}
+        tarjetas={sesion.tarjetas}
+        alCambiar={cambiarPestana}
+      />
+
+      <div className="app__cuerpo">
+        <BarraSuperior
+          pestana={pestana}
+          cuenta={sesion.cuenta}
+          alRecargar={() => cambiarPestana("recargar")}
+          alVerPerfil={() => cambiarPestana("perfil")}
+        />
+
+        <main className="app__main" id="contenido">
         {pestana === "inicio" && (
           <Inicio
             cuenta={sesion.cuenta}
@@ -418,6 +447,10 @@ export function App() {
             alVerMovimientos={() => cambiarPestana("movimientos")}
             alVerPerfil={() => cambiarPestana("perfil")}
             alAbrirPagoMovil={() => setPagoMovilAbierto(true)}
+            seleccionadoId={escritorio ? movimientoActivo : null}
+            alSeleccionarMovimiento={
+              escritorio ? (movimiento) => setMovimientoActivo(movimiento.id) : undefined
+            }
           />
         )}
 
@@ -442,7 +475,14 @@ export function App() {
         )}
 
         {tarjeta && pestana === "movimientos" && (
-          <Movimientos tarjeta={tarjeta} movimientos={movimientos} />
+          <Movimientos
+            tarjeta={tarjeta}
+            movimientos={movimientos}
+            seleccionadoId={escritorio ? movimientoActivo : null}
+            alSeleccionar={
+              escritorio ? (movimiento) => setMovimientoActivo(movimiento.id) : undefined
+            }
+          />
         )}
         {tarjeta && pestana === "recargar" && (
           <Recargar
@@ -475,7 +515,20 @@ export function App() {
             alSalir={() => void salir()}
           />
         )}
-      </main>
+        </main>
+      </div>
+
+      {escritorio && (
+        <Inspector
+          cuenta={sesion.cuenta}
+          tarjeta={tarjeta}
+          movimientos={movimientos}
+          seleccionado={movimientoSeleccionado}
+          alLimpiar={() => setMovimientoActivo(null)}
+          alRecargar={() => cambiarPestana("recargar")}
+          alVerMovimientos={() => cambiarPestana("movimientos")}
+        />
+      )}
 
       <BarraTabs activa={pestana} alCambiar={cambiarPestana} />
 

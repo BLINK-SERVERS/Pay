@@ -111,13 +111,106 @@ svg {
   outline-offset: 2px;
 }
 
-/* --- Iconos SVG --- */
-.icon {
+/* --- Iconos SVG (SF Symbols) ---
+   `BlinkSymbol` pinta la geometría oficial; aquí solo se fija el
+   tamaño relativo al texto y el color heredado. Los símbolos son
+   rellenos, no trazos: `fill` manda y `stroke` se deja en none para
+   que ninguna regla heredada engorde el dibujo. */
+.icon,
+.simbolo {
   width: 1.15em;
   height: 1.15em;
   flex: none;
   display: inline-block;
   vertical-align: -0.15em;
+  fill: currentColor;
+  stroke: none;
+  overflow: visible;
+}
+
+.simbolo {
+  aspect-ratio: 1;
+}
+
+/* Variantes de color: la capa tenue del símbolo (la que SF Symbols
+   dibuja al 21,25 %) toma el color secundario; el resto sigue con
+   `currentColor`. En multicolor se distinguen la capa principal y la
+   intermedia. */
+.simbolo[data-variante="paleta"] path[fill-opacity="0.2125"],
+.simbolo[data-variante="multicolor"] path[fill-opacity="0.2125"] {
+  fill: var(--simbolo-secundario, currentColor);
+}
+.simbolo[data-variante="multicolor"] path[fill-opacity="0.85"] {
+  fill: var(--simbolo-principal, currentColor);
+}
+.simbolo[data-variante="multicolor"] path:not([fill-opacity]):not([opacity="0"]) {
+  fill: var(--simbolo-terciario, currentColor);
+}
+
+/* Animaciones del símbolo. Se reinician al montar el elemento: quien
+   quiera repetirlas cambia la `key` del propio <BlinkSymbol />. */
+.simbolo--rebote {
+  animation: simbolo-rebote 0.55s cubic-bezier(0.28, 0.84, 0.42, 1) both;
+}
+.simbolo--pulso {
+  animation: simbolo-pulso 1.8s ease-in-out infinite;
+}
+.simbolo--color-variable {
+  animation: simbolo-color-variable 2.6s ease-in-out infinite;
+}
+.simbolo--reemplazo {
+  animation: simbolo-reemplazo 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes simbolo-rebote {
+  0% {
+    transform: scale(1);
+  }
+  32% {
+    transform: scale(1.18);
+  }
+  58% {
+    transform: scale(0.94);
+  }
+  78% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes simbolo-pulso {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes simbolo-color-variable {
+  0%,
+  100% {
+    color: currentColor;
+  }
+  50% {
+    color: var(--acento);
+  }
+}
+
+@keyframes simbolo-reemplazo {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .icon--sm {
   width: 0.95rem;

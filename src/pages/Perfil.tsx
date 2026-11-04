@@ -244,7 +244,7 @@ export function Perfil({
               <span className="billetera-lista__datos">
                 <strong className="mono">{item.serial}</strong>
                 <span>
-                  {item.titular.nombre} · {formatearBs(item.saldo)}
+                  {formatearBs(item.saldo)} · {item.titular.nombre}
                 </span>
               </span>
               <span

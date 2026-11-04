@@ -7,6 +7,70 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+## [2.0.0] — 2026-11-03
+
+### Añadido
+
+- **Rediseño completo al estilo Apple** con dos chasis que comparten datos y
+  dominio: iPhone/PWA por debajo de 768 px (título grande colapsable, tarjeta
+  tipo Wallet con proporción 1,586:1 y radio 16 px, hoja inferior con asa,
+  selector segmentado de pasajes, listas agrupadas con filas de 44 pt,
+  separadores de 0,5 px desplazados 56 px y barra de pestañas translúcida de
+  49 px) y macOS desde 768 px (barra lateral de 240 px, barra unificada de
+  52 px e inspector de 300 px desde 1080 px), con tablas y resúmenes tipo
+  Bento.
+- **`src/components/ui/BlinkSymbol.tsx`**: adaptador único de SF Symbols con
+  cuatro variantes (monocromo, jerárquico, paleta y multicolor) y cuatro
+  animaciones (rebote, pulso, color variable y reemplazo mágico). Toda la
+  iconografía de la app pasa por él; dependencia `sf-symbols-lib` 2.0.1.
+- **Fundamentos HIG**: pila tipográfica del sistema con escala de iOS,
+  cifras tabulares en saldos e importes, colores de sistema claro/oscuro,
+  materiales `blur(24px) saturate(180%)`, separadores de 0,5 px, objetivos
+  táctiles de 44 pt, respeto de `prefers-reduced-motion` y del esquema de
+  color del sistema.
+- **`npm run verificar:hig`** (`scripts/verificar-hig.mjs`): 78 comprobaciones
+  en Chromium a 393×852 y 1440×900, claro y oscuro, con capturas en
+  `/tmp/blink-hig`.
+- **BLINK-DOC-25** e **ISO-HIG-BLINK-001**, documento maestro de estética
+  Apple, con ADR-32 a ADR-35.
+
+### Cambiado
+
+- El inspector solo permite seleccionar movimientos en macOS (≥ 1080 px); en
+  iPhone el detalle se abre como hoja.
+- Al cambiar de sección el inspector vuelve al resumen en lugar de arrastrar
+  el detalle anterior.
+- La tarifa sigue viniendo de `ajustes.tarifario` y `cotizarRecarga()`: la
+  interfaz no fija el monto base ni la comisión; el recibo mantiene la
+  separación de LEG-TER-001 y la tarifa homologada sigue pendiente (B-32).
+- Se retiraron las dependencias sin uso `@bradleyhodges/sfsymbols` y
+  `@bradleyhodges/sfsymbols-react`.
+
+### Corregido
+
+- 20 px de desbordamiento horizontal en 393 px producido por el carrusel a
+  sangre; el chasis recorta el desborde.
+- Punto de conexión flotando solo en la esquina del iPhone; ahora aparece con
+  la barra compacta al desplazar.
+- Franja de degradado recortada en la pantalla de acceso de escritorio; el
+  fondo cubre toda la ventana y el panel queda centrado.
+- Saldo truncado en la lista de tarjetas del Perfil; el importe va primero.
+
+### Pruebas
+
+- `npm run typecheck` limpio; `npm test`: 100 pruebas en 9 archivos.
+- `npm run verificar:hig`: 78 comprobaciones correctas en dos corridas
+  consecutivas, sin desbordamiento en las cuatro secciones.
+- Verificación en Chromium de escritorio emulando el viewport; falta probar en
+  iPhone y Android reales (B-59).
+
+### Riesgos
+
+- SF Symbols está licenciado por Apple solo para plataformas Apple y BLINK
+  también corre en Android y web. Riesgo aceptado por el propietario el
+  2026-11-03 (**R-26**, **L-16**); la sustitución queda como acción 38 de
+  BLINK-DOC-09.
+
 ## [1.9.0] — 2026-11-03
 
 ### Añadido

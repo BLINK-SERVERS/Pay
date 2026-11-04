@@ -7,7 +7,7 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 - **Panel administrativo:** https://blink-servers.github.io/BACKOFFICE/
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 1.9.0 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 2.0.0 · [CHANGELOG](CHANGELOG.md)
 
 ## Qué hace
 
@@ -22,6 +22,11 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
   siendo la llave de respaldo y el único medio para entrar en un teléfono nuevo.
 - **Aviso de versión nueva** cuando el portal instalado detecta una publicación:
   «Ahora no» o «Actualizar», sin recargar en medio de una operación.
+- **Interfaz nativa estilo Apple**: en el teléfono toma el aspecto de iOS
+  (título grande, tarjeta tipo Wallet, hojas inferiores y barra de pestañas
+  translúcida); en la computadora, el de macOS (barra lateral, barra unificada
+  e inspector). Iconografía SF Symbols a través de `BlinkSymbol`, tipografía del
+  sistema, cifras tabulares y modo claro/oscuro automático.
 - Apertura sin conexión con la última tarjeta sincronizada.
 
 Sin variables de entorno la app funciona en **modo demostración** con datos
@@ -80,6 +85,7 @@ npm ci
 npm run dev        # http://localhost:5173
 npm run typecheck
 npm test           # 100 pruebas
+npm run verificar:hig   # capturas y 78 comprobaciones en Chromium
 npm run build
 npm run lote       # genera un lote de seriales y la hoja de impresión
 ```
@@ -97,6 +103,9 @@ VITE_SUPABASE_ANON_KEY=<clave publishable>
 src/
   pages/            Acceso, Inicio, Movimientos, Recargar, Perfil
   components/       TarjetaVirtual, HojaVincular, PinEntrada, BarraTabs…
+    BarraLateral    Barra lateral translúcida de macOS
+    Inspector       Detalle del movimiento en escritorio
+    ui/BlinkSymbol  adaptador único de SF Symbols (4 variantes y animaciones)
   lib/
     repo.ts         elige nube o local
     nube.ts         cliente de los RPC bt_*
@@ -105,6 +114,7 @@ src/
   styles/           tokens, base y BEM de la app (tarjeta con cqw)
 supabase/migrations/ 0001…0020 (esquema compartido del ecosistema)
 scripts/lote.ts      generador de lotes y hoja imprimible
+scripts/verificar-hig.mjs  verificación visual y estructural HIG (Playwright)
 simulacion/          pila Docker, semilla y flujo completo
 ../docs/             suite ISO y documentación central del ecosistema
 ```
@@ -128,6 +138,8 @@ Cada push a `main` dispara `.github/workflows/pages.yml`: `typecheck` → `test`
 | [docs/10-guia-de-retoma.md](../docs/10-guia-de-retoma.md) | Cómo continuar el desarrollo. |
 | [docs/12-enrolado-de-lotes.md](../docs/12-enrolado-de-lotes.md) | Producción física de lotes. |
 | [docs/23-acceso-biometrico.md](../docs/23-acceso-biometrico.md) | Acceso con huella o rostro (WebAuthn), límites y modelo de amenazas. |
+| [docs/25-rediseno-estetico-apple-hig.md](../docs/25-rediseno-estetico-apple-hig.md) | Rediseño Apple HIG: chasis iOS/macOS, SF Symbols y verificación. |
+| [ISO-HIG-BLINK-001](../docs/diseno/ISO-HIG-BLINK-001_Documento_Maestro_Estetica_Apple.md) | Documento maestro de estética Apple (fuente de verdad visual). |
 
 ## Base de datos compartida
 

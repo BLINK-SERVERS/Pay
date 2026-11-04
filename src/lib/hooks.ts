@@ -74,6 +74,24 @@ export function vibrar(patron: number | number[] = 8) {
   if ("vibrate" in navigator) navigator.vibrate(patron);
 }
 
+/** Sigue una consulta de medios (ancho, orientación, contraste…). */
+export function useConsultaMedio(consulta: string): boolean {
+  const [coincide, setCoincide] = useState(
+    () => typeof matchMedia === "function" && matchMedia(consulta).matches
+  );
+
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return;
+    const medio = matchMedia(consulta);
+    const alCambiar = () => setCoincide(medio.matches);
+    alCambiar();
+    medio.addEventListener("change", alCambiar);
+    return () => medio.removeEventListener("change", alCambiar);
+  }, [consulta]);
+
+  return coincide;
+}
+
 /** Copia al portapapeles y devuelve la clave copiada durante 1,8 s. */
 export function useCopiar(): [string | null, (valor: string, clave: string) => Promise<void>] {
   const [copiado, setCopiado] = useState<string | null>(null);

@@ -15,17 +15,26 @@ interface Props {
   conSaldo?: boolean;
   /** Omite el día porque la fila ya vive bajo un encabezado de fecha. */
   conDia?: boolean;
+  /** En escritorio, abre el detalle en el inspector. */
+  alSeleccionar?: () => void;
+  seleccionado?: boolean;
 }
 
-export function MovimientoFila({ movimiento, conSaldo = false, conDia = true }: Props) {
+export function MovimientoFila({
+  movimiento,
+  conSaldo = false,
+  conDia = true,
+  alSeleccionar,
+  seleccionado = false,
+}: Props) {
   const entrada = movimiento.monto > 0;
   const pendiente = movimiento.estado === "pendiente";
   const rechazado = movimiento.estado === "rechazado";
   const referencia = movimiento.referencia ? ` · Ref. ${movimiento.referencia}` : "";
   const unidad = movimiento.unidad ? ` · ${movimiento.unidad}` : "";
 
-  return (
-    <li className={`movimiento${pendiente ? " movimiento--pendiente" : ""}`}>
+  const contenido = (
+    <>
       <span
         className={`movimiento__icono${
           entrada ? " movimiento__icono--entra" : " movimiento__icono--sale"
@@ -56,6 +65,27 @@ export function MovimientoFila({ movimiento, conSaldo = false, conDia = true }: 
         {pendiente && <span className="etiqueta etiqueta--espera">En revisión</span>}
         {rechazado && <span className="etiqueta etiqueta--mal">Rechazada</span>}
       </div>
+    </>
+  );
+
+  return (
+    <li className={`movimiento-item${seleccionado ? " movimiento-item--activo" : ""}`}>
+      {alSeleccionar ? (
+        <button
+          type="button"
+          className={`movimiento movimiento--accion${
+            pendiente ? " movimiento--pendiente" : ""
+          }`}
+          aria-pressed={seleccionado}
+          onClick={alSeleccionar}
+        >
+          {contenido}
+        </button>
+      ) : (
+        <div className={`movimiento${pendiente ? " movimiento--pendiente" : ""}`}>
+          {contenido}
+        </div>
+      )}
     </li>
   );
 }

@@ -15,9 +15,11 @@ const FILTROS: { id: Filtro; etiqueta: string }[] = [
 interface Props {
   tarjeta: Tarjeta;
   movimientos: Movimiento[];
+  seleccionadoId?: string | null;
+  alSeleccionar?: (movimiento: Movimiento) => void;
 }
 
-export function Movimientos({ tarjeta, movimientos }: Props) {
+export function Movimientos({ tarjeta, movimientos, seleccionadoId, alSeleccionar }: Props) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
 
   const grupos = useMemo(() => {
@@ -104,7 +106,14 @@ export function Movimientos({ tarjeta, movimientos }: Props) {
             <h2 className="grupo__dia">{grupo.dia}</h2>
             <ul className="lista-movimientos lista-movimientos--extracto">
               {grupo.items.map((movimiento) => (
-                <MovimientoFila key={movimiento.id} movimiento={movimiento} conSaldo conDia={false} />
+                <MovimientoFila
+                  key={movimiento.id}
+                  movimiento={movimiento}
+                  conSaldo
+                  conDia={false}
+                  seleccionado={movimiento.id === seleccionadoId}
+                  alSeleccionar={alSeleccionar ? () => alSeleccionar(movimiento) : undefined}
+                />
               ))}
             </ul>
           </section>
