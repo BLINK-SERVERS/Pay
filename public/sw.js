@@ -8,7 +8,7 @@
    se guardan solo recursos estáticos del alcance del worker y nunca se
    cachean respuestas de API ni de otros orígenes. */
 const PREFIJO = "blink-tarjeta-";
-const CACHE = PREFIJO + "v5";
+const CACHE = PREFIJO + "v6";
 const RAIZ = new URL("./", self.location).href;
 const ARMAZON = [
   RAIZ,
@@ -34,13 +34,11 @@ function cacheable(url) {
   );
 }
 
+// La versión nueva se instala pero NO toma el control: queda en espera
+// hasta que la página pida activarla. Así el aviso de actualización puede
+// aparecer sin recargar la app en medio de una recarga o de un cobro.
 self.addEventListener("install", (evento) => {
-  evento.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(ARMAZON))
-      .then(() => self.skipWaiting())
-  );
+  evento.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ARMAZON)));
 });
 
 self.addEventListener("activate", (evento) => {
@@ -63,6 +61,10 @@ self.addEventListener("activate", (evento) => {
 self.addEventListener("message", (evento) => {
   if (evento.origin !== self.location.origin) return;
   const datos = evento.data;
+  if (datos && datos.tipo === "activar") {
+    evento.waitUntil(self.skipWaiting());
+    return;
+  }
   if (!datos || datos.tipo !== "cachear" || !Array.isArray(datos.urls)) return;
   const urls = datos.urls.filter((valor) => {
     if (typeof valor !== "string") return false;

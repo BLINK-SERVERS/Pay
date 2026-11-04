@@ -7,7 +7,7 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 - **Panel administrativo:** https://blink-servers.github.io/BACKOFFICE/
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 1.8.0 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 1.9.0 · [CHANGELOG](CHANGELOG.md)
 
 ## Qué hace
 
@@ -20,6 +20,8 @@ de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
 - **Acceso con huella o rostro** en teléfonos compatibles: desbloquea la sesión
   guardada de 12 horas sin escribir la cédula ni el PIN (WebAuthn). El PIN sigue
   siendo la llave de respaldo y el único medio para entrar en un teléfono nuevo.
+- **Aviso de versión nueva** cuando el portal instalado detecta una publicación:
+  «Ahora no» o «Actualizar», sin recargar en medio de una operación.
 - Apertura sin conexión con la última tarjeta sincronizada.
 
 Sin variables de entorno la app funciona en **modo demostración** con datos
@@ -59,7 +61,9 @@ datos:
    de pago; la sesión guardada dura 12 horas y el saldo es el de la última
    sincronización. La copia local caduca a las 12 horas de la última vez que
    hubo red y se borra al cerrar sesión. Abre el portal una vez con internet
-   para recibir actualizaciones.
+   para recibir actualizaciones: si hay una versión nueva aparece el aviso
+   **Actualización disponible** y tú decides cuándo aplicarla (ver
+   [BLINK-DOC-24](../docs/24-aviso-actualizacion-portal.md)).
 5. Tras el primer acceso, el portal ofrece **activar el acceso con huella o
    rostro**; también se activa o desactiva en **Perfil › Seguridad**. La
    biometría desbloquea la sesión guardada, no sustituye al PIN, y se desactiva
@@ -75,7 +79,7 @@ tarjeta.
 npm ci
 npm run dev        # http://localhost:5173
 npm run typecheck
-npm test           # 97 pruebas
+npm test           # 100 pruebas
 npm run build
 npm run lote       # genera un lote de seriales y la hoja de impresión
 ```

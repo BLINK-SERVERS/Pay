@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AvisoActualizacion } from "./components/AvisoActualizacion";
 import { BarraTabs, type Pestana } from "./components/BarraTabs";
 import { Desbloqueo } from "./components/Desbloqueo";
 import { Hoja } from "./components/Hoja";
@@ -354,12 +355,15 @@ export function App() {
 
   if (restaurando) {
     return (
-      <div className="arranque" role="status" aria-label="Abriendo tu tarjeta">
-        <span className="marca marca--grande">
-          BLINK<em>TARJETA</em>
-        </span>
-        <span className="girador girador--grande" />
-      </div>
+      <>
+        <div className="arranque" role="status" aria-label="Abriendo tu tarjeta">
+          <span className="marca marca--grande">
+            BLINK<em>TARJETA</em>
+          </span>
+          <span className="girador girador--grande" />
+        </div>
+        <AvisoActualizacion />
+      </>
     );
   }
 
@@ -370,24 +374,30 @@ export function App() {
 
   if (!sesion && bloqueo) {
     return (
-      <Desbloqueo
-        nombre={bloqueo.nombre}
-        cedula={bloqueo.cedula}
-        alDesbloquear={desbloquear}
-        alUsarPin={usarPin}
-      />
+      <>
+        <Desbloqueo
+          nombre={bloqueo.nombre}
+          cedula={bloqueo.cedula}
+          alDesbloquear={desbloquear}
+          alUsarPin={usarPin}
+        />
+        <AvisoActualizacion />
+      </>
     );
   }
 
   if (!sesion) {
     return (
-      <Acceso
-        alEntrar={alEntrar}
-        tarifa={ajustes.tarifario.base}
-        biometria={accesoBiometrico}
-        alEntrarConBiometria={accesoBiometrico ? desbloquear : undefined}
-        avisoInicial={avisoAcceso}
-      />
+      <>
+        <Acceso
+          alEntrar={alEntrar}
+          tarifa={ajustes.tarifario.base}
+          biometria={accesoBiometrico}
+          alEntrarConBiometria={accesoBiometrico ? desbloquear : undefined}
+          avisoInicial={avisoAcceso}
+        />
+        <AvisoActualizacion />
+      </>
     );
   }
 
@@ -597,6 +607,7 @@ export function App() {
           </div>
         )}
       </Hoja>
+      <AvisoActualizacion />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 {
   "name": "blink-tarjeta",
   "private": true,
-  "version": "1.8.0",
+  "version": "1.9.0",
   "type": "module",
   "description": "BLINK TARJETA — portal del pasajero para consultar y recargar la tarjeta de transporte.",
   "scripts": {

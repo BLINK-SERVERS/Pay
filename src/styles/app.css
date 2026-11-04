@@ -3124,6 +3124,78 @@ select.entrada--tipo {
   cursor: pointer;
 }
 
+/* Aviso de actualización de la PWA --------------------------- */
+
+.actualizacion {
+  position: fixed;
+  left: 50%;
+  bottom: calc(4.6rem + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: calc(100% - 1.6rem);
+  max-width: 440px;
+  padding: 0.85rem 0.9rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-pop);
+  transform: translateX(-50%);
+  animation: subir-aviso 0.28s ease-out;
+}
+
+.actualizacion__cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.actualizacion__icono {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.actualizacion__icono .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.actualizacion__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.actualizacion__texto strong {
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--color-text-primary);
+}
+
+.actualizacion__texto span {
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.actualizacion__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.actualizacion__acciones .boton {
+  min-height: 40px;
+}
+
 /* Hojas ------------------------------------------------------ */
 
 .hoja-fondo {
@@ -3351,6 +3423,17 @@ select.entrada--tipo {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes subir-aviso {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }
 

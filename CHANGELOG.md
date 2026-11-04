@@ -7,6 +7,43 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+## [1.9.0] — 2026-11-03
+
+### Añadido
+
+- **Aviso de actualización** con comportamiento de app nativa
+  (`src/lib/actualizacion.ts` y `src/components/AvisoActualizacion.tsx`):
+  cuando GitHub Pages publica una versión nueva, el portal muestra
+  «Actualización disponible» con **Ahora no** y **Actualizar**. La versión
+  nueva queda en espera y solo toma el control cuando el pasajero lo confirma,
+  con una única recarga y la purga de las cachés anteriores.
+- La comprobación de versión ocurre al arrancar, cada 30 minutos, al volver a
+  primer plano y al recuperar la red, con un mínimo de 60 segundos entre
+  intentos y `updateViaCache: "none"`.
+- **BLINK-DOC-24** con el flujo, la interfaz, los límites y la decisión
+  ADR-31; RF-18 en BLINK-DOC-01 y tres pruebas en
+  `src/lib/actualizacion.test.ts`.
+
+### Cambiado
+
+- El service worker ya no llama a `skipWaiting()` al instalar: la versión
+  nueva se retiene en `waiting` hasta que la página envía
+  `{tipo: "activar"}`. Evita recargar en medio de una recarga o de un cobro y
+  mezclar HTML y JavaScript de versiones distintas.
+- La caché pasa a `blink-tarjeta-v6`; `activate` borra las anteriores.
+- La primera visita (sin controlador previo) no muestra el aviso: la
+  instalación inicial no es una actualización.
+- «Ahora no» oculta el aviso hasta el próximo arranque; la app sigue operando
+  con la versión anterior.
+
+### Pruebas
+
+- `npm test`: 100 pruebas en 9 archivos. Se añaden 3 casos para la
+  suscripción y el descarte del aviso.
+- Verificación E2E en Chromium con dos publicaciones simuladas: sin aviso en
+  la primera carga, aviso al detectar `v7`, ocultamiento con «Ahora no»,
+  activación con «Actualizar», purga de `v6` y recarga única.
+
 ## [1.8.0] — 2026-11-03
 
 ### Añadido
