@@ -355,7 +355,8 @@ export function Transferir({
             onChange={(evento) => cambiarMonto(evento.target.value)}
           />
           <span className="campo__ayuda">
-            Hasta {formatearBs(disponible)} disponibles en esta tarjeta
+            Hasta {formatearBs(disponible)} disponibles en esta tarjeta, en bolívares
+            enteros y sin céntimos
             {tarjeta.saldo > ajustes.topeTransferencia
               ? ` · tope de ${formatearBs(ajustes.topeTransferencia)} por operación`
               : ""}

@@ -18,9 +18,19 @@ interface Props {
   movimientos: Movimiento[];
   seleccionadoId?: string | null;
   alSeleccionar?: (movimiento: Movimiento) => void;
+  /** Aviso cuando la lista no pudo cargarse (null ≠ "sin movimientos"). */
+  error?: string;
+  alReintentar?: () => void;
 }
 
-export function Movimientos({ tarjeta, movimientos, seleccionadoId, alSeleccionar }: Props) {
+export function Movimientos({
+  tarjeta,
+  movimientos,
+  seleccionadoId,
+  alSeleccionar,
+  error,
+  alReintentar,
+}: Props) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
 
   const grupos = useMemo(() => {
@@ -87,20 +97,36 @@ export function Movimientos({ tarjeta, movimientos, seleccionadoId, alSelecciona
         ))}
       </div>
 
+      {error ? (
+        <div className="aviso aviso--peligro" role="alert">
+          <Icon name="alerta" />
+          <p>
+            {error}{" "}
+            {alReintentar ? (
+              <button type="button" className="enlace-sutil" onClick={alReintentar}>
+                Reintentar
+              </button>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
+
       {grupos.length === 0 ? (
         <div className="vacio-bloque">
           <span className="vacio-bloque__icono">
             <Icon name="movimientos" />
           </span>
-          <strong>Sin movimientos</strong>
+          <strong>{error ? "Lista sin confirmar" : "Sin movimientos"}</strong>
           <p>
-            {filtro === "viaje"
-              ? "Aún no has pagado ningún pasaje con esta tarjeta."
-              : filtro === "recarga"
-                ? "Todavía no has recargado esta tarjeta."
-                : filtro === "transferencia"
-                  ? "Todavía no has transferido saldo con esta tarjeta."
-                  : "Cuando uses la tarjeta verás aquí cada viaje, recarga y transferencia."}
+            {error
+              ? "No pudimos leer el extracto. El saldo que ves puede estar viejo; reintenta cuando tengas señal."
+              : filtro === "viaje"
+                ? "Aún no has pagado ningún pasaje con esta tarjeta."
+                : filtro === "recarga"
+                  ? "Todavía no has recargado esta tarjeta."
+                  : filtro === "transferencia"
+                    ? "Todavía no has transferido saldo con esta tarjeta."
+                    : "Cuando uses la tarjeta verás aquí cada viaje, recarga y transferencia."}
           </p>
         </div>
       ) : (

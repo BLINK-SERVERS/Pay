@@ -687,12 +687,14 @@ export const repositorioLocal: Repositorio = {
     }
 
     const bruto = Number.isFinite(solicitud.monto) ? solicitud.monto : 0;
-    const monto = Math.round(bruto * 100) / 100;
+    // El chip guarda bolívares enteros (BLINK-DOC-14): céntimos no se pueden
+    // escribir en el plástico, así que la nube tampoco los acepta.
+    if (!Number.isInteger(bruto)) {
+      throw new ErrorBlink("datos", "Transfiere solo bolívares enteros, sin céntimos.");
+    }
+    const monto = bruto;
     if (monto <= 0) {
       throw new ErrorBlink("datos", "Escribe un monto mayor que cero.");
-    }
-    if (Math.abs(monto - bruto) > 1e-9) {
-      throw new ErrorBlink("datos", "Usa como máximo dos decimales.");
     }
     if (monto > TOPE_TRANSFERENCIA) {
       throw new ErrorBlink(

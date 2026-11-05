@@ -71,7 +71,7 @@ export interface TransferenciaNueva {
   origen: string;
   /** Serial de la tarjeta que lo recibe. */
   destino: string;
-  /** Bs enteros o con dos decimales. */
+  /** Bs enteros: el chip no admite céntimos. */
   monto: number;
   /** PIN de la cuenta dueña de la tarjeta de origen. */
   pin: string;

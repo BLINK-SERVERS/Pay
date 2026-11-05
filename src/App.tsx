@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AvisoActualizacion } from "./components/AvisoActualizacion";
+import { AvisoDemo } from "./components/AvisoDemo";
 import { BarraTabs, type Pestana } from "./components/BarraTabs";
 import { Desbloqueo } from "./components/Desbloqueo";
 import { Hoja } from "./components/Hoja";
@@ -71,6 +72,9 @@ export function App() {
   const [sesion, setSesion] = useState<Sesion | null>(null);
   const [serialActiva, setSerialActiva] = useState<string | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  // Un fallo de red al leer el extracto no es «no hay movimientos»: se avisa
+  // aparte para no mostrar una tarjeta vacía que en realidad está sin leer.
+  const [errorMovimientos, setErrorMovimientos] = useState("");
   const [ajustes, setAjustes] = useState<Ajustes>(ajustesPorDefecto());
   const [pestana, setPestana] = useState<Pestana>("inicio");
   const [tema, setTema] = useState<ModoTema>(leerTema);
@@ -163,16 +167,22 @@ export function App() {
   useEffect(() => {
     if (!token || !serialActiva) {
       setMovimientos([]);
+      setErrorMovimientos("");
       return;
     }
     let vivo = true;
+    setErrorMovimientos("");
     repositorio
       .movimientos(token, serialActiva)
       .then((lista) => {
         if (vivo) setMovimientos(lista);
       })
       .catch(() => {
-        if (vivo) setMovimientos([]);
+        if (!vivo) return;
+        setMovimientos([]);
+        setErrorMovimientos(
+          "No pudimos cargar tus movimientos. Revisa la conexión e inténtalo de nuevo."
+        );
       });
     return () => {
       vivo = false;
@@ -185,8 +195,14 @@ export function App() {
       const actual = await repositorio.sesion(token);
       setSesion(actual);
       setMovimientos(await repositorio.movimientos(token, serialActiva));
-    } catch {
+      setErrorMovimientos("");
+    } catch (fallo) {
       // La sesión pudo expirar; el siguiente intento de acción lo dirá.
+      if ((fallo as { codigo?: string }).codigo !== "sesion") {
+        setErrorMovimientos(
+          "No pudimos actualizar tus movimientos. Revisa la conexión e inténtalo de nuevo."
+        );
+      }
     }
   }, [token, serialActiva]);
 
@@ -195,6 +211,7 @@ export function App() {
     setSesion(null);
     setSerialActiva(null);
     setMovimientos([]);
+    setErrorMovimientos("");
     setPestana("inicio");
     setSaldoOculto(false);
     setBloqueo(null);
@@ -222,6 +239,7 @@ export function App() {
     setSesion(null);
     setSerialActiva(null);
     setMovimientos([]);
+    setErrorMovimientos("");
     setPestana("inicio");
     setSaldoOculto(false);
     setBiometria(registro);
@@ -394,6 +412,7 @@ export function App() {
           </span>
           <span className="girador girador--grande" />
         </div>
+        <AvisoDemo />
         <AvisoActualizacion />
       </>
     );
@@ -413,6 +432,7 @@ export function App() {
           alDesbloquear={desbloquear}
           alUsarPin={usarPin}
         />
+        <AvisoDemo />
         <AvisoActualizacion />
       </>
     );
@@ -428,6 +448,7 @@ export function App() {
           alEntrarConBiometria={accesoBiometrico ? desbloquear : undefined}
           avisoInicial={avisoAcceso}
         />
+        <AvisoDemo />
         <AvisoActualizacion />
       </>
     );
@@ -451,6 +472,7 @@ export function App() {
         />
 
         <main className="app__main" id="contenido">
+          <AvisoDemo />
         {pestana === "inicio" && (
           <Inicio
             cuenta={sesion.cuenta}
@@ -496,6 +518,8 @@ export function App() {
           <Movimientos
             tarjeta={tarjeta}
             movimientos={movimientos}
+            error={errorMovimientos}
+            alReintentar={() => void refrescar()}
             seleccionadoId={escritorio ? movimientoActivo : null}
             alSeleccionar={
               escritorio ? (movimiento) => setMovimientoActivo(movimiento.id) : undefined

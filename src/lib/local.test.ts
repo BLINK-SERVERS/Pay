@@ -312,6 +312,13 @@ describe("transferencia de saldo en modo local", () => {
     ).rejects.toMatchObject({ codigo: "sin-tarjeta" });
   });
 
+  it("rechaza céntimos: el plástico sólo guarda bolívares enteros", async () => {
+    const token = await abrir();
+    await expect(
+      repositorioLocal.transferir(token, { ...solicitud(), monto: 100.5 })
+    ).rejects.toMatchObject({ codigo: "datos", message: /enteros/ });
+  });
+
   it("puede enviar saldo a la tarjeta de otra cuenta", async () => {
     const token = await abrir();
     const resultado = await repositorioLocal.transferir(token, {

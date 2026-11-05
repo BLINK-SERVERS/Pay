@@ -3113,6 +3113,12 @@ select.entrada--tipo {
   color: var(--color-accent-text);
 }
 
+/* Aviso de modo demostración: abre la vista, sin robar el foco del contenido. */
+.demo-aviso {
+  align-items: center;
+  margin-bottom: 1.15rem;
+}
+
 .enlace-sutil {
   align-self: center;
   padding: 0.5rem;

@@ -373,7 +373,150 @@ try {
   assert.equal(Number(final[seriales[1]].last_chip_balance), 0);
   ok("ajustes acusados, viaje de 500 Bs cobrado y ambos plásticos en cero");
 
-  paso(12, "Resumen operativo");
+  paso(12, "Pruebas adversariales de la sincronización (B-62…B-66)");
+  const macValidador = "A0B1C2D3E4F5";
+
+  // B-62: el RPC interno no puede invocarse sin el token del validador.
+  let puertaAbierta = null;
+  try {
+    await rpc("bt_validador_sincronizar", {
+      p_validator_mac: macValidador,
+      p_taps: [{ offline_id: "ataque-anon", visible_id: seriales[0], fare_charged: 500 }],
+    });
+  } catch (error) {
+    puertaAbierta = error.message;
+  }
+  assert.match(puertaAbierta ?? "", /permission denied|Could not find|PGRST202|42501|not authorized/i);
+  ok("anon/authenticated no puede llamar a bt_validador_sincronizar directo");
+
+  // B-63/B-65/B-66: toques inventados, con chip hinchado, de tarjeta ajena,
+  // con céntimos y sin identificadores. Ninguno debe aprobarse y todos deben
+  // quedar registrados en validator_rejections.
+  const { rows: rechazoAntes } = await db.query(
+    "select count(*)::int n from public.validator_rejections",
+  );
+  const sync5 = await rpc("bt_validador_sincronizar_token", {
+    p_token: tokenValidador,
+    p_taps: [
+      { offline_id: "adv-sin-saldo", visible_id: seriales[0], fare_charged: 500, chip_balance_after: 0 },
+      { offline_id: "adv-chip-hinchado", visible_id: seriales[0], fare_charged: 500, chip_balance_after: 999999 },
+      { offline_id: "adv-desconocida", visible_id: "G-99999-999-Z", fare_charged: 500, chip_balance_after: 0 },
+      { offline_id: "adv-decimal", visible_id: seriales[0], fare_charged: 499.5, chip_balance_after: 0 },
+      { visible_id: seriales[0], fare_charged: 500, chip_balance_after: 0 },
+    ],
+  });
+  assert.equal(sync5.procesadas, 0, "ningún toque adversarial se aprueba");
+  assert.equal(sync5.rechazadas.length, 5);
+  const motivos = sync5.rechazadas.map((r) => r.motivo).sort();
+  const esperados = [
+    "Falta offline_id",
+    "Saldo del chip fuera de rango",
+    "Saldo virtual insuficiente",
+    "Tarjeta desconocida",
+    "Tarifa con decimales",
+  ].sort();
+  assert.deepEqual(motivos, esperados);
+
+  const { rows: auditoria } = await db.query(
+    `select offline_id, motivo from public.validator_rejections
+      where vehicle_id = (select id from public.vehicles where validator_mac = $1)
+      order by offline_id`,
+    [macValidador],
+  );
+  assert.equal(auditoria.length, Number(rechazoAntes[0].n) + 5, "cada rechazo deja su huella");
+  assert.equal(
+    auditoria.filter((f) => f.offline_id === null).length,
+    1,
+    "solo el toque sin offline_id se registra sin identificador",
+  );
+  ok(`5 rechazos registrados: ${motivos.join(" · ")}`);
+
+  const { rows: sinCambio } = await db.query(
+    `select virtual_balance, last_chip_balance from public.cards where visible_id = $1`,
+    [seriales[0]],
+  );
+  assert.equal(Number(sinCambio[0].virtual_balance), 0, "un toque rechazado no mueve el saldo");
+  assert.equal(Number(sinCambio[0].last_chip_balance), 0);
+
+  // Tarjeta inactiva: el viaje se rechaza aunque el chip traiga saldo.
+  await db.query("update public.cards set status = 'BLOCKED' where visible_id = $1", [seriales[1]]);
+  const sync6 = await rpc("bt_validador_sincronizar_token", {
+    p_token: tokenValidador,
+    p_taps: [{ offline_id: "adv-bloqueada", visible_id: seriales[1], fare_charged: 500, chip_balance_after: 0 }],
+  });
+  assert.equal(sync6.procesadas, 0);
+  assert.equal(sync6.rechazadas[0]?.motivo, "Tarjeta no activa");
+  await db.query("update public.cards set status = 'ACTIVE' where visible_id = $1", [seriales[1]]);
+
+  // offline_id repetido: el mismo viaje no se liquidan dos veces.
+  const [viajesAntes] = await db.query(
+    "select count(*)::int n from public.trips_telemetry",
+  ).then((r) => r.rows);
+  const sync7 = await rpc("bt_validador_sincronizar_token", {
+    p_token: tokenValidador,
+    p_taps: [{ offline_id: offlineId, visible_id: seriales[0], fare_charged: 500, chip_balance_after: 500 }],
+  });
+  assert.equal(sync7.procesadas, 0, "el toque repetido se ignora");
+  assert.equal(sync7.rechazadas.length, 0, "y no hace falta rechazarlo");
+  const [viajesDespues] = await db.query(
+    "select count(*)::int n from public.trips_telemetry",
+  ).then((r) => r.rows);
+  assert.equal(viajesDespues.n, viajesAntes.n, "no se duplica el viaje");
+  ok("viaje repetido ignorado y tarjeta inactiva rechazada");
+
+  // Validador dado de baja: el token deja de servir (lo corta 0004 antes
+  // incluso de entrar al RPC endurecido de 0023).
+  await db.query("update public.vehicles set active = false where validator_mac = $1", [macValidador]);
+  let validadorInactivo = null;
+  try {
+    await rpc("bt_validador_sincronizar_token", { p_token: tokenValidador });
+  } catch (error) {
+    validadorInactivo = error.message;
+  }
+  assert.match(validadorInactivo ?? "", /inactivo|token de validador inválido/i);
+  await db.query("update public.vehicles set active = true where validator_mac = $1", [macValidador]);
+  ok("un validador inactivo no sincroniza aunque conserve su token");
+
+  // B-65: céntimos dentro del chip no existen, ni por la API ni por la base.
+  const conCentimos = await transferir(seriales[1], 100.5, "258036");
+  assert.equal(conCentimos.error, "datos");
+  assert.match(conCentimos.mensaje, /enteros/);
+
+  let filaDecimal = null;
+  try {
+    await db.query(
+      `insert into public.card_transfers (clave, cuenta_id, origen_id, destino_id, monto, origen_saldo, destino_saldo)
+        values (gen_random_uuid(),
+                (select id from public.accounts where cedula_digitos = '20123456'),
+                (select id from public.cards where visible_id = $1),
+                (select id from public.cards where visible_id = $2),
+                100.5, 0, 0)`,
+      [seriales[0], seriales[1]],
+    );
+  } catch (error) {
+    filaDecimal = error.message;
+  }
+  assert.match(filaDecimal ?? "", /card_transfers_monto_entero/);
+
+  let ajusteDecimal = null;
+  try {
+    await db.query(
+      `insert into public.card_adjustments (card_id, monto, motivo)
+        values ((select id from public.cards where visible_id = $1), 12.5, 'prueba')`,
+      [seriales[1]],
+    );
+  } catch (error) {
+    ajusteDecimal = error.message;
+  }
+  assert.match(ajusteDecimal ?? "", /card_adjustments_monto_entero/);
+  ok("la base también rechaza transferencias y ajustes con céntimos");
+
+  const syncFinal = await rpc("bt_validador_sincronizar_token", { p_token: tokenValidador });
+  assert.ok(Array.isArray(syncFinal.pendientes), "la respuesta mantiene el contrato del firmware");
+  assert.equal(typeof syncFinal.procesadas, "number");
+  ok("respuesta estable: procesadas, rechazadas, pendientes y bloqueadas");
+
+  paso(13, "Resumen operativo");
   const [resumenFila] = await servicio(
     "select public.bt_resumen_operativo() as r",
   );

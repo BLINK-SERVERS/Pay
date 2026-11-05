@@ -116,7 +116,7 @@ src/
     local.ts        espejo local del mismo contrato
     dominio.ts      validaciones de cédula, teléfono, serial, montos
   styles/           tokens, base y BEM de la app (tarjeta con cqw)
-supabase/migrations/ 0001…0022 (esquema compartido del ecosistema)
+supabase/migrations/ 0001…0023 (esquema compartido del ecosistema)
 scripts/lote.ts      generador de lotes y hoja imprimible
 scripts/verificar-hig.mjs  verificación visual y estructural HIG (Playwright)
 simulacion/          pila Docker, semilla y flujo completo
