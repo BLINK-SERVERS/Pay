@@ -16,7 +16,9 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
   si la tarjeta está `ACTIVE` y su saldo virtual lo cubre; los importes de
   transferencias, ajustes y telemetría se restringen a bolívares enteros; y los
   toques rechazados se guardan en `validator_rejections`. Aplicada en la
-  simulación el 2026-11-05; **pendiente en Supabase**.
+  simulación el 2026-11-05 y **en Supabase el 2026-11-06**, con la revocación
+  verificada en vivo: la RPC cruda responde 401/42501 y el envoltorio sin token
+  403/28000.
 - **Aviso de datos de ejemplo** (`src/components/AvisoDemo.tsx`): cuando el
   portal apunta a un backend con `settings.publico` sin personalizar, la pantalla
   de inicio lo dice en vez de fingir que los datos son reales (B-68).
@@ -30,7 +32,7 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 ### Cambiado
 
 - La transferencia exige **bolívares enteros** en lugar de redondear a dos
-  decimales: el message de error es «Transfiere solo bolívares enteros, sin
+  decimales: el mensaje de error es «Transfiere solo bolívares enteros, sin
   céntimos.» y la ayuda del campo lo aclara al pasajero (B-65).
 - Un fallo de red al leer el extracto ya no se presenta como «sin movimientos»:
   `App.tsx` guarda `errorMovimientos` y `Movimientos.tsx` muestra el aviso con
@@ -38,8 +40,9 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ### Conocido
 
-- `0022` y `0023` no están aplicadas en Supabase: la producción sigue con
-  `0021` y el portal publicado es la 2.0.0.
+- `0022` y `0023` están aplicadas en Supabase desde el 2026-11-06. Lo que sigue
+  pendiente es el despliegue: el portal publicado en Pages es la 2.0.0, no esta
+  2.1.0.
 - La defensa contra dos sincronizaciones simultáneas del mismo validador no es
   medible con una sola conexión de prueba (BLINK-DOC-07 §4.18).
 
