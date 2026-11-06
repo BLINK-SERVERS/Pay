@@ -40,9 +40,9 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ### Conocido
 
-- `0022` y `0023` están aplicadas en Supabase desde el 2026-11-06. Lo que sigue
-  pendiente es el despliegue: el portal publicado en Pages es la 2.0.0, no esta
-  2.1.0.
+- `0022` y `0023` están aplicadas en Supabase desde el 2026-11-06, y esta
+  **2.1.0 quedó publicada en GitHub Pages el 2026-11-06** (commit `2048157`,
+  flujo «Publicar en Pages» en verde, bundle `index-0DsCmtA8.js`, `CACHE` `v7`).
 - La defensa contra dos sincronizaciones simultáneas del mismo validador no es
   medible con una sola conexión de prueba (BLINK-DOC-07 §4.18).
 
