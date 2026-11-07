@@ -5,6 +5,8 @@ import type {
   DatosPago,
   EstadoMovimiento,
   Movimiento,
+  OpcionesMovimientos,
+  PaginaMovimientos,
   RecargaNueva,
   ResultadoTransferencia,
   Sesion,
@@ -46,7 +48,11 @@ export interface Repositorio {
   registrar(cuenta: CuentaNueva): Promise<Sesion>;
   sesion(token: string): Promise<Sesion>;
   vincular(token: string, serial: string): Promise<Sesion>;
-  movimientos(token: string, serial: string): Promise<Movimiento[]>;
+  movimientos(
+    token: string,
+    serial: string,
+    opciones?: OpcionesMovimientos
+  ): Promise<PaginaMovimientos>;
   reportarRecarga(token: string, serial: string, recarga: RecargaNueva): Promise<Movimiento>;
   transferir(token: string, transferencia: TransferenciaNueva): Promise<ResultadoTransferencia>;
   cambiarPin(token: string, actual: string, nuevo: string): Promise<void>;
@@ -666,13 +672,19 @@ export const repositorioLocal: Repositorio = {
     return sesionDe(datos, cuenta, token);
   },
 
-  async movimientos(token, serial) {
+  async movimientos(token, serial, opciones = {}) {
     const datos = await base();
     const cuenta = porToken(datos, token);
     const tarjeta = tarjetaDe(datos, cuenta, serial);
-    return datos.movimientos
+    const limite = Math.min(Math.max(opciones.limite ?? 30, 1), 100);
+    const desde = Math.max(opciones.desplazamiento ?? 0, 0);
+    const lista = datos.movimientos
       .filter((m) => m.serial === tarjeta.serial)
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    return {
+      movimientos: lista.slice(desde, desde + limite),
+      hayMas: lista.length > desde + limite,
+    };
   },
 
   async reportarRecarga(token, serial, recarga) {

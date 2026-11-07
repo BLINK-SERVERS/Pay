@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { EsqueletoMovimientos } from "../components/EsqueletoMovimientos";
 import { Icon } from "../components/Icon";
 import { MovimientoFila } from "../components/MovimientoFila";
 import { TarjetaVirtual } from "../components/TarjetaVirtual";
@@ -15,6 +16,8 @@ interface Props {
   alVerMovimientos: () => void;
   seleccionadoId?: string | null;
   alSeleccionarMovimiento?: (movimiento: Movimiento) => void;
+  /** El extracto todavía no llegó: muestra esqueletos, no el vacío. */
+  cargandoMovimientos?: boolean;
 }
 
 function saludo(): string {
@@ -34,6 +37,7 @@ export function Inicio({
   alVerMovimientos,
   seleccionadoId,
   alSeleccionarMovimiento,
+  cargandoMovimientos = false,
 }: Props) {
   const nombre = cuenta.nombres.split(" ")[0] ?? "";
   const recientes = movimientos.slice(0, 4);
@@ -174,18 +178,16 @@ export function Inicio({
           <div className="seccion__cabecera">
             <h2 className="seccion__titulo">Últimos movimientos</h2>
           </div>
-          {recientes.length > 0 ? (
+          {cargandoMovimientos ? (
+            <EsqueletoMovimientos filas={4} etiqueta="Cargando tus últimos movimientos…" />
+          ) : recientes.length > 0 ? (
             <ul className="lista-movimientos">
               {recientes.map((movimiento) => (
                 <MovimientoFila
                   key={movimiento.id}
                   movimiento={movimiento}
                   seleccionado={movimiento.id === seleccionadoId}
-                  alSeleccionar={
-                    alSeleccionarMovimiento
-                      ? () => alSeleccionarMovimiento(movimiento)
-                      : undefined
-                  }
+                  alSeleccionar={alSeleccionarMovimiento}
                 />
               ))}
             </ul>

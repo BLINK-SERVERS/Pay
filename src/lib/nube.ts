@@ -3,6 +3,7 @@ import type {
   Cuenta,
   DatosPago,
   Movimiento,
+  PaginaMovimientos,
   RecargaNueva,
   ResultadoTransferencia,
   Sesion,
@@ -61,6 +62,18 @@ interface ErrorDeDominio {
   mensaje?: string;
 }
 
+/** ErrorBlink con la pista de PostgREST para distinguir una RPC ausente. */
+type ErrorRpcBlink = ErrorBlink & { estado?: number; codigoPostgrest?: string };
+
+function funcionAusente(error: unknown): boolean {
+  if (!(error instanceof ErrorBlink)) return false;
+  const rpcError = error as ErrorRpcBlink;
+  return rpcError.estado === 404 || rpcError.codigoPostgrest === "PGRST202";
+}
+
+/** null = aún no se sabe; false = servidor sin la RPC paginada (0026). */
+let paginacionServidor: boolean | null = null;
+
 function esErrorDeDominio(valor: unknown): valor is ErrorDeDominio {
   return (
     typeof valor === "object" &&
@@ -107,7 +120,13 @@ async function rpc<T>(funcion: string, argumentos: Record<string, unknown>): Pro
     if (codigo) {
       throw new ErrorBlink(codigo, mensaje.replace(`bt:${codigo}:`, "").trim());
     }
-    throw new ErrorBlink("red", "BLINK no está disponible en este momento. Intenta más tarde.");
+    const fallo = new ErrorBlink(
+      "red",
+      "BLINK no está disponible en este momento. Intenta más tarde."
+    ) as ErrorRpcBlink;
+    fallo.estado = respuesta.status;
+    fallo.codigoPostgrest = detalle.code;
+    throw fallo;
   }
 
   const datos = (await respuesta.json()) as unknown;
@@ -216,18 +235,72 @@ export const repositorioNube: Repositorio = {
     return sesion;
   },
 
-  async movimientos(token, serial) {
+  async movimientos(token, serial, opciones = {}) {
+    const limite = Math.min(Math.max(opciones.limite ?? 30, 1), 100);
+    const desplazamiento = Math.max(opciones.desplazamiento ?? 0, 0);
+
+    function pedir(argumentos: Record<string, unknown>) {
+      return rpc<{ movimientos: Movimiento[]; hayMas?: boolean }>(
+        "bt_movimientos",
+        argumentos
+      );
+    }
+
     try {
-      const lista = await rpc<{ movimientos: Movimiento[] }>("bt_movimientos", {
-        p_token: token,
-        p_serial: serial,
-      }).then((r) => r.movimientos);
-      guardarMovimientos(token, serial, lista);
-      return lista;
+      let datos;
+      if (paginacionServidor !== false) {
+        try {
+          datos = await pedir({
+            p_token: token,
+            p_serial: serial,
+            p_limite: limite,
+            p_desplazamiento: desplazamiento,
+          });
+          paginacionServidor = true;
+        } catch (error) {
+          // La RPC paginada llega con la migración 0026; la anterior sigue
+          // sirviendo mientras no esté aplicada.
+          if (!funcionAusente(error)) throw error;
+          paginacionServidor = false;
+        }
+      }
+
+      if (!datos) {
+        // Servidor anterior a 0026: el extracto completo de una sola vez,
+        // como antes de paginar. Sin botón de «ver anteriores».
+        if (desplazamiento > 0) {
+          const guardados = movimientosDe(token, serial);
+          return guardados
+            ? {
+                movimientos: guardados.slice(desplazamiento, desplazamiento + limite),
+                hayMas: guardados.length > desplazamiento + limite,
+              }
+            : { movimientos: [], hayMas: false };
+        }
+        datos = await pedir({ p_token: token, p_serial: serial, p_limite: 100 });
+        const pagina: PaginaMovimientos = {
+          movimientos: datos.movimientos,
+          hayMas: false,
+        };
+        guardarMovimientos(token, serial, pagina.movimientos);
+        return pagina;
+      }
+
+      const pagina: PaginaMovimientos = {
+        movimientos: datos.movimientos,
+        hayMas: datos.hayMas ?? datos.movimientos.length === limite,
+      };
+      if (desplazamiento === 0) guardarMovimientos(token, serial, pagina.movimientos);
+      return pagina;
     } catch (error) {
       if (error instanceof ErrorBlink && error.codigo === "red") {
         const guardados = movimientosDe(token, serial);
-        if (guardados) return guardados;
+        if (guardados) {
+          return {
+            movimientos: guardados.slice(desplazamiento, desplazamiento + limite),
+            hayMas: guardados.length > desplazamiento + limite,
+          };
+        }
       }
       throw error;
     }

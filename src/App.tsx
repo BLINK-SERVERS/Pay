@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AvisoActualizacion } from "./components/AvisoActualizacion";
 import { AvisoDemo } from "./components/AvisoDemo";
 import { BarraTabs, type Pestana } from "./components/BarraTabs";
@@ -8,13 +8,6 @@ import { HojaVincular } from "./components/HojaVincular";
 import { Icon } from "./components/Icon";
 import { PayLoader } from "./components/PayLoader";
 import { BarraLateral } from "./components/ui/BarraLateral";
-import { Inspector } from "./components/ui/Inspector";
-import { Acceso } from "./pages/Acceso";
-import { Inicio } from "./pages/Inicio";
-import { Movimientos } from "./pages/Movimientos";
-import { Perfil } from "./pages/Perfil";
-import { Recargar } from "./pages/Recargar";
-import { Transferir } from "./pages/Transferir";
 import { ajustesPorDefecto } from "./lib/ajustes";
 import {
   activarBiometria,
@@ -48,6 +41,45 @@ import type {
 const CLAVE_SESION = "blink.tarjeta.sesion";
 const BLOQUEO_INACTIVO = 30 * 60 * 1000;
 
+/** Movimientos por página del extracto: una pantalla y algo de margen. */
+const LIMITE_MOVIMIENTOS = 30;
+/** Evita releer sesión y extracto al cambiar de pestaña o volver a la app. */
+const VIGENCIA_REFRESCO = 10_000;
+
+// Cada vista viaja en su propio trozo de JavaScript. El arranque solo carga
+// la pantalla que se va a ver; las demás llegan al navegar (y quedan en la
+// caché del service worker para la siguiente visita).
+const Acceso = lazy(() =>
+  import("./pages/Acceso").then((modulo) => ({ default: memo(modulo.Acceso) }))
+);
+const Inicio = lazy(() =>
+  import("./pages/Inicio").then((modulo) => ({ default: memo(modulo.Inicio) }))
+);
+const Movimientos = lazy(() =>
+  import("./pages/Movimientos").then((modulo) => ({ default: memo(modulo.Movimientos) }))
+);
+const Recargar = lazy(() =>
+  import("./pages/Recargar").then((modulo) => ({ default: memo(modulo.Recargar) }))
+);
+const Transferir = lazy(() =>
+  import("./pages/Transferir").then((modulo) => ({ default: memo(modulo.Transferir) }))
+);
+const Perfil = lazy(() =>
+  import("./pages/Perfil").then((modulo) => ({ default: memo(modulo.Perfil) }))
+);
+const Inspector = lazy(() =>
+  import("./components/ui/Inspector").then((modulo) => ({ default: modulo.Inspector }))
+);
+
+function VistaCargando({ etiqueta = "Cargando…" }: { etiqueta?: string }) {
+  return (
+    <div className="vista vista--cargando" role="status" aria-live="polite" aria-busy="true">
+      <span className="esqueleto esqueleto--bloque" aria-hidden="true" />
+      <span className="visualmente-oculto">{etiqueta}</span>
+    </div>
+  );
+}
+
 function leerSesionGuardada(): { token: string; expira: number } | null {
   try {
     const crudo = localStorage.getItem(CLAVE_SESION);
@@ -71,6 +103,11 @@ export function App() {
   const [sesion, setSesion] = useState<Sesion | null>(null);
   const [serialActiva, setSerialActiva] = useState<string | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [hayMasMovimientos, setHayMasMovimientos] = useState(false);
+  // Arranca en true: con la sesión restaurada la primera pintura aún no tiene
+  // extracto y no debe mostrar el vacío. Los refrescos silenciosos no lo tocan.
+  const [cargandoMovimientos, setCargandoMovimientos] = useState(true);
+  const [cargandoMasMovimientos, setCargandoMasMovimientos] = useState(false);
   // Un fallo de red al leer el extracto no es «no hay movimientos»: se avisa
   // aparte para no mostrar una tarjeta vacía que en realidad está sin leer.
   const [errorMovimientos, setErrorMovimientos] = useState("");
@@ -94,6 +131,13 @@ export function App() {
   const [errorAltaBiometria, setErrorAltaBiometria] = useState<string | null>(null);
   const [avisoAcceso, setAvisoAcceso] = useState<string | null>(null);
   const ocultoDesde = useRef<number | null>(null);
+  // Un solo refresco en vuelo y una ventana de vigencia: cambiar de pestaña o
+  // volver a la app no dispara la misma lectura dos veces.
+  const refrescoEnCurso = useRef<Promise<void> | null>(null);
+  const ultimoRefresco = useRef(0);
+  // Una respuesta que llega después de salir o bloquear no debe reabrir la
+  // sesión ni repintar el extracto.
+  const generacion = useRef(0);
 
   const token = sesion?.token ?? null;
 
@@ -114,10 +158,16 @@ export function App() {
     void biometriaSoportada().then((soportada) => {
       if (vivo) setSoportaBiometria(soportada);
     });
+    // Configuración y sesión son independientes: van en paralelo para que la
+    // restauración no espere a los ajustes ni el login espere al token.
+    void repositorio
+      .ajustes()
+      .then((config) => {
+        if (vivo) setAjustes(config);
+      })
+      .catch(() => undefined);
     (async () => {
       try {
-        const config = await repositorio.ajustes();
-        if (vivo) setAjustes(config);
         const guardada = leerSesionGuardada();
         if (!guardada) {
           olvidarCopia();
@@ -157,50 +207,123 @@ export function App() {
   useEffect(() => {
     if (!token || !serialActiva) {
       setMovimientos([]);
+      setHayMasMovimientos(false);
+      setCargandoMasMovimientos(false);
       setErrorMovimientos("");
+      setCargandoMovimientos(false);
       return;
     }
     let vivo = true;
+    // Al cambiar de tarjeta el extracto anterior ya no representa nada.
+    setMovimientos([]);
+    setHayMasMovimientos(false);
+    setCargandoMasMovimientos(false);
     setErrorMovimientos("");
+    setCargandoMovimientos(true);
+    // La primera página cuenta como refresco reciente: una pestaña tocada de
+    // inmediato no vuelve a pedir lo mismo.
+    ultimoRefresco.current = Date.now();
     repositorio
-      .movimientos(token, serialActiva)
-      .then((lista) => {
-        if (vivo) setMovimientos(lista);
+      .movimientos(token, serialActiva, { limite: LIMITE_MOVIMIENTOS })
+      .then((pagina) => {
+        if (!vivo) return;
+        setMovimientos(pagina.movimientos);
+        setHayMasMovimientos(pagina.hayMas);
       })
       .catch(() => {
         if (!vivo) return;
+        ultimoRefresco.current = 0;
         setMovimientos([]);
         setErrorMovimientos(
           "No pudimos cargar tus movimientos. Revisa la conexión e inténtalo de nuevo."
         );
+      })
+      .finally(() => {
+        if (vivo) setCargandoMovimientos(false);
       });
     return () => {
       vivo = false;
     };
   }, [token, serialActiva]);
 
-  const refrescar = useCallback(async () => {
-    if (!token || !serialActiva) return;
+  const refrescar = useCallback(
+    async (forzar = false) => {
+      if (!token || !serialActiva) return;
+      if (!forzar && Date.now() - ultimoRefresco.current < VIGENCIA_REFRESCO) return;
+      if (refrescoEnCurso.current) return refrescoEnCurso.current;
+
+      const marca = generacion.current;
+      const tarea = (async () => {
+        try {
+          // Sesión y extracto no dependen entre sí: viajan juntos.
+          const [actual, pagina] = await Promise.all([
+            repositorio.sesion(token),
+            repositorio.movimientos(token, serialActiva, { limite: LIMITE_MOVIMIENTOS }),
+          ]);
+          if (marca !== generacion.current) return;
+          setSesion(actual);
+          setMovimientos(pagina.movimientos);
+          setHayMasMovimientos(pagina.hayMas);
+          setCargandoMasMovimientos(false);
+          setErrorMovimientos("");
+          ultimoRefresco.current = Date.now();
+        } catch (fallo) {
+          if (marca !== generacion.current) return;
+          ultimoRefresco.current = 0;
+          // La sesión pudo expirar; el siguiente intento de acción lo dirá.
+          if ((fallo as { codigo?: string }).codigo !== "sesion") {
+            setErrorMovimientos(
+              "No pudimos actualizar tus movimientos. Revisa la conexión e inténtalo de nuevo."
+            );
+          }
+        } finally {
+          refrescoEnCurso.current = null;
+        }
+      })();
+      refrescoEnCurso.current = tarea;
+      return tarea;
+    },
+    [token, serialActiva]
+  );
+
+  const cargarMasMovimientos = useCallback(async () => {
+    if (!token || !serialActiva || cargandoMasMovimientos || !hayMasMovimientos) return;
+    const marca = generacion.current;
+    setCargandoMasMovimientos(true);
     try {
-      const actual = await repositorio.sesion(token);
-      setSesion(actual);
-      setMovimientos(await repositorio.movimientos(token, serialActiva));
+      const pagina = await repositorio.movimientos(token, serialActiva, {
+        limite: LIMITE_MOVIMIENTOS,
+        desplazamiento: movimientos.length,
+      });
+      if (marca !== generacion.current) return;
+      setMovimientos((previas) => {
+        const vistos = new Set(previas.map((movimiento) => movimiento.id));
+        return [
+          ...previas,
+          ...pagina.movimientos.filter((movimiento) => !vistos.has(movimiento.id)),
+        ];
+      });
+      setHayMasMovimientos(pagina.hayMas);
       setErrorMovimientos("");
-    } catch (fallo) {
-      // La sesión pudo expirar; el siguiente intento de acción lo dirá.
-      if ((fallo as { codigo?: string }).codigo !== "sesion") {
-        setErrorMovimientos(
-          "No pudimos actualizar tus movimientos. Revisa la conexión e inténtalo de nuevo."
-        );
-      }
+    } catch {
+      setErrorMovimientos(
+        "No pudimos cargar más movimientos. Revisa la conexión e inténtalo de nuevo."
+      );
+    } finally {
+      setCargandoMasMovimientos(false);
     }
-  }, [token, serialActiva]);
+  }, [token, serialActiva, cargandoMasMovimientos, hayMasMovimientos, movimientos.length]);
 
   const salir = useCallback(async () => {
     const actual = token;
+    generacion.current += 1;
+    refrescoEnCurso.current = null;
+    ultimoRefresco.current = 0;
     setSesion(null);
     setSerialActiva(null);
     setMovimientos([]);
+    setHayMasMovimientos(false);
+    setCargandoMasMovimientos(false);
     setErrorMovimientos("");
     setPestana("inicio");
     setBloqueo(null);
@@ -224,9 +347,14 @@ export function App() {
       void salir();
       return;
     }
+    generacion.current += 1;
+    refrescoEnCurso.current = null;
+    ultimoRefresco.current = 0;
     setSesion(null);
     setSerialActiva(null);
     setMovimientos([]);
+    setHayMasMovimientos(false);
+    setCargandoMasMovimientos(false);
     setErrorMovimientos("");
     setPestana("inicio");
     setBiometria(registro);
@@ -364,14 +492,15 @@ export function App() {
   async function reportarRecarga(recarga: RecargaNueva) {
     if (!token || !tarjeta) throw new Error("Sin sesión activa.");
     const movimiento = await repositorio.reportarRecarga(token, tarjeta.serial, recarga);
-    await refrescar();
+    // Un movimiento de dinero siempre revalida, aunque acabe de leerse.
+    await refrescar(true);
     return movimiento;
   }
 
   async function transferir(solicitud: TransferenciaNueva): Promise<ResultadoTransferencia> {
     if (!token) throw new Error("Sin sesión activa.");
     const resultado = await repositorio.transferir(token, solicitud);
-    await refrescar();
+    await refrescar(true);
     return resultado;
   }
 
@@ -387,13 +516,32 @@ export function App() {
     return cuenta;
   }
 
-  function cambiarPestana(nueva: Pestana) {
-    setPestana(nueva);
-    // El inspector refleja una selección de la pestaña en curso; al cambiar
-    // de sección volvemos al resumen en lugar de arrastrar el detalle.
-    setMovimientoActivo(null);
-    if (nueva === "inicio" || nueva === "movimientos" || nueva === "transferir") void refrescar();
-  }
+  const cambiarPestana = useCallback(
+    (nueva: Pestana) => {
+      setPestana(nueva);
+      // El inspector refleja una selección de la pestaña en curso; al cambiar
+      // de sección volvemos al resumen en lugar de arrastrar el detalle.
+      setMovimientoActivo(null);
+      // `refrescar` ignora la llamada si el extracto se leyó hace < 10 s.
+      if (nueva === "inicio" || nueva === "movimientos" || nueva === "transferir") {
+        void refrescar();
+      }
+    },
+    [refrescar]
+  );
+
+  const abrirVinculo = useCallback(() => setVinculoAbierto(true), []);
+  const cerrarVinculo = useCallback(() => setVinculoAbierto(false), []);
+  const seleccionarMovimiento = useCallback(
+    (movimiento: Movimiento) => setMovimientoActivo(movimiento.id),
+    []
+  );
+  const limpiarSeleccion = useCallback(() => setMovimientoActivo(null), []);
+  const reintentarMovimientos = useCallback(() => void refrescar(true), [refrescar]);
+  const irAInicio = useCallback(() => cambiarPestana("inicio"), [cambiarPestana]);
+  const irAMovimientos = useCallback(() => cambiarPestana("movimientos"), [cambiarPestana]);
+  const irARecargar = useCallback(() => cambiarPestana("recargar"), [cambiarPestana]);
+  const irAPerfil = useCallback(() => cambiarPestana("perfil"), [cambiarPestana]);
 
   function cambiarTema(nuevo: ModoTema) {
     setTema(nuevo);
@@ -433,13 +581,15 @@ export function App() {
   if (!sesion) {
     return (
       <>
-        <Acceso
-          alEntrar={alEntrar}
-          tarifa={ajustes.tarifario.base}
-          biometria={accesoBiometrico}
-          alEntrarConBiometria={accesoBiometrico ? desbloquear : undefined}
-          avisoInicial={avisoAcceso}
-        />
+        <Suspense fallback={<PayLoader />}>
+          <Acceso
+            alEntrar={alEntrar}
+            tarifa={ajustes.tarifario.base}
+            biometria={accesoBiometrico}
+            alEntrarConBiometria={accesoBiometrico ? desbloquear : undefined}
+            avisoInicial={avisoAcceso}
+          />
+        </Suspense>
         <AvisoDemo />
         <AvisoActualizacion />
       </>
@@ -453,19 +603,19 @@ export function App() {
       <div className="app__cuerpo">
         <main className="app__main" id="contenido">
           <AvisoDemo />
+        <Suspense fallback={<VistaCargando />}>
         {pestana === "inicio" && (
           <Inicio
             cuenta={sesion.cuenta}
             tarjetas={sesion.tarjetas}
             tarjeta={tarjeta}
             movimientos={movimientos}
+            cargandoMovimientos={cargandoMovimientos}
             alSeleccionar={setSerialActiva}
-            alVincular={() => setVinculoAbierto(true)}
-            alVerMovimientos={() => cambiarPestana("movimientos")}
+            alVincular={abrirVinculo}
+            alVerMovimientos={irAMovimientos}
             seleccionadoId={escritorio ? movimientoActivo : null}
-            alSeleccionarMovimiento={
-              escritorio ? (movimiento) => setMovimientoActivo(movimiento.id) : undefined
-            }
+            alSeleccionarMovimiento={escritorio ? seleccionarMovimiento : undefined}
           />
         )}
 
@@ -480,7 +630,7 @@ export function App() {
               <button
                 type="button"
                 className="boton boton--primario"
-                onClick={() => setVinculoAbierto(true)}
+                onClick={abrirVinculo}
               >
                 <Icon name="mas" />
                 Vincular una tarjeta
@@ -493,12 +643,14 @@ export function App() {
           <Movimientos
             tarjeta={tarjeta}
             movimientos={movimientos}
+            cargando={cargandoMovimientos}
             error={errorMovimientos}
-            alReintentar={() => void refrescar()}
+            alReintentar={reintentarMovimientos}
+            hayMas={hayMasMovimientos}
+            cargandoMas={cargandoMasMovimientos}
+            alCargarMas={cargarMasMovimientos}
             seleccionadoId={escritorio ? movimientoActivo : null}
-            alSeleccionar={
-              escritorio ? (movimiento) => setMovimientoActivo(movimiento.id) : undefined
-            }
+            alSeleccionar={escritorio ? seleccionarMovimiento : undefined}
           />
         )}
         {tarjeta && pestana === "recargar" && (
@@ -508,9 +660,9 @@ export function App() {
             ajustes={ajustes}
             movimientos={movimientos}
             alReportar={reportarRecarga}
-            alInicio={() => cambiarPestana("inicio")}
-            alVerMovimientos={() => cambiarPestana("movimientos")}
-            alEditarPago={() => cambiarPestana("perfil")}
+            alInicio={irAInicio}
+            alVerMovimientos={irAMovimientos}
+            alEditarPago={irAPerfil}
           />
         )}
         {tarjeta && pestana === "transferir" && (
@@ -520,8 +672,8 @@ export function App() {
             ajustes={ajustes}
             alSeleccionarOrigen={setSerialActiva}
             alTransferir={transferir}
-            alInicio={() => cambiarPestana("inicio")}
-            alVerMovimientos={() => cambiarPestana("movimientos")}
+            alInicio={irAInicio}
+            alVerMovimientos={irAMovimientos}
           />
         )}
         {pestana === "perfil" && (
@@ -533,7 +685,7 @@ export function App() {
             alCambiarTema={cambiarTema}
             alCambiarPin={cambiarPin}
             alActualizarPago={actualizarPago}
-            alVincular={() => setVinculoAbierto(true)}
+            alVincular={abrirVinculo}
             biometriaSoportada={soportaBiometria}
             biometriaActiva={Boolean(biometria)}
             alActivarBiometria={activarBiometriaDesdePerfil}
@@ -541,18 +693,21 @@ export function App() {
             alSalir={() => void salir()}
           />
         )}
+        </Suspense>
         </main>
       </div>
 
       {escritorio && (
-        <Inspector
-          cuenta={sesion.cuenta}
-          tarjeta={tarjeta}
-          seleccionado={movimientoSeleccionado}
-          alLimpiar={() => setMovimientoActivo(null)}
-          alRecargar={() => cambiarPestana("recargar")}
-          alVerMovimientos={() => cambiarPestana("movimientos")}
-        />
+        <Suspense fallback={null}>
+          <Inspector
+            cuenta={sesion.cuenta}
+            tarjeta={tarjeta}
+            seleccionado={movimientoSeleccionado}
+            alLimpiar={limpiarSeleccion}
+            alRecargar={irARecargar}
+            alVerMovimientos={irAMovimientos}
+          />
+        </Suspense>
       )}
 
       <BarraTabs activa={pestana} alCambiar={cambiarPestana} />
@@ -599,7 +754,7 @@ export function App() {
           className="boton boton--primario"
           onClick={() => {
             setPagoMovilAbierto(false);
-            cambiarPestana("recargar");
+            irARecargar();
           }}
         >
           <Icon name="recargar" />
@@ -609,7 +764,7 @@ export function App() {
 
       <HojaVincular
         abierta={vinculoAbierto}
-        alCerrar={() => setVinculoAbierto(false)}
+        alCerrar={cerrarVinculo}
         alVincular={vincular}
       />
 

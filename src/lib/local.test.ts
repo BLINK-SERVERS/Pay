@@ -57,15 +57,31 @@ describe("repositorio local", () => {
 
   it("lista los movimientos de una tarjeta, del más nuevo al más viejo", async () => {
     const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
-    const movimientos = await repositorioLocal.movimientos(token, "G-00001-001-N");
+    const { movimientos } = await repositorioLocal.movimientos(token, "G-00001-001-N");
     expect(movimientos.length).toBe(6);
     const fechas = movimientos.map((m) => new Date(m.at).getTime());
     expect([...fechas].sort((a, b) => b - a)).toEqual(fechas);
   });
 
+  it("pagina el extracto y avisa cuando quedan movimientos", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    const primera = await repositorioLocal.movimientos(token, "G-00001-001-N", {
+      limite: 2,
+    });
+    expect(primera.movimientos).toHaveLength(2);
+    expect(primera.hayMas).toBe(true);
+
+    const segunda = await repositorioLocal.movimientos(token, "G-00001-001-N", {
+      limite: 2,
+      desplazamiento: 2,
+    });
+    expect(segunda.movimientos).toHaveLength(2);
+    expect(segunda.movimientos[0].id).not.toBe(primera.movimientos[0].id);
+  });
+
   it("cada plástico conserva su propio saldo y extracto", async () => {
     const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
-    const movimientos = await repositorioLocal.movimientos(token, "G-00001-004-V");
+    const { movimientos } = await repositorioLocal.movimientos(token, "G-00001-004-V");
     expect(movimientos.length).toBe(3);
     expect(movimientos.every((m) => m.serial === "G-00001-004-V")).toBe(true);
     const sesion = await repositorioLocal.sesion(token);
@@ -262,11 +278,11 @@ describe("transferencia de saldo en modo local", () => {
 
     const origen = await repositorioLocal.movimientos(token, ORIGEN);
     const destino = await repositorioLocal.movimientos(token, DESTINO);
-    expect(origen.find((m) => m.tipo === "transferencia")).toMatchObject({
+    expect(origen.movimientos.find((m) => m.tipo === "transferencia")).toMatchObject({
       tipo: "transferencia",
       monto: -500,
     });
-    expect(destino.find((m) => m.tipo === "transferencia")).toMatchObject({
+    expect(destino.movimientos.find((m) => m.tipo === "transferencia")).toMatchObject({
       tipo: "transferencia",
       monto: 500,
     });

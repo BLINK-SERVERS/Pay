@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { memo, useId, useState } from "react";
 import { Icon } from "./Icon";
 import { partesBs } from "../lib/formato";
 import { pasajesEquivalentes } from "../lib/dominio";
@@ -13,7 +13,7 @@ function textoPasajes(pasajes: number): string {
   return `${pasajes} ${pasajes === 1 ? "pasaje" : "pasajes"}`;
 }
 
-export function TarjetaVirtual({ tarjeta }: Props) {
+export const TarjetaVirtual = memo(function TarjetaVirtual({ tarjeta }: Props) {
   const [girado, setGirado] = useState(false);
   const tarjetaId = useId();
   const saldo = useNumeroAnimado(tarjeta.saldo);
@@ -66,4 +66,4 @@ export function TarjetaVirtual({ tarjeta }: Props) {
       </span>
     </div>
   );
-}
+});

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EsqueletoMovimientos } from "../components/EsqueletoMovimientos";
 import { Icon } from "../components/Icon";
 import { MovimientoFila } from "../components/MovimientoFila";
 import { etiquetaDia, formatearBs } from "../lib/formato";
@@ -21,6 +22,12 @@ interface Props {
   /** Aviso cuando la lista no pudo cargarse (null ≠ "sin movimientos"). */
   error?: string;
   alReintentar?: () => void;
+  /** El extracto todavía no llegó: muestra esqueletos, no el vacío. */
+  cargando?: boolean;
+  /** El servidor tiene páginas más antiguas sin traer. */
+  hayMas?: boolean;
+  cargandoMas?: boolean;
+  alCargarMas?: () => void;
 }
 
 export function Movimientos({
@@ -30,6 +37,10 @@ export function Movimientos({
   alSeleccionar,
   error,
   alReintentar,
+  cargando = false,
+  hayMas = false,
+  cargandoMas = false,
+  alCargarMas,
 }: Props) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
 
@@ -86,7 +97,12 @@ export function Movimientos({
         </div>
       ) : null}
 
-      {grupos.length === 0 ? (
+      {cargando ? (
+        <div className="grupo">
+          <span className="esqueleto esqueleto--dia" aria-hidden="true" />
+          <EsqueletoMovimientos filas={6} etiqueta="Cargando el extracto…" />
+        </div>
+      ) : grupos.length === 0 ? (
         <div className="vacio-bloque">
           <span className="vacio-bloque__icono">
             <Icon name="movimientos" />
@@ -116,12 +132,34 @@ export function Movimientos({
                   conSaldo
                   conDia={false}
                   seleccionado={movimiento.id === seleccionadoId}
-                  alSeleccionar={alSeleccionar ? () => alSeleccionar(movimiento) : undefined}
+                  alSeleccionar={alSeleccionar}
                 />
               ))}
             </ul>
           </section>
         ))
+      )}
+
+      {hayMas && alCargarMas && (
+        <div className="mas-movimientos">
+          <button
+            type="button"
+            className="boton boton--secundario"
+            onClick={alCargarMas}
+            disabled={cargandoMas}
+            aria-busy={cargandoMas}
+            aria-label={cargandoMas ? "Cargando más movimientos" : undefined}
+          >
+            {cargandoMas ? (
+              <>
+                <span className="girador" aria-hidden="true" />
+                Cargando…
+              </>
+            ) : (
+              "Ver movimientos anteriores"
+            )}
+          </button>
+        </div>
       )}
 
       <p className="nota-pie">

@@ -51,6 +51,19 @@ export interface Movimiento {
   referencia?: string;
 }
 
+/** Página del extracto: el servidor avisa si quedan movimientos más viejos. */
+export interface PaginaMovimientos {
+  movimientos: Movimiento[];
+  hayMas: boolean;
+}
+
+export interface OpcionesMovimientos {
+  /** Filas por página (el servidor admite de 1 a 100). */
+  limite?: number;
+  /** Cuántos movimientos saltar desde el más reciente. */
+  desplazamiento?: number;
+}
+
 export interface RecargaNueva {
   /** Cantidad de pasajes comprada. */
   pasajes: number;

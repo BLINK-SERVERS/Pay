@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Icon, type IconName } from "./Icon";
 import { formatearBs, formatearHora, formatearMovimiento } from "../lib/formato";
 import type { Movimiento } from "../lib/tipos";
@@ -17,11 +18,11 @@ interface Props {
   /** Omite el día porque la fila ya vive bajo un encabezado de fecha. */
   conDia?: boolean;
   /** En escritorio, abre el detalle en el inspector. */
-  alSeleccionar?: () => void;
+  alSeleccionar?: (movimiento: Movimiento) => void;
   seleccionado?: boolean;
 }
 
-export function MovimientoFila({
+export const MovimientoFila = memo(function MovimientoFila({
   movimiento,
   conSaldo = false,
   conDia = true,
@@ -78,7 +79,7 @@ export function MovimientoFila({
             pendiente ? " movimiento--pendiente" : ""
           }`}
           aria-pressed={seleccionado}
-          onClick={alSeleccionar}
+          onClick={() => alSeleccionar(movimiento)}
         >
           {contenido}
         </button>
@@ -89,4 +90,4 @@ export function MovimientoFila({
       )}
     </li>
   );
-}
+});

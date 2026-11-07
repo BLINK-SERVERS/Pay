@@ -1038,6 +1038,90 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Esqueletos de carga --------------------------------------- */
+
+.esqueleto {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  flex: none;
+  border-radius: 6px;
+  background: var(--color-neutral-soft);
+}
+
+.esqueleto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    light-dark(rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.07)),
+    transparent
+  );
+  animation: brillo-esqueleto 1.6s ease-in-out infinite;
+}
+
+.esqueleto--icono {
+  width: 29px;
+  height: 29px;
+  border-radius: 7.5px;
+}
+
+.esqueleto--titulo {
+  width: 58%;
+  height: 0.7rem;
+}
+
+.esqueleto--detalle {
+  width: 38%;
+  height: 0.55rem;
+}
+
+.esqueleto--monto {
+  width: 3.4rem;
+  height: 0.7rem;
+}
+
+.esqueleto--dia {
+  width: 4.5rem;
+  height: 0.55rem;
+  margin-inline: 0.35rem;
+}
+
+.movimiento-item:nth-child(2n) .esqueleto--titulo {
+  width: 48%;
+}
+
+.movimiento-item:nth-child(3n) .esqueleto--detalle {
+  width: 48%;
+}
+
+.esqueleto--bloque {
+  width: min(100%, 22rem);
+  height: 7rem;
+  border-radius: 16px;
+}
+
+.vista--cargando {
+  align-items: center;
+  justify-content: center;
+  min-height: 45vh;
+}
+
+.mas-movimientos {
+  display: flex;
+  justify-content: center;
+  padding: 0.15rem 0.35rem 0.45rem;
+}
+
+/* Extracto largo: el navegador mide y pinta solo las filas visibles. */
+.lista-movimientos--extracto .movimiento-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
+}
+
 .etiqueta {
   display: inline-flex;
   align-items: center;
@@ -2617,6 +2701,15 @@ select.entrada {
 @keyframes girar {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes brillo-esqueleto {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
   }
 }
 
