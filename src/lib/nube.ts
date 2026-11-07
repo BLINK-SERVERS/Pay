@@ -97,6 +97,10 @@ async function rpc<T>(funcion: string, argumentos: Record<string, unknown>): Pro
         Authorization: `Bearer ${LLAVE ?? ""}`,
         "Content-Type": "application/json",
         Accept: "application/json",
+        // PostgREST resuelve contra el primer esquema expuesto; si ese esquema
+        // no es `public` las funciones bt_* devuelven PGRST202/PGRST205.
+        "Accept-Profile": "public",
+        "Content-Profile": "public",
       },
       body: JSON.stringify(argumentos),
       signal: corte.signal,
