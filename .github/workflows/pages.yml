@@ -28,7 +28,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - run: npm run build -- --base=/TARJETA/
+      - run: npm run build
         env:
           # Si estas variables no están definidas, la app compila en modo
           # demostración (datos locales) y el sitio sigue funcionando.

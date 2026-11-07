@@ -13,7 +13,7 @@
     "lote": "node scripts/lote.ts",
     "verificar:hig": "node scripts/verificar-hig.mjs",
     "verificar:movimiento": "node scripts/verificar-movimiento.mjs",
-    "deploy": "npm run build -- --base=/TARJETA/ && gh-pages -d dist -t"
+    "deploy": "npm run build && gh-pages -d dist -t"
   },
   "dependencies": {
     "react": "^19.3.0",

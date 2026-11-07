@@ -132,11 +132,12 @@ simulacion/          pila Docker, semilla y flujo completo
 Cada push a `main` dispara `.github/workflows/pages.yml`: `typecheck` → `test` →
 `build` → GitHub Pages. Si falla un paso, no se publica.
 
-El dominio **pay.blink.com.ve** aún no está configurado: falta el token de
-Cloudflare y el registro DNS. Mientras tanto la publicación vive en
-`https://blink-servers.github.io/TARJETA/` y el `base` del build sigue siendo
-`/TARJETA/`; al activar el dominio hay que pasar `base` a `/`, añadir el CNAME
-y ajustar la redirección legacy.
+El sitio se publica como **pay.blink.com.ve** (dominio personalizado del
+repositorio `Pay`, archivo `public/CNAME`). El `base` del build es `/`; el
+registro DNS es un `CNAME` de `pay` a `blink-servers.github.io` sin proxy de
+Cloudflare, y GitHub emite el certificado. La publicación anterior en
+`blink-servers.github.io/TARJETA/` queda solo como redirección histórica
+mientras se retira el repositorio viejo.
 
 ## Documentación
 
