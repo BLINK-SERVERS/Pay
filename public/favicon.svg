@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1024" height="1024" viewBox="0 0 1024 1024" version="1.1" shape-rendering="geometricPrecision" fill="none">
   <title>Blink Pay — favicon</title>
-  <desc>Fondo azul #007AFF con el isotipo de Blink en blanco, centrado.</desc>
+  <desc>Fondo azul #007AFF con el isotipo de Blink y la palabra «Pay» en blanco, centrados.</desc>
   <g inkscape:groupmode="layer" inkscape:label="Fondo" id="capa-fondo">
     <rect id="fondo" x="0" y="0" width="1024" height="1024" rx="230" fill="#007AFF"/>
   </g>
-  <g inkscape:groupmode="layer" inkscape:label="Isotipo" id="capa-isotipo">
-    <g id="isotipo" transform="translate(192 259.56) scale(1.7778) translate(-76 -114)" fill="#FFFFFF">
+  <g inkscape:groupmode="layer" inkscape:label="Composición" id="capa-composicion">
+    <g id="composicion" transform="translate(72 606.19) scale(1.1131)" fill="#FFFEFB">
+      <g id="isotipo" transform="translate(0 -223) scale(0.7852) translate(-76 -114)" fill="#FFFEFB">
       <path id="ojo-guino" d="M 122 164 H 178 C 198 164 224 164 224 198 C 224 232 198 232 178 232 H 122 C 102 232 76 232 76 198 C 76 164 102 164 122 164 Z"/>
       <path id="ojo-abierto" d="M 436 182 A 68 68 0 1 1 299.99 182 A 68 68 0 1 1 436 182 Z"/>
       <path id="boca" d="M 212 286 H 300 C 331.55 286 340.42 286 337.5 314 C 332.064081 366.125250 298 398 256 398 C 214 398 179.935919 366.125250 174.5 314 C 171.58 286 180.45 286 212 286 Z"/>
+    </g>
+      <g id="pay" transform="translate(343.68 0)">
+        <path d="M20.37 0H54.68V-75.5H102.61C145.95 -75.5 175.97 -105.06 175.97 -148.25V-148.56C175.97 -191.9 145.95 -221 102.61 -221H20.37ZM94.04 -192.05C123.9 -192.05 141.05 -175.97 141.05 -148.41V-148.1C141.05 -120.38 123.9 -104.3 94.04 -104.3H54.68V-192.05Z"/>
+        <path d="M214.67 2.91C235.95 2.91 254.64 -8.12 263.98 -25.42H264.59V0H297.83V-111.04C297.83 -143.35 272.86 -164.18 233.5 -164.18C193.84 -164.18 169.79 -142.89 167.49 -115.17L167.34 -113.49H198.58L198.89 -114.86C201.65 -127.73 213.44 -136.77 232.58 -136.77C253.11 -136.77 264.59 -126.05 264.59 -108.28V-96.18L220.79 -93.58C182.66 -91.28 160.91 -74.13 160.91 -46.1V-45.79C160.91 -16.85 182.5 2.91 214.67 2.91ZM194.3 -46.56V-46.86C194.3 -60.5 205.32 -69.23 225.23 -70.45L264.59 -72.9V-60.34C264.59 -39.36 246.98 -23.59 223.7 -23.59C205.94 -23.59 194.3 -32.47 194.3 -46.56Z"/>
+        <path d="M326.57 53.76C358.11 53.76 374.96 40.89 386.91 7.5L446.94 -161.12H412.02L371.44 -30.02H370.37L329.78 -161.12H293.94L352.6 0.15L349.84 7.81C344.33 23.43 335.75 27.57 320.13 27.57C315.69 27.57 311.86 26.95 309.26 26.34V52.23C313.24 52.99 320.13 53.76 326.57 53.76Z"/>
+      </g>
     </g>
   </g>
 </svg>

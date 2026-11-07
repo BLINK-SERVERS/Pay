@@ -14,7 +14,6 @@ const ICONOS: Record<Movimiento["tipo"], NombreSimbolo> = {
 interface Props {
   cuenta: Cuenta;
   tarjeta: Tarjeta | null;
-  movimientos: Movimiento[];
   seleccionado: Movimiento | null;
   alLimpiar: () => void;
   alRecargar: () => void;
@@ -25,25 +24,11 @@ interface Props {
 export function Inspector({
   cuenta,
   tarjeta,
-  movimientos,
   seleccionado,
   alLimpiar,
   alRecargar,
   alVerMovimientos,
 }: Props) {
-  const delMes = movimientos.filter((m) => {
-    const fecha = new Date(m.at);
-    const ahora = new Date();
-    return (
-      m.estado === "aprobado" &&
-      fecha.getMonth() === ahora.getMonth() &&
-      fecha.getFullYear() === ahora.getFullYear()
-    );
-  });
-  const viajes = delMes.filter((m) => m.tipo === "viaje").length;
-  const recargado = delMes
-    .filter((m) => m.tipo === "recarga")
-    .reduce((total, m) => total + m.monto, 0);
   const pasajes = tarjeta ? pasajesEquivalentes(tarjeta.saldo, tarjeta.tarifa) : 0;
 
   return (
@@ -130,30 +115,21 @@ export function Inspector({
       ) : (
         <>
           <section className="inspector__tarjeta">
-            <span className="inspector__etiqueta">Tarjeta activa</span>
-            <strong className="inspector__serial mono">
-              {tarjeta?.serial ?? "Sin tarjeta vinculada"}
-            </strong>
-            {tarjeta && (
+            {tarjeta ? (
               <>
+                <span className="inspector__etiqueta">Saldo disponible</span>
                 <span className="inspector__saldo">{formatearBs(tarjeta.saldo)}</span>
                 <span className="inspector__pasajes">
                   <BlinkSymbol nombre="autobus" tamano="xs" />
                   {pasajes} {pasajes === 1 ? "pasaje" : "pasajes"} a {formatearBs(tarjeta.tarifa)}
                 </span>
               </>
+            ) : (
+              <>
+                <span className="inspector__etiqueta">Tarjeta</span>
+                <strong className="inspector__serial">Sin tarjeta vinculada</strong>
+              </>
             )}
-          </section>
-
-          <section className="inspector__bento" aria-label="Este mes">
-            <div>
-              <span>Viajes</span>
-              <strong>{viajes}</strong>
-            </div>
-            <div>
-              <span>Recargado</span>
-              <strong>{formatearBs(recargado)}</strong>
-            </div>
           </section>
 
           <section className="inspector__pago">

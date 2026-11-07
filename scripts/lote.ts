@@ -17,7 +17,7 @@ import bwipjs from "bwip-js/node";
 import { csvLote, generarLote } from "../src/lib/lote.ts";
 import type { LoteGenerado, TarjetaLote } from "../src/lib/lote.ts";
 
-const PORTAL_POR_DEFECTO = "https://blink-servers.github.io/TARJETA/";
+const PORTAL_POR_DEFECTO = "https://pay.blink.com.ve/";
 const SALIDA_POR_DEFECTO = "lotes";
 const TARJETAS_POR_HOJA = 8;
 

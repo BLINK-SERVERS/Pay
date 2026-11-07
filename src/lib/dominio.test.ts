@@ -44,22 +44,23 @@ function recarga(estado: Movimiento["estado"], referencia = "4821"): Movimiento 
 }
 
 describe("validarCedula", () => {
-  it("acepta cédulas V y E con 6 a 8 dígitos", () => {
-    expect(validarCedula("V-12345678")).toBeNull();
-    expect(validarCedula("E-123456")).toBeNull();
+  it("acepta cédulas de 6 a 8 dígitos", () => {
+    expect(validarCedula("12345678")).toBeNull();
+    expect(validarCedula("123456")).toBeNull();
+  });
+
+  it("tolera separadores al pegar la cédula", () => {
+    expect(validarCedula("12.345.678")).toBeNull();
   });
 
   it("rechaza cédulas cortas o largas", () => {
-    expect(validarCedula("V-12345")).toMatch(/al menos 6/);
-    expect(validarCedula("V-123456789")).toMatch(/más de 8/);
+    expect(validarCedula("12345")).toMatch(/al menos 6/);
+    expect(validarCedula("123456789")).toMatch(/más de 8/);
   });
 
-  it("solo admite venezolano o extranjero", () => {
-    expect(validarCedula("J-1234567")).toMatch(/venezolano o E/);
-  });
-
-  it("rechaza caracteres que la máscara no admite", () => {
-    expect(validarCedula("V-12a45678")).toMatch(/V-12345678/);
+  it("rechaza letras y símbolos", () => {
+    expect(validarCedula("V-12345678")).toMatch(/solo con números/);
+    expect(validarCedula("1234a678")).toMatch(/solo con números/);
   });
 });
 
@@ -101,7 +102,7 @@ describe("datos del registro", () => {
         propio: false,
         banco: "Banesco Banco Universal",
         telefono: "04141234567",
-        cedula: "V-12345678",
+        cedula: "12345678",
       })
     ).toEqual({});
     expect(
@@ -109,7 +110,7 @@ describe("datos del registro", () => {
         propio: false,
         banco: "Banco Inventado",
         telefono: "0414",
-        cedula: "V-1",
+        cedula: "1",
       })
     ).toMatchObject({ banco: expect.any(String), telefono: expect.any(String), cedula: expect.any(String) });
   });

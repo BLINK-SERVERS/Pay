@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1011" height="638" viewBox="0 0 1011 638" version="1.1" shape-rendering="geometricPrecision" fill="none">
   <title>Tarjeta Blink Pay</title>
-  <desc>Fondo azul con las tres figuras del isotipo sobredimensionadas y recortadas por los bordes, y la marca Blink Pay en blanco abajo a la derecha.</desc>
+  <desc>Fondo azul con las tres figuras del isotipo sobredimensionadas, en blanco al 50 % y recortadas por los bordes. Sin más tintas.</desc>
   <defs>
     <clipPath id="recorte-tarjeta"><rect x="0" y="0" width="1011" height="638"/></clipPath>
   </defs>
@@ -9,29 +9,12 @@
     <rect id="fondo" x="0" y="0" width="1011" height="638" fill="#007AFF"/>
   </g>
   <g inkscape:groupmode="layer" inkscape:label="Figuras" id="capa-figuras">
-    <g id="figuras" clip-path="url(#recorte-tarjeta)" fill="#80BCFB">
+    <g id="figuras" clip-path="url(#recorte-tarjeta)" fill="#FFFEFB" fill-opacity="0.5">
       <g transform="translate(-442.5 -425) scale(3)">
         <path id="ojo-guino" d="M 122 164 H 178 C 198 164 224 164 224 198 C 224 232 198 232 178 232 H 122 C 102 232 76 232 76 198 C 76 164 102 164 122 164 Z"/>
         <path id="ojo-abierto" d="M 436 182 A 68 68 0 1 1 299.99 182 A 68 68 0 1 1 436 182 Z"/>
         <path id="boca" d="M 212 286 H 300 C 331.55 286 340.42 286 337.5 314 C 332.064081 366.125250 298 398 256 398 C 214 398 179.935919 366.125250 174.5 314 C 171.58 286 180.45 286 212 286 Z"/>
       </g>
-    </g>
-  </g>
-  <g inkscape:groupmode="layer" inkscape:label="Marca" id="capa-marca">
-    <g id="marca" transform="translate(636.64 582.15) scale(0.292)" fill="#FFFFFF">
-      <path d="M85.99 0C125.14 0 152.46 -23.42 152.46 -55.98C152.46 -73.91 140.02 -87.82 120.99 -91.48L121.11 -92.33C144.29 -97.45 161 -114.89 161 -137.95C161 -160.14 142.21 -176 110.63 -176H38.66L1.22 0ZM69.64 -149.65H97.45C114.65 -149.65 123.8 -142.82 123.8 -130.75C123.8 -115.5 109.77 -104.53 88.91 -104.53H59.89ZM43.54 -28.3 54.4 -78.43H86.11C105.26 -78.43 115.02 -70.62 115.02 -56.96C115.02 -40.13 100.75 -28.3 79.04 -28.3Z"/>
-      <path d="M163.07 0H197.95L235.4 -176H200.52Z"/>
-      <path d="M281.38 -148.44C291.75 -148.44 299.92 -156.97 299.92 -167.22C299.92 -177.59 291.75 -186 281.38 -186C271.01 -186 262.84 -177.59 262.84 -167.22C262.84 -156.97 271.01 -148.44 281.38 -148.44ZM228.32 0H263.21L291.02 -131.12H256.13Z"/>
-      <path d="M291.14 0H325.9L342.36 -77.69C346.02 -94.16 358.34 -104.89 373.22 -104.89C386.64 -104.89 395.66 -97.09 395.66 -85.01C395.66 -82.08 395.3 -78.67 394.44 -74.52L378.71 0H413.35L430.3 -80.26C431.4 -85.99 432.01 -91.6 432.01 -96.23C432.01 -118.55 415.18 -134.04 391.64 -134.04C373.47 -134.04 357.85 -125.51 348.95 -110.99H348.22L352.49 -131.12H318.95Z"/>
-      <path d="M471.89 0 481.16 -42.69 495.68 -55.13 522.76 0H560.69L523.61 -75.01L585.2 -131.12H543.98L489.7 -80.99H488.97L509.34 -176H474.58L437.01 0Z"/>
-      <g transform="translate(607.13 0)">
-        <path d="M17.08 0H39.03V-62.81H79.77C112.82 -62.81 136.24 -86.11 136.24 -119.53V-119.77C136.24 -153.19 112.82 -176 79.77 -176H17.08ZM74.16 -156.49C99.28 -156.49 113.8 -142.7 113.8 -119.53V-119.28C113.8 -96.11 99.28 -82.33 74.16 -82.33H39.03V-156.49Z"/>
-        <path d="M184.17 2.44C201.13 2.44 216.37 -6.71 223.81 -20.61H224.3V0H245.52V-87.7C245.52 -113.06 226.74 -129.29 196.73 -129.29C166.85 -129.29 148.68 -112.45 146.85 -91.6L146.73 -90.26H167.22L167.46 -91.35C169.9 -102.7 180.15 -110.5 196.49 -110.5C214.18 -110.5 224.3 -101.11 224.3 -85.62V-75.01L187.95 -72.94C158.8 -71.23 141.97 -57.69 141.97 -36.1V-35.86C141.97 -12.81 158.92 2.44 184.17 2.44ZM163.68 -35.86V-36.1C163.68 -47.93 173.44 -55.5 190.39 -56.47L224.3 -58.54V-48.18C224.3 -29.76 208.93 -15.98 188.93 -15.98C173.68 -15.98 163.68 -23.66 163.68 -35.86Z"/>
-        <path d="M284.67 42.69C307.6 42.69 318.7 32.2 327.73 7.93L377.25 -126.85H354.93L319.8 -21.22H319.31L284.31 -126.85H261.62L308.7 0.12L306.14 7.32C301.02 21.71 293.58 25.13 280.16 25.13C277.6 25.13 275.16 24.76 273.33 24.39V41.71C276.01 42.2 280.53 42.69 284.67 42.69Z"/>
-      </g>
-      <path id="nfc-1" d="M 1028.47 -111 A 61 61 0 0 0 967.47 -172" fill="none" stroke="#FFFFFF" stroke-width="24.4" stroke-linecap="round"/>
-      <path id="nfc-2" d="M 1075.57 -111 A 108.1 108.1 0 0 0 967.47 -219.1" fill="none" stroke="#FFFFFF" stroke-width="24.4" stroke-linecap="round"/>
-      <path id="nfc-3" d="M 1122.17 -111 A 154.7 154.7 0 0 0 967.47 -265.7" fill="none" stroke="#FFFFFF" stroke-width="24.4" stroke-linecap="round"/>
     </g>
   </g>
 </svg>

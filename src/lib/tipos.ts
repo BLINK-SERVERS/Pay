@@ -4,8 +4,6 @@ import { TARIFARIO_POR_DEFECTO, type ParametrosTarifarios } from "./tarifa";
 
 export type EstadoTarjeta = "activa" | "bloqueada";
 
-export type TipoDocumento = "V" | "E";
-
 export interface Titular {
   nombre: string;
   cedula: string;
@@ -160,7 +158,7 @@ export interface DatosPago {
   banco: string;
   /** 11 dígitos sin guiones. */
   telefono: string;
-  /** Cédula del titular de la cuenta bancaria: V-12345678. */
+  /** Cédula del titular de la cuenta bancaria: 6 a 8 dígitos. */
   cedula: string;
 }
 
@@ -168,7 +166,7 @@ export interface DatosPago {
 export interface Cuenta {
   nombres: string;
   apellidos: string;
-  /** Documento de identidad: V-12345678 o E-12345678. */
+  /** Documento de identidad: 6 a 8 dígitos. */
   cedula: string;
   /** 11 dígitos sin guiones. */
   telefono: string;

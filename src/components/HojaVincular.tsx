@@ -80,7 +80,7 @@ export function HojaVincular({ abierta, alCerrar, alVincular }: Props) {
           />
           <span className="campo__ayuda" id="vinculo-serial-ayuda">
             Está impreso al reverso del plástico, debajo del código de barras: una letra, ocho
-            dígitos y la letra verificadora.
+            dígitos y la letra final.
           </span>
         </div>
 

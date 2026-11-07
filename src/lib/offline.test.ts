@@ -21,16 +21,16 @@ class Memoria {
 const CUENTA = {
   nombres: "María Fernanda",
   apellidos: "Pérez",
-  cedula: "V-12345678",
+  cedula: "12345678",
   telefono: "04141234567",
   correo: "maria@ejemplo.com",
-  datosPago: { propio: true, banco: "Banesco", telefono: "04141234567", cedula: "V-12345678" },
+  datosPago: { propio: true, banco: "Banesco", telefono: "04141234567", cedula: "12345678" },
 };
 
 const TARJETA = {
   serial: "23-1-000001-9",
   uid: "058151954F3400",
-  titular: { nombre: "María Pérez", cedula: "V-12345678", telefono: "04141234567" },
+  titular: { nombre: "María Pérez", cedula: "12345678", telefono: "04141234567" },
   saldo: 1500,
   estado: "activa" as const,
   emitida: "2026-01-01",

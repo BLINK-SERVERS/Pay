@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Icon } from "../components/Icon";
 import { MovimientoFila } from "../components/MovimientoFila";
-import { etiquetaDia, formatearBs, formatearEntero } from "../lib/formato";
+import { etiquetaDia, formatearBs } from "../lib/formato";
 import type { Movimiento, Tarjeta } from "../lib/tipos";
 
 type Filtro = "todos" | "recarga" | "viaje" | "transferencia";
@@ -45,21 +45,6 @@ export function Movimientos({
     return [...mapa.entries()].map(([dia, items]) => ({ dia, items }));
   }, [movimientos, filtro]);
 
-  const delMes = useMemo(() => {
-    const ahora = new Date();
-    return movimientos.filter((m) => {
-      const fecha = new Date(m.at);
-      return (
-        m.estado === "aprobado" &&
-        fecha.getMonth() === ahora.getMonth() &&
-        fecha.getFullYear() === ahora.getFullYear()
-      );
-    });
-  }, [movimientos]);
-
-  const recargado = delMes.filter((m) => m.tipo === "recarga").reduce((t, m) => t + m.monto, 0);
-  const viajes = delMes.filter((m) => m.tipo === "viaje").length;
-
   return (
     <div className="vista">
       <header className="cabecera cabecera--titulo">
@@ -70,16 +55,6 @@ export function Movimientos({
         <div className="resumen__saldo">
           <span className="resumen__etiqueta">Saldo disponible</span>
           <strong className="resumen__valor">{formatearBs(tarjeta.saldo)}</strong>
-        </div>
-        <div className="resumen__datos">
-          <div>
-            <span>Este mes</span>
-            <strong>{viajes} viajes</strong>
-          </div>
-          <div>
-            <span>Recargado</span>
-            <strong>{formatearEntero(recargado)} Bs</strong>
-          </div>
         </div>
       </section>
 
@@ -150,9 +125,8 @@ export function Movimientos({
       )}
 
       <p className="nota-pie">
-        <Icon name="escudo" /> Los movimientos aprobados por Admin son los únicos que
-        modifican el saldo. Las recargas en revisión no se descuentan ni se suman hasta
-        confirmarse.
+        <Icon name="escudo" /> Solo los movimientos aprobados modifican el saldo. Las
+        recargas en revisión no se descuentan ni se suman hasta confirmarse.
       </p>
     </div>
   );

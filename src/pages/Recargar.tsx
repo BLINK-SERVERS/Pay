@@ -190,7 +190,6 @@ export function Recargar({
     if (!reportada || !cotizacion) return "";
     return [
       "Blink Pay — reporte de recarga",
-      `Tarjeta: ${tarjeta.serial}`,
       `Titular: ${tarjeta.titular.nombre}`,
       `Pasajes: ${cotizacion.pasajes}`,
       `Tarifa por pasaje: ${formatearBs(cotizacion.tarifaBase)}`,
@@ -202,7 +201,7 @@ export function Recargar({
       `Teléfono: ${formatearTelefono(borrador.telefono)}`,
       `Referencia: ${reportada.referencia ?? ""}`,
       `Fecha: ${formatearMovimiento(reportada.at)}`,
-      "Estado: en revisión (Admin confirma el Pago Móvil)",
+      "Estado: en revisión",
     ].join("\n");
   }, [reportada, cotizacion, tarjeta, borrador.telefono]);
 
@@ -222,8 +221,10 @@ export function Recargar({
           </p>
           <dl className="datos">
             <div>
-              <dt>Tarjeta</dt>
-              <dd className="mono">{tarjeta.serial}</dd>
+              <dt>Pasajes</dt>
+              <dd>
+                {cotizacion.pasajes} a {formatearBs(cotizacion.tarifaBase)}
+              </dd>
             </div>
             <div>
               <dt>Banco emisor</dt>
@@ -272,7 +273,6 @@ export function Recargar({
     <div className="vista">
       <header className="cabecera cabecera--titulo">
         <h1 className="cabecera__titulo cabecera__titulo--grande">Recargar</h1>
-        <p className="cabecera__sub">Tarjeta {tarjeta.serial}</p>
       </header>
 
       <ol className="progreso" aria-label={`Paso ${indicePaso + 1} de ${PASOS.length}`}>
@@ -382,23 +382,25 @@ export function Recargar({
             </div>
           )}
 
-          <div className="proyeccion">
-            <div>
-              <span>Saldo actual</span>
-              <strong>{formatearBs(tarjeta.saldo)}</strong>
-            </div>
-            <Icon name="adelante" />
-            <div>
-              <span>Saldo al aprobarse</span>
-              <strong className="proyeccion__nuevo">{formatearBs(saldoResultante)}</strong>
-            </div>
-          </div>
           {cotizacion && (
-            <p className="proyeccion__pasajes">
-              <Icon name="autobus" />
-              Te quedarían {pasajesNuevos} {pasajesNuevos === 1 ? "pasaje" : "pasajes"} a{" "}
-              {formatearBs(tarjeta.tarifa)}.
-            </p>
+            <>
+              <div className="proyeccion">
+                <div>
+                  <span>Saldo actual</span>
+                  <strong>{formatearBs(tarjeta.saldo)}</strong>
+                </div>
+                <Icon name="adelante" />
+                <div>
+                  <span>Saldo al aprobarse</span>
+                  <strong className="proyeccion__nuevo">{formatearBs(saldoResultante)}</strong>
+                </div>
+              </div>
+              <p className="proyeccion__pasajes">
+                <Icon name="autobus" />
+                Te quedarían {pasajesNuevos} {pasajesNuevos === 1 ? "pasaje" : "pasajes"} a{" "}
+                {formatearBs(tarjeta.tarifa)}.
+              </p>
+            </>
           )}
 
           <button type="submit" className="boton boton--primario">
@@ -600,10 +602,6 @@ export function Recargar({
       {paso === "revision" && cotizacion && (
         <section className="tarjeta-panel">
           <dl className="datos">
-            <div>
-              <dt>Tarjeta</dt>
-              <dd className="mono">{tarjeta.serial}</dd>
-            </div>
             <div>
               <dt>Pasajes</dt>
               <dd>

@@ -139,12 +139,9 @@ export function serialCompacto(serial: string): string {
   return serial.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-/** Máscara de cédula mientras se escribe: V-12345678. */
+/** Cédula como se guarda y se muestra: solo dígitos, hasta 8. */
 export function formatearCedula(texto: string): string {
-  const limpio = texto.replace(/[^0-9vVeEjJgG]/g, "");
-  const letra = /[vVeEjJgG]/.test(limpio) ? limpio[0].toUpperCase() : "V";
-  const numeros = soloDigitos(limpio).slice(0, 8);
-  return numeros ? `${letra}-${numeros}` : "";
+  return soloDigitos(texto).slice(0, 8);
 }
 
 /** 04141234567 → 0414-1234567 */

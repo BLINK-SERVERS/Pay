@@ -20,7 +20,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
       abierta={abierta}
       alCerrar={alCerrar}
       titulo="Términos y condiciones"
-      descripcion="LEG-TER-001 · versión 1.0 · 1 de noviembre de 2026"
+      descripcion="Versión 1.0 · 1 de noviembre de 2026"
       pie={
         <button type="button" className="boton boton--primario" onClick={alCerrar}>
           Entendido
@@ -82,7 +82,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
         </section>
 
         <section>
-          <h3>4. Tarjeta inteligente MIFARE Classic 1K</h3>
+          <h3>4. Tu tarjeta BLINK</h3>
           <p>
             La tarjeta es un soporte físico de almacenamiento local que permite el acceso
             rápido por proximidad. El saldo representa fondos del usuario para pagar
@@ -95,7 +95,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
           <h3>5. Datos personales</h3>
           <p>
             Usamos los datos de la cuenta y el reporte del Pago Móvil para operar la
-            billetera y conciliar cada recarga. El PIN se guarda como hash y no se comparte
+            billetera y conciliar cada recarga. Tu PIN se guarda cifrado y no se comparte
             con terceros. Puedes solicitar acceso, corrección o eliminación de tus datos
             por atención al cliente.
           </p>

@@ -1,16 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CLAVE_BIOMETRIA,
-  guardarSesionBiometria,
+  guardarLlaveBiometria,
   leerRegistroBiometria,
   marcarOfrecimiento,
   ofrecimientoHecho,
   olvidarBiometria,
-  olvidarTokenBiometria,
   registroDesbloqueable,
   type RegistroBiometria,
 } from "./biometria";
-import type { Sesion } from "./tipos";
 
 class Memoria {
   datos = new Map<string, string>();
@@ -19,36 +17,12 @@ class Memoria {
   removeItem = (clave: string) => void this.datos.delete(clave);
 }
 
-const CUENTA = {
-  nombres: "María Fernanda",
-  apellidos: "Pérez",
-  cedula: "V-12345678",
-  telefono: "04141234567",
-  correo: "maria@ejemplo.com",
-  datosPago: { propio: true, banco: "Banesco", telefono: "04141234567", cedula: "V-12345678" },
-};
-
-const TARJETA = {
-  serial: "23-1-000001-9",
-  uid: "058151954F3400",
-  titular: { nombre: "María Pérez", cedula: "V-12345678", telefono: "04141234567" },
-  saldo: 1500,
-  estado: "activa" as const,
-  emitida: "2026-01-01",
-  vence: "2030-01-01",
-  tarifa: 15,
-};
-
-const SESION: Sesion = { token: "tok-1", cuenta: CUENTA, tarjetas: [TARJETA] };
-const VIGENCIA = 12 * 60 * 60 * 1000;
-
 function registro(extra: Partial<RegistroBiometria> = {}): RegistroBiometria {
   return {
-    cedula: "V-12345678",
+    cedula: "12345678",
     nombre: "María Fernanda Pérez",
     credencial: "ZGVtby1jcmVkZW5jaWFs",
-    token: "tok-1",
-    expira: Date.now() + VIGENCIA,
+    llave: "bGxhdmUtZGVsLXRlbGVmb25v",
     alta: Date.now(),
     ...extra,
   };
@@ -72,11 +46,18 @@ afterEach(() => {
 });
 
 describe("registro biométrico local", () => {
-  it("guarda y devuelve una credencial válida", () => {
+  it("guarda y devuelve la credencial con su llave", () => {
     guardado(almacen, registro());
     const leido = leerRegistroBiometria(comoStorage());
     expect(leido?.credencial).toBe("ZGVtby1jcmVkZW5jaWFs");
-    expect(leido?.token).toBe("tok-1");
+    expect(leido?.llave).toBe("bGxhdmUtZGVsLXRlbGVmb25v");
+    expect(registroDesbloqueable(leido)).toBe(true);
+  });
+
+  it("no depende de una sesión con fecha: sigue activo días después", () => {
+    guardado(almacen, registro());
+    vi.advanceTimersByTime(90 * 24 * 60 * 60 * 1000);
+    const leido = leerRegistroBiometria(comoStorage());
     expect(registroDesbloqueable(leido)).toBe(true);
   });
 
@@ -92,21 +73,29 @@ describe("registro biométrico local", () => {
     expect(almacen.getItem(CLAVE_BIOMETRIA)).toBeNull();
   });
 
-  it("conserva la credencial pero invalida el token vencido", () => {
-    guardado(almacen, registro());
-    vi.advanceTimersByTime(VIGENCIA + 1000);
+  it("conserva un registro anterior sin llave para reactivarlo con PIN", () => {
+    guardado(almacen, {
+      cedula: "12345678",
+      nombre: "María Fernanda Pérez",
+      credencial: "ZGVtby1jcmVkZW5jaWFs",
+      token: "tok-viejo",
+      expira: Date.now() + 1000,
+      alta: Date.now(),
+    });
     const leido = leerRegistroBiometria(comoStorage());
     expect(leido?.credencial).toBe("ZGVtby1jcmVkZW5jaWFs");
-    expect(leido?.token).toBe("");
-    expect(leido?.expira).toBe(0);
+    expect(leido?.llave).toBe("");
     expect(registroDesbloqueable(leido)).toBe(false);
   });
 
-  it("invalida un token fechado más allá de la vigencia", () => {
-    guardado(almacen, registro({ expira: Date.now() + VIGENCIA + 6 * 60 * 1000 }));
-    const leido = leerRegistroBiometria(comoStorage());
-    expect(leido?.token).toBe("");
-    expect(registroDesbloqueable(leido)).toBe(false);
+  it("enlaza la llave del dispositivo al registro existente", () => {
+    guardado(almacen, registro({ llave: "" }));
+    const actualizado = guardarLlaveBiometria("bnVldmEtbGxhdmU", comoStorage());
+    expect(actualizado?.llave).toBe("bnVldmEtbGxhdmU");
+    expect(leerRegistroBiometria(comoStorage())?.llave).toBe("bnVldmEtbGxhdmU");
+
+    olvidarBiometria(comoStorage());
+    expect(guardarLlaveBiometria("YQ", comoStorage())).toBeNull();
   });
 
   it("descarta un alta fechada en el futuro", () => {
@@ -114,29 +103,9 @@ describe("registro biométrico local", () => {
     expect(leerRegistroBiometria(comoStorage())).toBeNull();
   });
 
-  it("enlaza un token nuevo solo a la misma cédula", () => {
-    guardado(almacen, registro());
-    const actualizado = guardarSesionBiometria(
-      { ...SESION, token: "tok-2" },
-      comoStorage()
-    );
-    expect(actualizado?.token).toBe("tok-2");
-    expect(leerRegistroBiometria(comoStorage())?.token).toBe("tok-2");
-
-    const otra = guardarSesionBiometria(
-      { ...SESION, token: "tok-3", cuenta: { ...CUENTA, cedula: "V-87654321" } },
-      comoStorage()
-    );
-    expect(otra).toBeNull();
-    expect(leerRegistroBiometria(comoStorage())?.token).toBe("tok-2");
-  });
-
-  it("olvida el token al cerrar sesión sin borrar la credencial", () => {
-    guardado(almacen, registro());
-    olvidarTokenBiometria(comoStorage());
-    const leido = leerRegistroBiometria(comoStorage());
-    expect(leido?.credencial).toBe("ZGVtby1jcmVkZW5jaWFs");
-    expect(registroDesbloqueable(leido)).toBe(false);
+  it("guarda la cédula solo con dígitos", () => {
+    guardado(almacen, registro({ cedula: "V-12345678" }));
+    expect(leerRegistroBiometria(comoStorage())?.cedula).toBe("12345678");
   });
 
   it("borra la vinculación completa al desactivarla", () => {
@@ -146,9 +115,9 @@ describe("registro biométrico local", () => {
   });
 
   it("recuerda que ya se ofreció la biometría para una cédula", () => {
-    expect(ofrecimientoHecho("V-12345678", comoStorage())).toBe(false);
-    marcarOfrecimiento("V-12345678", comoStorage());
-    expect(ofrecimientoHecho("V-12345678", comoStorage())).toBe(true);
-    expect(ofrecimientoHecho("V-87654321", comoStorage())).toBe(false);
+    expect(ofrecimientoHecho("12345678", comoStorage())).toBe(false);
+    marcarOfrecimiento("12345678", comoStorage());
+    expect(ofrecimientoHecho("12345678", comoStorage())).toBe(true);
+    expect(ofrecimientoHecho("87654321", comoStorage())).toBe(false);
   });
 });

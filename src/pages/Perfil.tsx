@@ -7,10 +7,8 @@ import { mensajeBiometria } from "../lib/biometria";
 import { ErrorBlink } from "../lib/repo";
 import { erroresDatosPago, validarPin } from "../lib/dominio";
 import {
-  formatearBs,
-  formatearFecha,
+  formatearCedula,
   formatearTelefono,
-  formatearVence,
   iniciales,
   nombreCompleto,
   soloDigitos,
@@ -29,11 +27,9 @@ const APARIENCIAS: { id: ModoTema; etiqueta: string; icono: "auto" | "sol" | "lu
 
 interface Props {
   cuenta: Cuenta;
-  tarjetas: Tarjeta[];
   tarjetaActiva: Tarjeta | null;
   ajustes: Ajustes;
   tema: ModoTema;
-  modoDatos: "local" | "nube";
   alCambiarTema: (tema: ModoTema) => void;
   alCambiarPin: (actual: string, nuevo: string) => Promise<void>;
   alActualizarPago: (datos: DatosPago) => Promise<Cuenta>;
@@ -47,11 +43,9 @@ interface Props {
 
 export function Perfil({
   cuenta,
-  tarjetas,
   tarjetaActiva,
   ajustes,
   tema,
-  modoDatos,
   alCambiarTema,
   alCambiarPin,
   alActualizarPago,
@@ -189,9 +183,6 @@ export function Perfil({
           <span className="mono">{formatearTelefono(cuenta.telefono)}</span>
           <span className="identidad__correo">{cuenta.correo}</span>
         </div>
-        <span className="etiqueta etiqueta--bien">
-          {tarjetas.length} {tarjetas.length === 1 ? "tarjeta" : "tarjetas"}
-        </span>
       </section>
 
       <section className="panel">
@@ -230,33 +221,6 @@ export function Perfil({
 
       <section className="panel">
         <h2 className="panel__titulo">Mis tarjetas</h2>
-        <ul className="billetera-lista">
-          {tarjetas.map((item) => (
-            <li
-              key={item.serial}
-              className={`billetera-lista__fila${
-                item.serial === tarjetaActiva?.serial ? " billetera-lista__fila--activa" : ""
-              }`}
-            >
-              <span className="billetera-lista__icono">
-                <Icon name="tarjeta" />
-              </span>
-              <span className="billetera-lista__datos">
-                <strong className="mono">{item.serial}</strong>
-                <span>
-                  {formatearBs(item.saldo)} · {item.titular.nombre}
-                </span>
-              </span>
-              <span
-                className={`etiqueta ${
-                  item.estado === "activa" ? "etiqueta--bien" : "etiqueta--mal"
-                }`}
-              >
-                {item.estado === "activa" ? "Activa" : "Bloqueada"}
-              </span>
-            </li>
-          ))}
-        </ul>
         <button type="button" className="fila-accion" onClick={alVincular}>
           <span className="fila-accion__icono">
             <Icon name="mas" />
@@ -268,38 +232,6 @@ export function Perfil({
           <Icon name="adelante" />
         </button>
       </section>
-
-      {tarjetaActiva && (
-        <section className="panel">
-          <h2 className="panel__titulo">Tarjeta seleccionada</h2>
-          <dl className="filas">
-            <div>
-              <dt>Serial</dt>
-              <dd className="mono">{tarjetaActiva.serial}</dd>
-            </div>
-            <div>
-              <dt>Chip (UID)</dt>
-              <dd className="mono">{tarjetaActiva.uid || "Sin enrolar"}</dd>
-            </div>
-            <div>
-              <dt>Saldo</dt>
-              <dd>{formatearBs(tarjetaActiva.saldo)}</dd>
-            </div>
-            <div>
-              <dt>Tarifa del pasaje</dt>
-              <dd>{formatearBs(tarjetaActiva.tarifa)}</dd>
-            </div>
-            <div>
-              <dt>Emitida</dt>
-              <dd>{formatearFecha(tarjetaActiva.emitida)}</dd>
-            </div>
-            <div>
-              <dt>Vence</dt>
-              <dd className="mono">{formatearVence(tarjetaActiva.vence)}</dd>
-            </div>
-          </dl>
-        </section>
-      )}
 
       <section className="panel">
         <h2 className="panel__titulo">Apariencia</h2>
@@ -352,8 +284,8 @@ export function Perfil({
               </strong>
               <span>
                 {biometriaActiva
-                  ? "Este teléfono desbloquea tu sesión guardada"
-                  : "Entra con tu huella o rostro durante 12 horas"}
+                  ? "Este teléfono entra con tu huella o rostro"
+                  : "Entra con tu huella o rostro desde este teléfono"}
               </span>
             </span>
             {guardandoBiometria ? (
@@ -383,8 +315,8 @@ export function Perfil({
 
         <p className="panel__nota">
           La huella o el rostro los verifica tu teléfono: BLINK no los recibe ni los guarda.
-          Desbloquean la sesión guardada y no sustituyen al PIN. La sesión se cierra sola a
-          las 12 horas.
+          Desbloquean tu cuenta y no sustituyen al PIN, que siempre sirve de respaldo. El
+          vínculo con este teléfono se mantiene hasta que desactives la huella.
         </p>
       </section>
 
@@ -420,11 +352,6 @@ export function Perfil({
           <Icon name="adelante" />
         </button>
       </section>
-
-      <p className="panel__nota panel__nota--centro">
-        Blink Pay{__APP_VERSION__} ·{" "}
-        {modoDatos === "nube" ? "Conectada a BLINK Cloud" : "Modo demostración (datos locales)"}
-      </p>
 
       <button type="button" className="boton boton--peligro" onClick={alSalir}>
         <Icon name="salir" />
@@ -529,8 +456,11 @@ export function Perfil({
               <span className="campo__etiqueta">Cédula del titular</span>
               <input
                 className="entrada mono"
+                inputMode="numeric"
+                maxLength={8}
+                placeholder="12345678"
                 value={pagoCedula}
-                onChange={(evento) => setPagoCedula(evento.target.value)}
+                onChange={(evento) => setPagoCedula(formatearCedula(evento.target.value))}
                 aria-label="Cédula del titular de la cuenta de pago"
                 disabled={pagoPropio}
               />

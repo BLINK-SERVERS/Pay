@@ -1,14 +1,28 @@
-# Changelog — BLINK TARJETA
+# Changelog — BLINK PAY
 
 Todos los cambios relevantes de este producto se documentan aquí.
 
 Formato basado en [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/)
 y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 8601.
 
-## [No publicado]
+## [2.2.0] — 2026-11-07
 
 ### Añadido
 
+- **Enlace permanente del teléfono** (`bt_crear_enlace` y `bt_reanudar` en
+  `0024_cedula_solo_digitos.sql`): al activar la huella o el rostro, el
+  dispositivo guarda una llave propia y la nube solo conserva su hash bcrypt en
+  `accounts.enlace_hash`. Al reabrir la app, la llave abre una sesión nueva sin
+  PIN; desactivar la biometría en el perfil rompe el enlace, y el PIN sigue
+  sirviendo de respaldo.
+- **Cédula de solo dígitos** en el acceso y en el registro de la cuenta de pago:
+  teclado numérico, sin selector V/E, y la migración normaliza los registros
+  existentes a `cedula_digitos` para que las consultas coincidan.
+- **Tiempo máximo de 20 s** en las llamadas a la nube (`src/lib/nube.ts`): una
+  solicitud sin respuesta ya no deja el formulario girando; se informa del corte
+  y se puede reintentar.
+- **`scripts/build-icons.mjs`** regenera favicon, iconos de la PWA y logo de
+  Apple a partir de los SVG de `marca/`, para que la marca se mantenga idéntica.
 - **`0023_endurece_validador.sql`** (esquema compartido): la sincronización del
   validador queda reservada a `service_role` con un envoltorio
   `bt_validador_sincronizar_token` para el resto de clientes; cada toque se
@@ -27,10 +41,26 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
   y con céntimos, y comprueba que la nube rechaza y registra cada caso. La
   batería son ahora 13 pasos.
 - **Prueba unitaria** que rechaza `monto: 100.5` en la transferencia local
-  (9.ª prueba del bloque de transferencias; 109 en total).
+  (9.ª prueba del bloque de transferencias; 110 en total).
 
 ### Cambiado
 
+- **Identidad** (§1): favicon, icono de app y logo usan exclusivamente el
+  isotipo más «Pay»; la pantalla de carga ya no lleva subtítulo.
+- **Tarjeta** (§3): el frente muestra solo saldo, pasajes y titular, con las
+  cifras al 50 % de opacidad sobre `#FFFEFB`; el reverso es azul plano con el
+  serial y sin caducidad; el botón «Ver reverso» lleva icono QR y ancho fijo de
+  148 px.
+- **Acceso** (§2): sin vista previa de la tarjeta y sin indicaciones técnicas;
+  la biometría queda ligada al teléfono, no a la sesión.
+- **Limpieza visual** (§4 y §6): se retiran la barra superior flotante, la
+  etiqueta «Cartera», los textos de sincronización, los accesos rápidos, el
+  rótulo «Tarjeta seleccionada» y el pie «BLINK PAY • 1 TARJETA». También salen
+  el serial duplicado, los contadores del extracto, los metadatos y códigos
+  técnicos del inspector, recibos y hojas legales.
+- **Transferir** (§5): si la cuenta tiene una sola tarjeta, el formulario queda
+  visible con un aviso de que las transferencias están en preparación; la
+  validación y la confirmación siguen operativas para cuentas con dos tarjetas.
 - La transferencia exige **bolívares enteros** en lugar de redondear a dos
   decimales: el mensaje de error es «Transfiere solo bolívares enteros, sin
   céntimos.» y la ayuda del campo lo aclara al pasajero (B-65).
@@ -38,11 +68,23 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
   `App.tsx` guarda `errorMovimientos` y `Movimientos.tsx` muestra el aviso con
   su botón de reintento (B-68).
 
+### Corregido
+
+- **Pantalla negra en Transferir**: la clave de idempotencia se genera sin
+  `crypto.randomUUID`, que no existe en contextos sin HTTPS.
+
+### Pruebas
+
+- `npm run typecheck` limpio; `npm test`: 110 pruebas en 9 archivos.
+- `npm run build` correcto (453,66 kB de JS y 57,79 kB de CSS).
+- `npm run verificar:hig`: todas las comprobaciones pasan en 393 y 1440 px,
+  con tema claro y oscuro, incluida la de cero desplazamiento de diseño.
+
 ### Conocido
 
-- `0022` y `0023` están aplicadas en Supabase desde el 2026-11-06, y esta
-  **2.1.0 quedó publicada en GitHub Pages el 2026-11-06** (commit `2048157`,
-  flujo «Publicar en Pages» en verde, bundle `index-0DsCmtA8.js`, `CACHE` `v7`).
+- `0022` y `0023` están aplicadas en Supabase desde el 2026-11-06; `0024` se
+  aplica junto con esta entrega. La **2.1.0 quedó publicada en GitHub Pages el
+  2026-11-06** (commit `2048157`, bundle `index-0DsCmtA8.js`, `CACHE` `v7`).
 - La defensa contra dos sincronizaciones simultáneas del mismo validador no es
   medible con una sola conexión de prueba (BLINK-DOC-07 §4.18).
 

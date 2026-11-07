@@ -17,7 +17,7 @@ beforeEach(() => {
   });
 });
 
-const DEMO = { cedula: "V-12345678", pin: "194628" };
+const DEMO = { cedula: "12345678", pin: "194628" };
 
 describe("PIN", () => {
   it("guarda un hash con sal y lo verifica", async () => {
@@ -130,7 +130,7 @@ describe("repositorio local", () => {
     const sesion = await repositorioLocal.registrar({
       nombres: "Ana Isabel",
       apellidos: "Gómez",
-      cedula: "E-80123456",
+      cedula: "80123456",
       telefono: "04167778899",
       correo: "ana@example.com",
       pin: "615208",
@@ -140,7 +140,7 @@ describe("repositorio local", () => {
     expect(sesion.cuenta.datosPago).toMatchObject({
       propio: true,
       telefono: "04167778899",
-      cedula: "E-80123456",
+      cedula: "80123456",
     });
     expect(sesion.tarjetas).toHaveLength(0);
   });
@@ -149,7 +149,7 @@ describe("repositorio local", () => {
     const cuenta = {
       nombres: "Ana Isabel",
       apellidos: "Gómez",
-      cedula: "V-80179999",
+      cedula: "80179999",
       telefono: "04167778899",
       correo: "ana@example.com",
       pin: "615208",
@@ -162,7 +162,7 @@ describe("repositorio local", () => {
   });
 
   it("vincula un plástico nuevo y lo deja en cero", async () => {
-    const { token } = await repositorioLocal.entrar("V-87654321", DEMO.pin);
+    const { token } = await repositorioLocal.entrar("87654321", DEMO.pin);
     const actualizada = await repositorioLocal.vincular(token, "G-00001-005-M");
     const nueva = actualizada.tarjetas.find((t) => t.serial === "G-00001-005-M");
     expect(nueva?.saldo).toBe(0);
@@ -173,7 +173,7 @@ describe("repositorio local", () => {
   });
 
   it("no deja apropiarse de la tarjeta de otra cuenta", async () => {
-    const { token } = await repositorioLocal.entrar("V-87654321", DEMO.pin);
+    const { token } = await repositorioLocal.entrar("87654321", DEMO.pin);
     await expect(repositorioLocal.vincular(token, "G-00001-001-N")).rejects.toMatchObject({
       codigo: "ya-activada",
     });
@@ -185,7 +185,7 @@ describe("repositorio local", () => {
       propio: false,
       banco: "Banco Mercantil",
       telefono: "04129876543",
-      cedula: "E-81234567",
+      cedula: "81234567",
     });
     expect(cuenta.datosPago.banco).toBe("Banco Mercantil");
     await expect(
@@ -193,9 +193,27 @@ describe("repositorio local", () => {
         propio: false,
         banco: "Banco Inventado",
         telefono: "04129876543",
-        cedula: "E-81234567",
+        cedula: "81234567",
       })
     ).rejects.toMatchObject({ codigo: "datos" });
+  });
+
+  it("reabre la sesión con la llave del dispositivo", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    const llave = await repositorioLocal.crearEnlace(token);
+    expect(llave.length).toBeGreaterThan(20);
+
+    const reabierta = await repositorioLocal.reanudar(DEMO.cedula, llave);
+    expect(reabierta.cuenta.cedula).toBe(DEMO.cedula);
+    expect(reabierta.tarjetas.length).toBeGreaterThan(0);
+    expect(reabierta.token).not.toBe(token);
+
+    await expect(repositorioLocal.reanudar(DEMO.cedula, "otra-llave")).rejects.toMatchObject({
+      codigo: "credenciales",
+    });
+    await expect(
+      repositorioLocal.reanudar("87654321", llave)
+    ).rejects.toMatchObject({ codigo: "credenciales" });
   });
 
   it("cierra la sesión e invalida el token", async () => {

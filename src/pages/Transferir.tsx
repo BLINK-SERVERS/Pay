@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
+import { idAleatorio } from "../lib/azar";
 import { ErrorBlink } from "../lib/repo";
 import { validarSerial } from "../lib/dominio";
 import {
@@ -50,7 +51,7 @@ export function Transferir({
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoTransferencia | null>(null);
-  const [clave, setClave] = useState(() => crypto.randomUUID());
+  const [clave, setClave] = useState(() => idAleatorio());
   const [copiado, copiar] = useCopiar();
 
   const otras = tarjetas.filter((t) => t.serial !== tarjeta.serial);
@@ -65,7 +66,7 @@ export function Transferir({
   );
 
   function reiniciarClave() {
-    setClave(crypto.randomUUID());
+    setClave(idAleatorio());
   }
 
   function elegirDestino(serial: string) {
@@ -249,6 +250,16 @@ export function Transferir({
       </header>
 
       <form className="tarjeta-panel" onSubmit={confirmar} noValidate>
+        {tarjetas.length < 2 && (
+          <div className="aviso aviso--info" role="status">
+            <Icon name="reloj" />
+            <p>
+              Transferencias en preparación: hoy solo tienes una tarjeta vinculada. En cuanto
+              exista una segunda tarjeta BLINK, podrás enviarle saldo desde aquí.
+            </p>
+          </div>
+        )}
+
         {tarjetas.length > 1 && (
           <div className="campo">
             <span className="campo__etiqueta">Sale de</span>
@@ -356,7 +367,7 @@ export function Transferir({
           />
           <span className="campo__ayuda">
             Hasta {formatearBs(disponible)} disponibles en esta tarjeta, en bolívares
-            enteros y sin céntimos
+            enteros
             {tarjeta.saldo > ajustes.topeTransferencia
               ? ` · tope de ${formatearBs(ajustes.topeTransferencia)} por operación`
               : ""}
@@ -404,10 +415,7 @@ export function Transferir({
 
         <div className="aviso aviso--info">
           <Icon name="escudo" />
-          <p>
-            La transferencia es inmediata y sin comisión. El plástico que entrega el saldo
-            necesita conectarse al validador para reflejar el nuevo monto.
-          </p>
+          <p>La transferencia es inmediata y sin comisión.</p>
         </div>
 
         <button type="submit" className="boton boton--primario" disabled={enviando}>

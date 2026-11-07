@@ -9,7 +9,7 @@ export function PayLoader() {
         aria-hidden="true"
         dangerouslySetInnerHTML={{ __html: marca }}
       />
-      <p>Abriendo tu cartera Blink Pay…</p>
+      <span className="visualmente-oculto">Abriendo Blink Pay…</span>
     </div>
   );
 }

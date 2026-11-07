@@ -3,19 +3,19 @@ import { soloDigitos } from "./formato";
 
 // Acceso con la huella o el rostro del teléfono mediante WebAuthn. La
 // credencial la crea y la guarda el autenticador de plataforma (Face ID,
-// Touch ID, huella en Android, Windows Hello); la app solo conserva su
-// identificador y el token de la sesión ya autenticada.
+// Touch ID, huella en Android, Windows Hello); la app conserva su
+// identificador y una llave de este dispositivo con la que el servidor
+// reabre la sesión. Ambos viven en el almacenamiento local y no caducan:
+// la biometría sigue activa hasta que el pasajero la desactive.
 //
-// La biometría no sustituye al PIN: desbloquea la sesión guardada en este
-// dispositivo mientras siga vigente (12 h). Pasado ese plazo, tras cerrar
-// sesión o al cambiar de teléfono, se vuelve a pedir el PIN.
+// La biometría no sustituye al PIN: solo desbloquea la cuenta de este
+// teléfono. Al cambiar de dispositivo hay que volver a activarla.
 
 export const CLAVE_BIOMETRIA = "blink.tarjeta.biometria.v1";
 export const CLAVE_OFRECIDA = "blink.tarjeta.biometria.ofrecida.v1";
 
-const VIGENCIA_MS = 12 * 60 * 60 * 1000;
-// Tolerancia al reloj del teléfono: una fecha muy futura se considera
-// manipulada y se descarta el token, igual que en la copia sin conexión.
+// Tolerancia al reloj del teléfono: un alta fechada muy en el futuro se
+// considera manipulada y se descarta, igual que en la copia sin conexión.
 const DESFASE_MS = 5 * 60 * 1000;
 const MAX_OFERTAS = 8;
 const BASE64URL = /^[A-Za-z0-9_-]+$/;
@@ -25,11 +25,15 @@ export interface RegistroBiometria {
   nombre: string;
   /** Identificador base64url de la credencial WebAuthn. */
   credencial: string;
-  /** Token de sesión que desbloquea; vacío si hay que entrar con PIN. */
-  token: string;
-  /** Vencimiento del token (epoch en ms); 0 si no hay token. */
-  expira: number;
+  /** Llave de este dispositivo para reabrir la sesión sin PIN. */
+  llave: string;
   alta: number;
+}
+
+/** Resultado de una verificación biométrica correcta. */
+export interface PruebaBiometrica {
+  cedula: string;
+  llave: string;
 }
 
 export type CodigoBiometria =
@@ -84,6 +88,11 @@ function deBase64Url(texto: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
+/** Llave aleatoria de 32 bytes que el servidor asocia a este dispositivo. */
+export function nuevaLlave(): string {
+  return aBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+}
+
 function escribir(registro: RegistroBiometria, deposito?: Storage): void {
   const guardado = almacen(deposito);
   if (!guardado) return;
@@ -114,40 +123,26 @@ export function leerRegistroBiometria(deposito?: Storage): RegistroBiometria | n
       typeof datos.nombre === "string" &&
       typeof datos.credencial === "string" &&
       BASE64URL.test(datos.credencial) &&
-      typeof datos.token === "string" &&
-      esNumero(datos.expira) &&
+      (datos.llave === undefined || typeof datos.llave === "string") &&
+      (datos.llave === undefined || datos.llave === "" || BASE64URL.test(datos.llave)) &&
       esNumero(datos.alta);
     if (!formaValida) {
       guardado.removeItem(CLAVE_BIOMETRIA);
       return null;
     }
 
-    const ahora = Date.now();
     const registro: RegistroBiometria = {
-      cedula: datos.cedula as string,
+      cedula: soloDigitos(datos.cedula as string),
       nombre: datos.nombre as string,
       credencial: datos.credencial as string,
-      token: datos.token as string,
-      expira: datos.expira as number,
+      llave: typeof datos.llave === "string" ? datos.llave : "",
       alta: datos.alta as number,
     };
 
-    // Una credencial con fecha de alta en el futuro no puede ser nuestra.
-    if (registro.alta > ahora + DESFASE_MS) {
+    // Un alta fechada en el futuro no puede ser nuestra.
+    if (registro.alta > Date.now() + DESFASE_MS) {
       guardado.removeItem(CLAVE_BIOMETRIA);
       return null;
-    }
-
-    const incoherente =
-      (registro.token === "") !== (registro.expira === 0) ||
-      registro.expira > ahora + VIGENCIA_MS + DESFASE_MS ||
-      (registro.expira > 0 && registro.expira <= ahora);
-    if (incoherente) {
-      // La credencial sigue siendo útil para volver a enlazarla tras un
-      // acceso con PIN; el token vencido o incoherente se descarta.
-      registro.token = "";
-      registro.expira = 0;
-      escribir(registro, guardado);
     }
 
     return registro;
@@ -157,40 +152,23 @@ export function leerRegistroBiometria(deposito?: Storage): RegistroBiometria | n
   }
 }
 
+/** Hay credencial y llave: se puede desbloquear sin PIN en este teléfono. */
 export function registroDesbloqueable(
-  registro: RegistroBiometria | null,
-  ahora = Date.now()
+  registro: RegistroBiometria | null
 ): boolean {
-  return Boolean(registro && registro.token.length > 0 && registro.expira > ahora);
+  return Boolean(registro && registro.credencial && registro.llave);
 }
 
 /**
- * Enlaza el token de un acceso con PIN a la credencial ya registrada. No crea
- * credenciales: para eso está `activarBiometria`.
+ * Guarda la llave del dispositivo en la credencial ya registrada. Sirve para
+ * reactivar un registro anterior que no la tenía.
  */
-export function guardarSesionBiometria(
-  sesion: Sesion,
-  deposito?: Storage
-): RegistroBiometria | null {
+export function guardarLlaveBiometria(llave: string, deposito?: Storage): RegistroBiometria | null {
   const registro = leerRegistroBiometria(deposito);
   if (!registro) return null;
-  if (soloDigitos(registro.cedula) !== soloDigitos(sesion.cuenta.cedula)) return null;
-
-  registro.nombre = `${sesion.cuenta.nombres} ${sesion.cuenta.apellidos}`.trim();
-  registro.token = sesion.token;
-  registro.expira = Date.now() + VIGENCIA_MS;
+  registro.llave = llave;
   escribir(registro, deposito);
   return registro;
-}
-
-/** Conserva la credencial pero invalida su token (cierre de sesión). */
-export function olvidarTokenBiometria(deposito?: Storage): void {
-  const registro = leerRegistroBiometria(deposito);
-  if (!registro) return;
-  if (!registro.token && !registro.expira) return;
-  registro.token = "";
-  registro.expira = 0;
-  escribir(registro, deposito);
 }
 
 /** Borra la vinculación completa con este dispositivo. */
@@ -271,6 +249,7 @@ function traducir(error: unknown, fase: "alta" | "acceso"): ErrorBiometria {
 
 export async function activarBiometria(
   sesion: Sesion,
+  llave: string,
   deposito?: Storage
 ): Promise<RegistroBiometria> {
   if (!(await biometriaSoportada())) {
@@ -279,10 +258,10 @@ export async function activarBiometria(
       "Este dispositivo no tiene un lector de huella o rostro disponible para la web."
     );
   }
+  if (!BASE64URL.test(llave)) {
+    throw new ErrorBiometria("dispositivo", "No pudimos preparar el acceso con huella.");
+  }
 
-  const previo = leerRegistroBiometria(deposito);
-  const mismaCuenta =
-    previo !== null && soloDigitos(previo.cedula) === soloDigitos(sesion.cuenta.cedula);
   const nombre = `${sesion.cuenta.nombres} ${sesion.cuenta.apellidos}`.trim();
 
   // El identificador se deriva de la cédula para que la misma cuenta use el
@@ -292,7 +271,7 @@ export async function activarBiometria(
     rp: { name: "Blink Pay" },
     user: {
       id: await idUsuario(sesion.cuenta.cedula),
-      name: sesion.cuenta.cedula,
+      name: soloDigitos(sesion.cuenta.cedula),
       displayName: nombre,
     },
     pubKeyCredParams: [
@@ -304,9 +283,6 @@ export async function activarBiometria(
       userVerification: "required",
       residentKey: "preferred",
     },
-    excludeCredentials: mismaCuenta
-      ? [{ type: "public-key", id: deBase64Url(previo.credencial) }]
-      : [],
     timeout: 60_000,
     attestation: "none",
   };
@@ -330,31 +306,29 @@ export async function activarBiometria(
     );
   }
 
-  const ahora = Date.now();
   const registro: RegistroBiometria = {
-    cedula: sesion.cuenta.cedula,
+    cedula: soloDigitos(sesion.cuenta.cedula),
     nombre,
     credencial: identificador,
-    token: sesion.token,
-    expira: ahora + VIGENCIA_MS,
-    alta: ahora,
+    llave,
+    alta: Date.now(),
   };
   escribir(registro, deposito);
   return registro;
 }
 
-export async function desbloquearConBiometria(deposito?: Storage): Promise<string> {
+export async function desbloquearConBiometria(deposito?: Storage): Promise<PruebaBiometrica> {
   const registro = leerRegistroBiometria(deposito);
   if (!registro) {
     throw new ErrorBiometria(
       "sin-registro",
-      "No hay una sesión guardada con biometría en este dispositivo."
+      "No hay una huella activa para esta cuenta en este dispositivo."
     );
   }
-  if (!registroDesbloqueable(registro)) {
+  if (!registro.llave) {
     throw new ErrorBiometria(
       "expirada",
-      "La sesión guardada venció. Entra con tu PIN para renovarla."
+      "Vuelve a entrar con tu PIN para reactivar la huella en este teléfono."
     );
   }
   if (!(await biometriaSoportada())) {
@@ -388,7 +362,7 @@ export async function desbloquearConBiometria(deposito?: Storage): Promise<strin
       "La huella no corresponde a la cuenta guardada. Entra con tu PIN."
     );
   }
-  return registro.token;
+  return { cedula: registro.cedula, llave: registro.llave };
 }
 
 export function ofrecimientoHecho(cedula: string, deposito?: Storage): boolean {

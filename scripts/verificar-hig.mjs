@@ -6,7 +6,9 @@ import { mkdir } from "node:fs/promises";
  *
  * Usa el Chromium del sistema (no descarga navegadores) y comprueba,
  * en 393×852 y 1440×900, con apariencia clara y oscura:
- *   · que no haya desbordamiento horizontal,
+ *   · que no haya desbordamiento horizontal ni saltos de maqueta,
+ *   · que el acceso pida solo dígitos y no muestre la tarjeta,
+ *   · que el frente de la tarjeta solo lleve saldo, pasajes y titular,
  *   · que todos los iconos sean SF Symbols,
  *   · la pila tipográfica y las cifras tabulares,
  *   · los objetivos táctiles de 44 pt y el material translúcido,
@@ -16,7 +18,16 @@ import { mkdir } from "node:fs/promises";
 const BASE = process.env.BLINK_URL ?? "http://127.0.0.1:5175/";
 const SALIDA = process.env.BLINK_CAPTURAS ?? "/tmp/blink-hig";
 const PIN_DEMO = "194628";
-const CEDULA_DEMO = "V-12345678";
+const CEDULA_DEMO = "12345678";
+
+const CLS = `
+  window.__cls = 0;
+  new PerformanceObserver((lista) => {
+    for (const entrada of lista.getEntries()) {
+      if (!entrada.hadRecentInput) window.__cls += entrada.value;
+    }
+  }).observe({ type: "layout-shift", buffered: true });
+`;
 
 await mkdir(SALIDA, { recursive: true });
 
@@ -56,6 +67,7 @@ for (const ancho of [393, 1440]) {
       colorScheme: esquema,
       hasTouch: movil,
     });
+    await contexto.addInitScript(CLS);
     const pagina = await contexto.newPage();
     await pagina.goto(BASE, { waitUntil: "networkidle" });
     // En producción el paquete compilado puede montar un fotograma después;
@@ -64,20 +76,31 @@ for (const ancho of [393, 1440]) {
     await pagina.waitForFunction(
       () => (document.querySelector(".acceso__panel")?.getBoundingClientRect().width ?? 0) > 0
     );
-    await pagina.waitForTimeout(250);
+    await pagina.waitForTimeout(300);
     console.log(`\nacceso ${ancho}px · ${esquema}`);
     const datos = await pagina.evaluate(() => {
       const panel = document.querySelector(".acceso__panel");
       const fondo = document.querySelector(".acceso__fondo");
+      const cedula = document.querySelector("#cedula");
       return {
         desborde: document.documentElement.scrollWidth - window.innerWidth,
+        cls: window.__cls,
         panel: panel ? Math.round(panel.getBoundingClientRect().width) : 0,
         fondo: fondo ? Math.round(fondo.getBoundingClientRect().width) : 0,
+        tarjetaEnAcceso: Boolean(document.querySelector(".acceso img")),
+        teclado: cedula?.getAttribute("inputmode"),
+        maxCedula: cedula?.getAttribute("maxlength"),
+        prefijo: Boolean(document.querySelector(".entrada--tipo")),
       };
     });
     revisar("sin desbordamiento horizontal", datos.desborde, datos.desborde <= 1);
+    revisar("sin saltos de maqueta (CLS < 0,02)", datos.cls, datos.cls < 0.02);
     revisar("panel de acceso presente", datos.panel, datos.panel > 280);
     revisar("fondo a todo el ancho", datos.fondo, datos.fondo === ancho);
+    revisar("sin tarjeta en el acceso", datos.tarjetaEnAcceso, !datos.tarjetaEnAcceso);
+    revisar("cédula con teclado numérico", datos.teclado, datos.teclado === "numeric");
+    revisar("cédula de hasta 8 dígitos", datos.maxCedula, datos.maxCedula === "8");
+    revisar("sin selector V/E", datos.prefijo, !datos.prefijo);
     await pagina.screenshot({ path: `${SALIDA}/acceso-${ancho}-${esquema}.png` });
     await contexto.close();
   }
@@ -94,10 +117,11 @@ for (const ancho of [393, 1440]) {
       hasTouch: movil,
       storageState: estado,
     });
+    await contexto.addInitScript(CLS);
     const pagina = await contexto.newPage();
     await pagina.goto(BASE, { waitUntil: "networkidle" });
     await pagina.waitForSelector(".app__main");
-    await pagina.waitForTimeout(350);
+    await pagina.waitForTimeout(400);
 
     console.log(`\n${ancho}px · ${esquema}`);
 
@@ -108,15 +132,17 @@ for (const ancho of [393, 1440]) {
       };
       const iconos = [...document.querySelectorAll("svg.icon")];
       const sf = iconos.filter((svg) => svg.hasAttribute("data-variante"));
-      const monto = document.querySelector(".tarjeta__monto strong");
+      const saldo = document.querySelector(".tarjeta__saldo");
+      const anverso = document.querySelector(".tarjeta__cara--anverso");
       const tabs = document.querySelector(".tabs");
       return {
         desborde: document.documentElement.scrollWidth - window.innerWidth,
+        cls: window.__cls,
         iconos: iconos.length,
         sf: sf.length,
         fuente: getComputedStyle(document.body).fontFamily,
-        tabular: monto ? getComputedStyle(monto).fontVariantNumeric : "",
-        tabulares: [".tile__valor", ".movimiento__monto--sale", ".inspector__saldo"]
+        tabular: saldo ? getComputedStyle(saldo).fontVariantNumeric : "",
+        tabulares: [".tarjeta__saldo", ".movimiento__monto--entra", ".inspector__saldo"]
           .map((sel) => document.querySelector(sel))
           .filter(Boolean)
           .map((el) => getComputedStyle(el).fontVariantNumeric),
@@ -127,10 +153,16 @@ for (const ancho of [393, 1440]) {
         objetivos: [...document.querySelectorAll(".tabs__item")].map(
           (el) => Math.round(el.getBoundingClientRect().height)
         ),
+        barraSuperior: Boolean(document.querySelector(".barra-sup")),
+        mosaicos: document.querySelectorAll(".tile, .accion, .pie-marca").length,
+        frente: anverso?.innerText ?? "",
+        serialEnFrente: Boolean(anverso?.querySelector(".tarjeta__serial")),
+        serialEnInspector: Boolean(document.querySelector(".inspector")?.innerText.includes("G-")),
       };
     });
 
     revisar("sin desbordamiento horizontal", datos.desborde, datos.desborde <= 1);
+    revisar("sin saltos de maqueta (CLS < 0,02)", datos.cls, datos.cls < 0.02);
     revisar("todos los iconos son SF Symbols", `${datos.sf}/${datos.iconos}`, datos.iconos > 0 && datos.sf === datos.iconos);
     revisar("pila tipográfica SF Pro/Inter", datos.fuente, /SF Pro|Inter/.test(datos.fuente));
     revisar("cifras tabulares en el saldo", datos.tabular, datos.tabular.includes("tabular-nums"));
@@ -140,6 +172,15 @@ for (const ancho of [393, 1440]) {
       datos.tabulares.length > 0 && datos.tabulares.every((valor) => valor.includes("tabular-nums"))
     );
     revisar("material translúcido en la barra", datos.material, /blur\(24px\)/.test(datos.material));
+    revisar("sin barra superior flotante", datos.barraSuperior, !datos.barraSuperior);
+    revisar("sin mosaicos ni pie de marca", datos.mosaicos, datos.mosaicos === 0);
+    revisar(
+      "frente de la tarjeta: saldo, pasajes y titular",
+      datos.frente,
+      /^Bs/.test(datos.frente) && /pasaje/.test(datos.frente) && /[A-ZÁÉÍÓÚÑ]/.test(datos.frente)
+    );
+    revisar("serial solo al reverso", datos.serialEnFrente, !datos.serialEnFrente);
+    revisar("serial fuera del inspector", datos.serialEnInspector, !datos.serialEnInspector);
 
     if (movil) {
       revisar("pestañas visibles en iPhone", datos.tabsVisibles, datos.tabsVisibles);
@@ -154,56 +195,37 @@ for (const ancho of [393, 1440]) {
       }
     }
 
+    // Reverso: el serial es el único contenido y el botón vuelve al frente.
+    const voltear = pagina.locator(".tarjeta__voltear").first();
+    await voltear.click();
+    await pagina.waitForTimeout(450);
+    const reverso = await pagina.evaluate(() => {
+      const cara = document.querySelector('.tarjeta__cara--reverso');
+      const boton = document.querySelector(".tarjeta__voltear");
+      return {
+        texto: cara?.innerText.trim() ?? "",
+        ancho: Math.round(boton?.getBoundingClientRect().width ?? 0),
+      };
+    });
+    revisar("reverso: solo el serial", reverso.texto, /^G-\d{5}-\d{3}-[A-Z]$/.test(reverso.texto));
+    revisar("botón de giro de ancho fijo", reverso.ancho, reverso.ancho === 148);
+    await pagina.screenshot({
+      path: `${SALIDA}/reverso-${ancho}-${esquema}.png`,
+      fullPage: false,
+    });
+    await voltear.click();
+    await pagina.waitForTimeout(350);
+
     await pagina.screenshot({
       path: `${SALIDA}/inicio-${ancho}-${esquema}.png`,
       fullPage: false,
     });
 
-    if (movil) {
-      await pagina.evaluate(() => window.scrollTo({ top: 320 }));
-      // La barra entra con una transición de 0,2 s; esperar a que el material
-      // y el título terminen evita leer un fotograma intermedio.
-      await pagina.waitForFunction(
-        () => {
-          const barra = document.querySelector(".barra-sup");
-          if (!barra?.classList.contains("barra-sup--compacta")) return false;
-          const titulo = document.querySelector(".barra-sup__titulo");
-          return (
-            /blur\(24px\)/.test(getComputedStyle(barra).backdropFilter) &&
-            Number(getComputedStyle(titulo).opacity) > 0.98
-          );
-        },
-        { timeout: 5000 }
-      );
-      await pagina.waitForTimeout(120);
-      const barra = await pagina.evaluate(() => {
-        const bar = document.querySelector(".barra-sup");
-        const titulo = document.querySelector(".barra-sup__titulo");
-        const senal = document.querySelector(".barra-sup__senal");
-        return {
-          compacta: bar.classList.contains("barra-sup--compacta"),
-          material: getComputedStyle(bar).backdropFilter,
-          titulo: titulo ? getComputedStyle(titulo).opacity : "0",
-          senal: senal ? getComputedStyle(senal).opacity : "0",
-        };
-      });
-      revisar("barra compacta al desplazar", barra.compacta, barra.compacta);
-      revisar("barra compacta translúcida", barra.material, /blur\(24px\)/.test(barra.material));
-      revisar("título visible al desplazar", barra.titulo, Number(barra.titulo) > 0.9);
-      revisar("indicador en línea visible al desplazar", barra.senal, Number(barra.senal) > 0.9);
-      await pagina.screenshot({
-        path: `${SALIDA}/inicio-desplazado-${ancho}-${esquema}.png`,
-        fullPage: false,
-      });
-      await pagina.evaluate(() => window.scrollTo({ top: 0 }));
-      await pagina.waitForTimeout(200);
-    }
-
     const selectorPestana = movil ? ".tabs__item" : ".barra-lateral__item";
     const pestanas = await pagina.locator(selectorPestana).count();
     for (let i = 0; i < pestanas; i += 1) {
       await pagina.locator(selectorPestana).nth(i).click();
-      await pagina.waitForTimeout(220);
+      await pagina.waitForTimeout(260);
       const desborde = await pagina.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth
       );
@@ -221,7 +243,7 @@ for (const ancho of [393, 1440]) {
           const fila = pagina.locator(".movimiento--accion").first();
           if ((await fila.count()) > 0) {
             await fila.click();
-            await pagina.waitForTimeout(280);
+            await pagina.waitForTimeout(300);
             const detalle = await pagina.evaluate(() => {
               const inspector = document.querySelector(".inspector");
               return {

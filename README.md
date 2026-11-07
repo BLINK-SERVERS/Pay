@@ -3,11 +3,10 @@
 Cartera del pasajero para consultar, vincular, recargar y transferir el saldo de
 la tarjeta de transporte de **Blink**. React 19 + Vite 8 + TypeScript estricto.
 
-- **Destino:** https://pay.blink.com.ve — *pendiente de publicar* (ver «Despliegue»)
-- **Publicación actual:** https://blink-servers.github.io/TARJETA/
+- **Sitio:** https://pay.blink.com.ve
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 2.1.0 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 2.2.0 · [CHANGELOG](CHANGELOG.md)
 
 Este repositorio nació como **Blink Tarjeta** y conserva íntegro su historial,
 su esquema de datos y sus flujos. Desde `QODER-BLINK-HIG-2026` el producto se

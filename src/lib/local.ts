@@ -14,6 +14,7 @@ import type {
 } from "./tipos";
 import { AJUSTES_POR_DEFECTO } from "./tipos";
 import { hashPin, verificarPin } from "./pin";
+import { idAleatorio, secretoAleatorio } from "./azar";
 import { formatearCedula, formatearEntero, formatearSerial, formatearTelefono, soloDigitos } from "./formato";
 import { erroresDatosPago, validarPin, validarSerial } from "./dominio";
 
@@ -50,6 +51,10 @@ export interface Repositorio {
   transferir(token: string, transferencia: TransferenciaNueva): Promise<ResultadoTransferencia>;
   cambiarPin(token: string, actual: string, nuevo: string): Promise<void>;
   actualizarPago(token: string, datosPago: DatosPago): Promise<Cuenta>;
+  /** Crea la llave de este dispositivo para el acceso con huella. */
+  crearEnlace(token: string): Promise<string>;
+  /** Reabre una sesión con la huella de un dispositivo ya vinculado. */
+  reanudar(cedula: string, llave: string): Promise<Sesion>;
   salir(token: string): Promise<void>;
   ajustes(): Promise<Ajustes>;
 }
@@ -85,16 +90,20 @@ interface TransferenciaLocal extends Transferencia {
 }
 
 interface BaseLocal {
-  version: 5;
+  version: 7;
   cuentas: CuentaLocal[];
   tarjetas: TarjetaLocal[];
   movimientos: Movimiento[];
   transferencias: TransferenciaLocal[];
   sesiones: Record<string, { cedula: string; expira: number }>;
   intentos: Record<string, { fallos: number; hasta: number }>;
+  /** Huella de la llave biométrica por cédula (solo dígitos). */
+  enlaces: Record<string, string>;
 }
 
-type BaseLocalV4 = Omit<BaseLocal, "version" | "transferencias"> & { version: 4 };
+type BaseLocalV4 = Omit<BaseLocal, "version" | "transferencias" | "enlaces"> & { version: 4 };
+type BaseLocalV5 = Omit<BaseLocal, "version" | "enlaces"> & { version: 5 };
+type BaseLocalV6 = Omit<BaseLocal, "version"> & { version: 6 };
 
 const TARIFA = 500;
 
@@ -114,42 +123,42 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
     {
       nombres: "María Fernanda",
       apellidos: "Fernández",
-      cedula: "V-12345678",
+      cedula: "12345678",
       telefono: "04141234567",
       correo: "maria.fernandez@example.com",
       datosPago: {
         propio: true,
         banco: "Banesco Banco Universal",
         telefono: "04141234567",
-        cedula: "V-12345678",
+        cedula: "12345678",
       },
       pinHash: pin1,
     },
     {
       nombres: "Carlos Andrés",
       apellidos: "Rondón",
-      cedula: "V-87654321",
+      cedula: "87654321",
       telefono: "04248765432",
       correo: "carlos.rondon@example.com",
       datosPago: {
         propio: false,
         banco: "Banco Mercantil",
         telefono: "04129876543",
-        cedula: "E-81234567",
+        cedula: "81234567",
       },
       pinHash: pin2,
     },
     {
       nombres: "Luis Enrique",
       apellidos: "Pérez",
-      cedula: "V-11223344",
+      cedula: "11223344",
       telefono: "04125556677",
       correo: "luis.perez@example.com",
       datosPago: {
         propio: true,
         banco: "BBVA Provincial",
         telefono: "04125556677",
-        cedula: "V-11223344",
+        cedula: "11223344",
       },
       pinHash: pin3,
     },
@@ -159,7 +168,7 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
     {
       serial: "G-00001-001-N",
       uid: "3981BF06",
-      titular: { nombre: "María Fernanda Fernández", cedula: "V-12345678", telefono: "0414-1234567" },
+      titular: { nombre: "María Fernanda Fernández", cedula: "12345678", telefono: "0414-1234567" },
       saldo: 1500,
       estado: "activa",
       emitida: "2025-03-14T12:00:00.000Z",
@@ -170,7 +179,7 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
     {
       serial: "G-00001-004-V",
       uid: "6A21C40D",
-      titular: { nombre: "Diego Andrés Fernández", cedula: "V-30445566", telefono: "0414-1234567" },
+      titular: { nombre: "Diego Andrés Fernández", cedula: "30445566", telefono: "0414-1234567" },
       saldo: 1000,
       estado: "activa",
       emitida: "2025-08-09T12:00:00.000Z",
@@ -181,7 +190,7 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
     {
       serial: "G-00001-002-R",
       uid: "058151954F3400",
-      titular: { nombre: "Carlos Andrés Rondón", cedula: "V-87654321", telefono: "0424-8765432" },
+      titular: { nombre: "Carlos Andrés Rondón", cedula: "87654321", telefono: "0424-8765432" },
       saldo: 0,
       estado: "activa",
       emitida: "2025-06-02T12:00:00.000Z",
@@ -192,7 +201,7 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
     {
       serial: "G-00001-003-T",
       uid: "A1B2C3D4",
-      titular: { nombre: "Luis Enrique Pérez", cedula: "V-11223344", telefono: "0412-5556677" },
+      titular: { nombre: "Luis Enrique Pérez", cedula: "11223344", telefono: "0412-5556677" },
       saldo: 500,
       estado: "bloqueada",
       emitida: "2024-11-20T12:00:00.000Z",
@@ -336,7 +345,7 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
   };
 
   return {
-    version: 5,
+    version: 7,
     cuentas,
     tarjetas,
     movimientos: [pendiente, ...serie1, ...serie4, viaje2].sort(
@@ -345,26 +354,63 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
     transferencias: [],
     sesiones: {},
     intentos: {},
+    enlaces: {},
   };
+}
+
+/** La cédula se guarda solo con dígitos; normaliza lo que venga de una base vieja. */
+function normalizarCedulas<
+  T extends Pick<BaseLocal, "cuentas" | "tarjetas" | "sesiones">
+>(datos: T): T {
+  return {
+    ...datos,
+    cuentas: datos.cuentas.map((cuenta) => ({
+      ...cuenta,
+      cedula: soloDigitos(cuenta.cedula),
+      datosPago: { ...cuenta.datosPago, cedula: soloDigitos(cuenta.datosPago.cedula) },
+    })),
+    tarjetas: datos.tarjetas.map((tarjeta) => ({
+      ...tarjeta,
+      titular: { ...tarjeta.titular, cedula: soloDigitos(tarjeta.titular.cedula) },
+    })),
+    sesiones: Object.fromEntries(
+      Object.entries(datos.sesiones).map(([token, sesion]) => [
+        token,
+        { ...sesion, cedula: soloDigitos(sesion.cedula) },
+      ])
+    ),
+  } as T;
 }
 
 function leer(): BaseLocal | null {
   try {
     const crudo = localStorage.getItem(CLAVE);
     if (!crudo) return null;
-    const datos = JSON.parse(crudo) as BaseLocal | BaseLocalV4;
+    const datos = JSON.parse(crudo) as BaseLocal | BaseLocalV6 | BaseLocalV5 | BaseLocalV4;
+    if (datos.version === 7) return datos;
+    if (datos.version === 6) {
+      const migrada: BaseLocal = { ...normalizarCedulas(datos), version: 7, enlaces: {} };
+      guardar(migrada);
+      return migrada;
+    }
+    if (datos.version === 5) {
+      const migrada: BaseLocal = { ...normalizarCedulas(datos), version: 7, enlaces: {} };
+      guardar(migrada);
+      return migrada;
+    }
     if (datos.version === 4) {
       // La base demo anterior no tenía transferencias; se conserva la
       // billetera y se le añade el libro vacío.
       const migrada: BaseLocal = {
-        ...(datos as BaseLocalV4),
-        version: 5,
+        ...normalizarCedulas(datos),
+        version: 7,
         transferencias: [],
+        enlaces: {},
       };
       guardar(migrada);
       return migrada;
     }
-    return datos.version === 5 ? datos : null;
+    return null;
   } catch {
     return null;
   }
@@ -436,7 +482,7 @@ function tarjetaDe(datos: BaseLocal, cuenta: CuentaLocal, serial: string): Tarje
 }
 
 function abrirSesion(datos: BaseLocal, cuenta: CuentaLocal): Sesion {
-  const token = crypto.randomUUID();
+  const token = idAleatorio();
   datos.sesiones[token] = { cedula: cuenta.cedula, expira: Date.now() + VIDA_SESION };
   return sesionDe(datos, cuenta, token);
 }
@@ -647,7 +693,7 @@ export const repositorioLocal: Repositorio = {
     }
     const pasajes = Math.max(1, Math.round(recarga.pasajes));
     const movimiento: Movimiento = {
-      id: `rc-${crypto.randomUUID()}`,
+      id: `rc-${idAleatorio()}`,
       serial: tarjeta.serial,
       tipo: "recarga",
       monto: Math.round(recarga.montoBase),
@@ -751,7 +797,7 @@ export const repositorioLocal: Repositorio = {
     destino.saldo = Math.round((destino.saldo + monto) * 100) / 100;
 
     const salida: Movimiento = {
-      id: `tr-${crypto.randomUUID()}`,
+      id: `tr-${idAleatorio()}`,
       serial: origen.serial,
       tipo: "transferencia",
       monto: -monto,
@@ -761,7 +807,7 @@ export const repositorioLocal: Repositorio = {
       estado: "aprobado",
     };
     const entrada: Movimiento = {
-      id: `tr-${crypto.randomUUID()}`,
+      id: `tr-${idAleatorio()}`,
       serial: destino.serial,
       tipo: "transferencia",
       monto,
@@ -772,7 +818,7 @@ export const repositorioLocal: Repositorio = {
     };
 
     const transferencia: TransferenciaLocal = {
-      id: crypto.randomUUID(),
+      id: idAleatorio(),
       clave,
       monto,
       at,
@@ -818,6 +864,29 @@ export const repositorioLocal: Repositorio = {
     cuenta.datosPago = { ...datosPago };
     guardar(datos);
     return aCuenta(cuenta);
+  },
+
+  async crearEnlace(token) {
+    const datos = await base();
+    const cuenta = porToken(datos, token);
+    const llave = secretoAleatorio();
+    datos.enlaces[soloDigitos(cuenta.cedula)] = llave;
+    guardar(datos);
+    return llave;
+  },
+
+  async reanudar(cedula, llave) {
+    const datos = await base();
+    const cuenta = buscarCuenta(datos, cedula);
+    if (!cuenta || !llave) {
+      throw new ErrorBlink("credenciales", "La huella de este teléfono ya no es válida. Entra con tu PIN.");
+    }
+    if (datos.enlaces[soloDigitos(cuenta.cedula)] !== llave) {
+      throw new ErrorBlink("credenciales", "La huella de este teléfono ya no es válida. Entra con tu PIN.");
+    }
+    const sesion = abrirSesion(datos, cuenta);
+    guardar(datos);
+    return sesion;
   },
 
   async salir(token) {

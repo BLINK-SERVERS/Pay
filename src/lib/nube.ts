@@ -11,6 +11,7 @@ import type {
 } from "./tipos";
 import { AJUSTES_POR_DEFECTO } from "./tipos";
 import { ErrorBlink, type CodigoError, type Repositorio } from "./local";
+import { formatearCedula } from "./formato";
 import {
   copiaDe,
   guardarCopia,
@@ -70,6 +71,10 @@ function esErrorDeDominio(valor: unknown): valor is ErrorDeDominio {
 }
 
 async function rpc<T>(funcion: string, argumentos: Record<string, unknown>): Promise<T> {
+  // Sin límite, una petición que no responde deja la interfaz girando para
+  // siempre; a partir de 20 s se libera con un aviso de conexión.
+  const corte = new AbortController();
+  const reloj = setTimeout(() => corte.abort(), 20_000);
   let respuesta: Response;
   try {
     respuesta = await fetch(`${URL_BASE}/rest/v1/rpc/${funcion}`, {
@@ -81,9 +86,18 @@ async function rpc<T>(funcion: string, argumentos: Record<string, unknown>): Pro
         Accept: "application/json",
       },
       body: JSON.stringify(argumentos),
+      signal: corte.signal,
     });
   } catch {
+    if (corte.signal.aborted) {
+      throw new ErrorBlink(
+        "red",
+        "BLINK tardó demasiado en responder. Revisa tu conexión e inténtalo otra vez."
+      );
+    }
     throw new ErrorBlink("red", "Sin conexión con BLINK. Revisa tu internet e inténtalo otra vez.");
+  } finally {
+    clearTimeout(reloj);
   }
 
   if (!respuesta.ok) {
@@ -127,7 +141,16 @@ interface BilleteraRpc {
 }
 
 function aSesion(datos: BilleteraRpc): Sesion {
-  return { token: datos.token, cuenta: datos.cuenta as Cuenta, tarjetas: datos.tarjetas };
+  const cuenta = datos.cuenta as Cuenta;
+  return {
+    token: datos.token,
+    cuenta: {
+      ...cuenta,
+      cedula: formatearCedula(cuenta.cedula),
+      datosPago: { ...cuenta.datosPago, cedula: formatearCedula(cuenta.datosPago.cedula) },
+    },
+    tarjetas: datos.tarjetas,
+  };
 }
 
 function aSesionGuardada(datos: BilleteraRpc): Sesion {
@@ -140,23 +163,24 @@ export const repositorioNube: Repositorio = {
   modo: "nube",
 
   entrar(cedula, pin) {
-    return rpc<BilleteraRpc>("bt_entrar", { p_cedula: cedula, p_pin: pin }).then(
-      aSesionGuardada
-    );
+    return rpc<BilleteraRpc>("bt_entrar", {
+      p_cedula: formatearCedula(cedula),
+      p_pin: pin,
+    }).then(aSesionGuardada);
   },
 
   registrar(cuenta) {
     return rpc<BilleteraRpc>("bt_registrar", {
       p_nombres: cuenta.nombres,
       p_apellidos: cuenta.apellidos,
-      p_cedula: cuenta.cedula,
+      p_cedula: formatearCedula(cuenta.cedula),
       p_telefono: cuenta.telefono,
       p_correo: cuenta.correo,
       p_pin: cuenta.pin,
       p_pago_propio: cuenta.datosPago.propio,
       p_pago_banco: cuenta.datosPago.banco,
       p_pago_telefono: cuenta.datosPago.telefono,
-      p_pago_cedula: cuenta.datosPago.cedula,
+      p_pago_cedula: formatearCedula(cuenta.datosPago.cedula),
     }).then(aSesionGuardada);
   },
 
@@ -167,7 +191,7 @@ export const repositorioNube: Repositorio = {
     }
     try {
       const datos = await rpc<Omit<BilleteraRpc, "token">>("bt_sesion", { p_token: token });
-      const sesion = { token, cuenta: datos.cuenta as Cuenta, tarjetas: datos.tarjetas };
+      const sesion = aSesion({ ...datos, token });
       guardarCopia(sesion);
       return sesion;
     } catch (error) {
@@ -241,8 +265,19 @@ export const repositorioNube: Repositorio = {
       p_propio: datosPago.propio,
       p_banco: datosPago.banco,
       p_telefono: datosPago.telefono,
-      p_cedula: datosPago.cedula,
+      p_cedula: formatearCedula(datosPago.cedula),
     }).then((r) => r.cuenta);
+  },
+
+  crearEnlace(token) {
+    return rpc<string>("bt_crear_enlace", { p_token: token });
+  },
+
+  reanudar(cedula, llave) {
+    return rpc<BilleteraRpc>("bt_reanudar", {
+      p_cedula: formatearCedula(cedula),
+      p_llave: llave,
+    }).then(aSesionGuardada);
   },
 
   async salir(token) {

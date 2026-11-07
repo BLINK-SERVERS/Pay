@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="982" height="406" viewBox="0 0 982 406" version="1.1" shape-rendering="geometricPrecision" fill="currentColor">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="956" height="406" viewBox="0 0 956 406" version="1.1" shape-rendering="geometricPrecision" fill="currentColor">
   <title>Blink Pay (icono)</title>
   <desc>Isotipo, la palabra «Pay» y las tres ondas de pago sin contacto.</desc>
   <g inkscape:groupmode="layer" inkscape:label="Isotipo" id="capa-isotipo">
@@ -10,17 +10,17 @@
     </g>
   </g>
   <g inkscape:groupmode="layer" inkscape:label="Palabra" id="capa-palabra">
-    <g id="wordmark" transform="translate(322.23 351.9)">
-      <path d="M21.44 0H49.01V-78.87H100.16C141.67 -78.87 171.07 -108.13 171.07 -150.09V-150.4C171.07 -192.36 141.67 -221 100.16 -221H21.44ZM93.12 -196.5C124.67 -196.5 142.89 -179.19 142.89 -150.09V-149.78C142.89 -120.68 124.67 -103.38 93.12 -103.38H49.01V-196.5Z"/>
-      <path d="M231.26 3.06C252.55 3.06 271.69 -8.42 281.04 -25.88H281.65V0H308.3V-110.12C308.3 -141.97 284.71 -162.34 247.04 -162.34C209.51 -162.34 186.69 -141.21 184.4 -115.02L184.24 -113.33H209.97L210.28 -114.71C213.34 -128.95 226.21 -138.76 246.73 -138.76C268.94 -138.76 281.65 -126.96 281.65 -107.51V-94.19L236.01 -91.59C199.41 -89.44 178.27 -72.44 178.27 -45.33V-45.03C178.27 -16.08 199.56 3.06 231.26 3.06ZM205.53 -45.03V-45.33C205.53 -60.19 217.78 -69.68 239.07 -70.91L281.65 -73.51V-60.5C281.65 -37.37 262.35 -20.06 237.23 -20.06C218.09 -20.06 205.53 -29.71 205.53 -45.03Z"/>
-      <path d="M357.46 53.6C386.25 53.6 400.19 40.43 411.52 9.95L473.7 -159.28H445.68L401.57 -26.65H400.95L357 -159.28H328.51L387.63 0.15L384.41 9.19C377.98 27.26 368.64 31.55 351.79 31.55C348.58 31.55 345.51 31.09 343.22 30.63V52.38C346.59 52.99 352.25 53.6 357.46 53.6Z"/>
+    <g id="wordmark" transform="translate(323.31 351.9)">
+      <path d="M20.37 0H54.68V-75.5H102.61C145.95 -75.5 175.97 -105.06 175.97 -148.25V-148.56C175.97 -191.9 145.95 -221 102.61 -221H20.37ZM94.04 -192.05C123.9 -192.05 141.05 -175.97 141.05 -148.41V-148.1C141.05 -120.38 123.9 -104.3 94.04 -104.3H54.68V-192.05Z"/>
+      <path d="M214.67 2.91C235.95 2.91 254.64 -8.12 263.98 -25.42H264.59V0H297.83V-111.04C297.83 -143.35 272.86 -164.18 233.5 -164.18C193.84 -164.18 169.79 -142.89 167.49 -115.17L167.34 -113.49H198.58L198.89 -114.86C201.65 -127.73 213.44 -136.77 232.58 -136.77C253.11 -136.77 264.59 -126.05 264.59 -108.28V-96.18L220.79 -93.58C182.66 -91.28 160.91 -74.13 160.91 -46.1V-45.79C160.91 -16.85 182.5 2.91 214.67 2.91ZM194.3 -46.56V-46.86C194.3 -60.5 205.32 -69.23 225.23 -70.45L264.59 -72.9V-60.34C264.59 -39.36 246.98 -23.59 223.7 -23.59C205.94 -23.59 194.3 -32.47 194.3 -46.56Z"/>
+      <path d="M326.57 53.76C358.11 53.76 374.96 40.89 386.91 7.5L446.94 -161.12H412.02L371.44 -30.02H370.37L329.78 -161.12H293.94L352.6 0.15L349.84 7.81C344.33 23.43 335.75 27.57 320.13 27.57C315.69 27.57 311.86 26.95 309.26 26.34V52.23C313.24 52.99 320.13 53.76 326.57 53.76Z"/>
     </g>
   </g>
   <g inkscape:groupmode="layer" inkscape:label="Ondas NFC" id="capa-ondas">
-    <g id="nfc" transform="translate(322.23 351.9)">
-      <path id="nfc-1" d="M 525.9 -142.32 A 76.6 76.6 0 0 0 449.3 -218.92" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
-      <path id="nfc-2" d="M 585.04 -142.32 A 135.74 135.74 0 0 0 449.3 -278.06" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
-      <path id="nfc-3" d="M 643.56 -142.32 A 194.25 194.25 0 0 0 449.3 -336.58" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
+    <g id="nfc" transform="translate(323.31 351.9)">
+      <path id="nfc-1" d="M 499.14 -142.32 A 76.6 76.6 0 0 0 422.54 -218.92" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
+      <path id="nfc-2" d="M 558.28 -142.32 A 135.74 135.74 0 0 0 422.54 -278.06" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
+      <path id="nfc-3" d="M 616.8 -142.32 A 194.25 194.25 0 0 0 422.54 -336.58" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
     </g>
   </g>
 </svg>

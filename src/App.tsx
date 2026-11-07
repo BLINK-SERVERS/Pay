@@ -8,7 +8,6 @@ import { HojaVincular } from "./components/HojaVincular";
 import { Icon } from "./components/Icon";
 import { PayLoader } from "./components/PayLoader";
 import { BarraLateral } from "./components/ui/BarraLateral";
-import { BarraSuperior } from "./components/ui/BarraSuperior";
 import { Inspector } from "./components/ui/Inspector";
 import { Acceso } from "./pages/Acceso";
 import { Inicio } from "./pages/Inicio";
@@ -21,13 +20,12 @@ import {
   activarBiometria,
   biometriaSoportada,
   desbloquearConBiometria,
-  guardarSesionBiometria,
+  guardarLlaveBiometria,
   leerRegistroBiometria,
   marcarOfrecimiento,
   mensajeBiometria,
   ofrecimientoHecho,
   olvidarBiometria,
-  olvidarTokenBiometria,
   registroDesbloqueable,
   type RegistroBiometria,
 } from "./lib/biometria";
@@ -79,7 +77,6 @@ export function App() {
   const [ajustes, setAjustes] = useState<Ajustes>(ajustesPorDefecto());
   const [pestana, setPestana] = useState<Pestana>("inicio");
   const [tema, setTema] = useState<ModoTema>(leerTema);
-  const [saldoOculto, setSaldoOculto] = useState(false);
   const [restaurando, setRestaurando] = useState(true);
   const [pagoMovilAbierto, setPagoMovilAbierto] = useState(false);
   const [vinculoAbierto, setVinculoAbierto] = useState(false);
@@ -128,19 +125,12 @@ export function App() {
         }
 
         const registro = leerRegistroBiometria();
-        if (registro && registro.token === guardada.token && registroDesbloqueable(registro)) {
-          if (vivo) {
-            setBiometria(registro);
-            setBloqueo(registro);
+        if (registro) {
+          if (vivo) setBiometria(registro);
+          if (registroDesbloqueable(registro)) {
+            if (vivo) setBloqueo(registro);
+            return;
           }
-          return;
-        }
-        if (registro && registro.token !== guardada.token) {
-          // El token guardado no es el de la sesión: no hay nada que
-          // desbloquear con biometría. Se conserva la credencial para el
-          // próximo acceso con PIN.
-          olvidarTokenBiometria();
-          if (vivo) setBiometria(leerRegistroBiometria());
         }
 
         const actual = await repositorio.sesion(guardada.token);
@@ -150,7 +140,6 @@ export function App() {
       } catch {
         localStorage.removeItem(CLAVE_SESION);
         olvidarCopia();
-        olvidarTokenBiometria();
         if (vivo) setBiometria(leerRegistroBiometria());
       } finally {
         if (vivo) setRestaurando(false);
@@ -214,13 +203,11 @@ export function App() {
     setMovimientos([]);
     setErrorMovimientos("");
     setPestana("inicio");
-    setSaldoOculto(false);
     setBloqueo(null);
     setMovimientoActivo(null);
     localStorage.removeItem(CLAVE_SESION);
-    // El token se revoca en el servidor; la credencial del teléfono se
-    // conserva para volver a enlazarla tras el próximo acceso con PIN.
-    olvidarTokenBiometria();
+    // La credencial del teléfono se conserva: la huella vuelve a abrir la
+    // cuenta sin pedir el PIN.
     setBiometria(leerRegistroBiometria());
     if (actual) {
       try {
@@ -242,7 +229,6 @@ export function App() {
     setMovimientos([]);
     setErrorMovimientos("");
     setPestana("inicio");
-    setSaldoOculto(false);
     setBiometria(registro);
     setBloqueo(registro);
   }, [salir]);
@@ -266,25 +252,23 @@ export function App() {
   }, [bloquear, refrescar, sesion]);
 
   async function desbloquear() {
-    const token = await desbloquearConBiometria();
+    const prueba = await desbloquearConBiometria();
     try {
-      const actual = await repositorio.sesion(token);
-      const registro = leerRegistroBiometria();
-      guardarSesion(token, registro?.expira);
+      const actual = await repositorio.reanudar(prueba.cedula, prueba.llave);
+      guardarSesion(actual.token);
       setSesion(actual);
       setSerialActiva(actual.tarjetas[0]?.serial ?? null);
       setPestana("inicio");
       setBloqueo(null);
       setAvisoAcceso(null);
-      setBiometria(registro);
+      setBiometria(leerRegistroBiometria());
     } catch (error) {
-      if (error instanceof ErrorBlink && error.codigo === "sesion") {
+      if (error instanceof ErrorBlink && error.codigo === "credenciales") {
         localStorage.removeItem(CLAVE_SESION);
         olvidarCopia();
-        olvidarTokenBiometria();
-        setBiometria(leerRegistroBiometria());
         setBloqueo(null);
-        setAvisoAcceso("La sesión guardada venció. Entra con tu PIN para renovarla.");
+        setBiometria(leerRegistroBiometria());
+        setAvisoAcceso(error.message);
       }
       throw error;
     }
@@ -309,7 +293,8 @@ export function App() {
     setActivandoBiometria(true);
     setErrorAltaBiometria(null);
     try {
-      const registro = await activarBiometria(sesion);
+      const llave = await repositorio.crearEnlace(sesion.token);
+      const registro = await activarBiometria(sesion, llave);
       setBiometria(registro);
       setSoportaBiometria(true);
       setAltaBiometriaLista(true);
@@ -329,7 +314,8 @@ export function App() {
 
   async function activarBiometriaDesdePerfil() {
     if (!sesion) throw new Error("Sin sesión activa.");
-    const registro = await activarBiometria(sesion);
+    const llave = await repositorio.crearEnlace(sesion.token);
+    const registro = await activarBiometria(sesion, llave);
     setBiometria(registro);
     setSoportaBiometria(true);
   }
@@ -342,13 +328,23 @@ export function App() {
 
   function alEntrar(nueva: Sesion) {
     guardarSesion(nueva.token);
-    const registro = guardarSesionBiometria(nueva);
-    setBiometria(registro ?? leerRegistroBiometria());
+    const previo = leerRegistroBiometria();
+    const mismaCuenta =
+      previo !== null && previo.cedula === nueva.cuenta.cedula;
+    setBiometria(previo);
     setSesion(nueva);
     setSerialActiva(nueva.tarjetas[0]?.serial ?? null);
     setPestana("inicio");
     setBloqueo(null);
     setAvisoAcceso(null);
+    if (mismaCuenta && !registroDesbloqueable(previo)) {
+      // Un registro anterior sin llave se reactiva al entrar con PIN.
+      void repositorio
+        .crearEnlace(nueva.token)
+        .then((llave) => setBiometria(guardarLlaveBiometria(llave)))
+        .catch(() => undefined);
+      return;
+    }
     void ofrecerAccesoBiometrico(nueva);
   }
 
@@ -452,21 +448,9 @@ export function App() {
 
   return (
     <div className={`app app--${pestana}`}>
-      <BarraLateral
-        pestana={pestana}
-        cuenta={sesion.cuenta}
-        tarjetas={sesion.tarjetas}
-        alCambiar={cambiarPestana}
-      />
+      <BarraLateral pestana={pestana} alCambiar={cambiarPestana} />
 
       <div className="app__cuerpo">
-        <BarraSuperior
-          pestana={pestana}
-          cuenta={sesion.cuenta}
-          alRecargar={() => cambiarPestana("recargar")}
-          alVerPerfil={() => cambiarPestana("perfil")}
-        />
-
         <main className="app__main" id="contenido">
           <AvisoDemo />
         {pestana === "inicio" && (
@@ -475,14 +459,9 @@ export function App() {
             tarjetas={sesion.tarjetas}
             tarjeta={tarjeta}
             movimientos={movimientos}
-            saldoOculto={saldoOculto}
-            alAlternarSaldo={() => setSaldoOculto((valor) => !valor)}
             alSeleccionar={setSerialActiva}
             alVincular={() => setVinculoAbierto(true)}
-            alRecargar={() => cambiarPestana("recargar")}
             alVerMovimientos={() => cambiarPestana("movimientos")}
-            alVerPerfil={() => cambiarPestana("perfil")}
-            alAbrirPagoMovil={() => setPagoMovilAbierto(true)}
             seleccionadoId={escritorio ? movimientoActivo : null}
             alSeleccionarMovimiento={
               escritorio ? (movimiento) => setMovimientoActivo(movimiento.id) : undefined
@@ -548,11 +527,9 @@ export function App() {
         {pestana === "perfil" && (
           <Perfil
             cuenta={sesion.cuenta}
-            tarjetas={sesion.tarjetas}
             tarjetaActiva={tarjeta}
             ajustes={ajustes}
             tema={tema}
-            modoDatos={repositorio.modo}
             alCambiarTema={cambiarTema}
             alCambiarPin={cambiarPin}
             alActualizarPago={actualizarPago}
@@ -571,7 +548,6 @@ export function App() {
         <Inspector
           cuenta={sesion.cuenta}
           tarjeta={tarjeta}
-          movimientos={movimientos}
           seleccionado={movimientoSeleccionado}
           alLimpiar={() => setMovimientoActivo(null)}
           alRecargar={() => cambiarPestana("recargar")}
@@ -644,7 +620,7 @@ export function App() {
         descripcion={
           altaBiometriaLista
             ? undefined
-            : "Usa la huella o el rostro de este teléfono para desbloquear tu sesión guardada."
+            : "Usa la huella o el rostro de este teléfono para entrar a tu cuenta sin escribir el PIN."
         }
         pie={
           altaBiometriaLista ? (
@@ -698,7 +674,7 @@ export function App() {
             <ul className="pasos">
               <li>Confirma la huella o el rostro que usa tu teléfono para desbloquearse.</li>
               <li>BLINK no recibe ni guarda esos datos: quedan en el autenticador del equipo.</li>
-              <li>La sesión guardada dura 12 horas; después, o si cierras sesión, se pide el PIN.</li>
+              <li>Queda activa en este teléfono hasta que la desactives; el PIN sigue siendo la llave de respaldo.</li>
             </ul>
             {errorAltaBiometria && (
               <div className="aviso aviso--peligro" role="alert">

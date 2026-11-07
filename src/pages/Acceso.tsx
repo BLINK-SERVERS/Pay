@@ -16,7 +16,7 @@ import {
   validarTelefono,
 } from "../lib/dominio";
 import { formatearCedula, formatearTelefono, soloDigitos } from "../lib/formato";
-import { BANCOS, type DatosPago, type Sesion, type TipoDocumento } from "../lib/tipos";
+import { BANCOS, type DatosPago, type Sesion } from "../lib/tipos";
 
 type Modo = "entrar" | "registro";
 type PasoRegistro = "datos" | "pago";
@@ -49,7 +49,6 @@ export function Acceso({
 
   // Registro
   const [paso, setPaso] = useState<PasoRegistro>("datos");
-  const [tipo, setTipo] = useState<TipoDocumento>("V");
   const [documento, setDocumento] = useState("");
   const [nombres, setNombres] = useState("");
   const [apellidos, setApellidos] = useState("");
@@ -77,10 +76,6 @@ export function Acceso({
     setPin("");
     setPaso("datos");
     setPagoPropio(null);
-  }
-
-  function cedulaCompleta(): string {
-    return documento ? `${tipo}-${documento}` : "";
   }
 
   async function enviarLogin(evento?: FormEvent, pinActual = pin) {
@@ -128,8 +123,7 @@ export function Acceso({
     if (nombre) nuevos.nombres = nombre;
     const apellido = validarNombre(apellidos, "apellido");
     if (apellido) nuevos.apellidos = apellido;
-    const cedulaTexto = cedulaCompleta();
-    const errorCedula = validarCedula(cedulaTexto);
+    const errorCedula = validarCedula(documento);
     if (errorCedula) nuevos.documento = errorCedula;
     const errorTelefono = validarTelefono(telefono);
     if (errorTelefono) nuevos.telefono = errorTelefono;
@@ -157,7 +151,7 @@ export function Acceso({
       const sesion = await repo.registrar({
         nombres,
         apellidos,
-        cedula: cedulaCompleta(),
+        cedula: documento,
         telefono: soloDigitos(telefono),
         correo,
         pin: pinNuevo,
@@ -181,7 +175,7 @@ export function Acceso({
       propio: true,
       banco: "",
       telefono: soloDigitos(telefono),
-      cedula: cedulaCompleta(),
+      cedula: documento,
     });
   }
 
@@ -208,7 +202,6 @@ export function Acceso({
       <header className="acceso__marca">
         <MarcaPay />
         <h1 className="acceso__lema">Tu transporte.<br />Siempre contigo.</h1>
-        <img className="acceso__tarjeta" src={`${import.meta.env.BASE_URL}brand/blink-pay-tarjeta.svg`} width="1011" height="638" alt="Tarjeta Blink Pay" />
       </header>
 
       <section className="acceso__panel">
@@ -248,7 +241,7 @@ export function Acceso({
                 <span className="boton--biometria__texto">
                   <strong>Entrar con huella o rostro</strong>
                   <span>
-                    {biometria.nombre} · {biometria.cedula}
+                    {biometria.nombre}
                   </span>
                 </span>
                 <Icon name="adelante" />
@@ -264,9 +257,9 @@ export function Acceso({
                 className="entrada mono"
                 inputMode="numeric"
                 autoComplete="off"
-                autoCapitalize="characters"
                 spellCheck={false}
-                placeholder="V-12345678"
+                maxLength={8}
+                placeholder="12345678"
                 value={cedula}
                 onChange={(evento) => setCedula(formatearCedula(evento.target.value))}
                 aria-invalid={errores.cedula ? true : undefined}
@@ -366,32 +359,17 @@ export function Acceso({
                   <label className="campo__etiqueta" htmlFor="documento">
                     Cédula de identidad
                   </label>
-                  <div className="entrada--grupo">
-                    <select
-                      className="entrada entrada--tipo"
-                      aria-label="Tipo de documento"
-                      value={tipo}
-                      onChange={(evento) => setTipo(evento.target.value as TipoDocumento)}
-                    >
-                      <option value="V">V</option>
-                      <option value="E">E</option>
-                    </select>
-                    <input
-                      id="documento"
-                      className="entrada mono"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      placeholder="12345678"
-                      maxLength={8}
-                      value={documento}
-                      onChange={(evento) => setDocumento(soloDigitos(evento.target.value).slice(0, 8))}
-                      aria-invalid={errores.documento ? true : undefined}
-                      aria-describedby="documento-ayuda"
-                    />
-                  </div>
-                  <span className="campo__ayuda" id="documento-ayuda">
-                    V para venezolano, E para extranjero. Es tu identidad legal en BLINK.
-                  </span>
+                  <input
+                    id="documento"
+                    className="entrada mono"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="12345678"
+                    maxLength={8}
+                    value={documento}
+                    onChange={(evento) => setDocumento(formatearCedula(evento.target.value))}
+                    aria-invalid={errores.documento ? true : undefined}
+                  />
                   {errores.documento && <p className="campo__error">{errores.documento}</p>}
                 </div>
 
@@ -564,7 +542,8 @@ export function Acceso({
                           id="pago-cedula"
                           className="entrada mono"
                           inputMode="numeric"
-                          placeholder="V-12345678"
+                          placeholder="12345678"
+                          maxLength={8}
                           value={pagoCedula}
                           onChange={(evento) => setPagoCedula(formatearCedula(evento.target.value))}
                           aria-invalid={errores.cedula ? true : undefined}
@@ -639,7 +618,7 @@ export function Acceso({
         {demo && (
           <p className="acceso__demo">
             <Icon name="rayo" />
-            Demostración: <strong className="mono">V-12345678</strong> · PIN{" "}
+            Demostración: <strong className="mono">12345678</strong> · PIN{" "}
             <strong className="mono">194628</strong>
           </p>
         )}

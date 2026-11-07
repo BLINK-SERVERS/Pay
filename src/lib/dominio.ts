@@ -17,19 +17,12 @@ export const CAMPOS_RECARGA: CampoRecarga[] = ["pasajes", "telefono", "banco", "
 
 export type ErroresRecarga = Partial<Record<CampoRecarga, string>>;
 
-/**
- * Cédula del pasajero: documento V (venezolano) o E (extranjero) con 6 a 8
- * dígitos. Se acepta sin letra al escribir porque la máscara la agrega sola.
- */
+/** Cédula del pasajero: solo dígitos, entre 6 y 8. */
 export function validarCedula(texto: string): string | null {
+  if (/[^\d\s.-]/.test(texto)) return "Escribe la cédula solo con números.";
   const digitos = soloDigitos(texto);
   if (digitos.length < 6) return "La cédula debe tener al menos 6 dígitos.";
   if (digitos.length > 8) return "La cédula no puede tener más de 8 dígitos.";
-  const letra = texto.trim().charAt(0).toUpperCase();
-  if (letra && letra !== "V" && letra !== "E") {
-    return "Usa V para venezolano o E para extranjero.";
-  }
-  if (/[^0-9VE-]/.test(texto.toUpperCase())) return "Escribe la cédula como V-12345678.";
   return null;
 }
 

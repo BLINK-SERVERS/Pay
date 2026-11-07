@@ -36,9 +36,10 @@ describe("máscaras", () => {
     expect(formatearSerial("")).toBe("");
   });
 
-  it("da formato a la cédula y respeta la letra", () => {
-    expect(formatearCedula("v12345678")).toBe("V-12345678");
-    expect(formatearCedula("e123")).toBe("E-123");
+  it("deja la cédula en dígitos, sin letras ni guiones", () => {
+    expect(formatearCedula("V-12345678")).toBe("12345678");
+    expect(formatearCedula("12.345.678")).toBe("12345678");
+    expect(formatearCedula("1234567890")).toBe("12345678");
     expect(formatearCedula("")).toBe("");
   });
 
