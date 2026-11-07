@@ -13,7 +13,7 @@ import { mkdir } from "node:fs/promises";
  *   · la disposición iPhone (pestañas) o macOS (barra lateral/inspector).
  */
 
-const BASE = process.env.BLINK_URL ?? "http://127.0.0.1:5173/";
+const BASE = process.env.BLINK_URL ?? "http://127.0.0.1:5175/";
 const SALIDA = process.env.BLINK_CAPTURAS ?? "/tmp/blink-hig";
 const PIN_DEMO = "194628";
 const CEDULA_DEMO = "V-12345678";

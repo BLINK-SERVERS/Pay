@@ -1,5 +1,6 @@
 import type { Pestana } from "../BarraTabs";
 import { BlinkSymbol, type NombreSimbolo } from "./BlinkSymbol";
+import { MarcaPay } from "../MarcaPay";
 import { useEnLinea } from "../../lib/hooks";
 import { iniciales, nombreCompleto } from "../../lib/formato";
 import type { Cuenta, Tarjeta } from "../../lib/tipos";
@@ -26,19 +27,8 @@ export function BarraLateral({ pestana, cuenta, tarjetas, alCambiar }: Props) {
 
   return (
     <aside className="barra-lateral" aria-label="Navegación principal">
-      <div className="barra-lateral__ventana" aria-hidden="true">
-        <span className="barra-lateral__semaforo barra-lateral__semaforo--cerrar" />
-        <span className="barra-lateral__semaforo barra-lateral__semaforo--minimizar" />
-        <span className="barra-lateral__semaforo barra-lateral__semaforo--ampliar" />
-      </div>
-
       <div className="barra-lateral__marca">
-        <span className="barra-lateral__logo" aria-hidden="true">
-          <BlinkSymbol nombre="tarjeta" tamano="md" variante="paleta" />
-        </span>
-        <span>
-          BLINK<em>TARJETA</em>
-        </span>
+        <MarcaPay />
       </div>
 
       <nav className="barra-lateral__nav" aria-label="Secciones">

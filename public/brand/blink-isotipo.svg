@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="360" height="284" viewBox="0 0 360 284" version="1.1" shape-rendering="geometricPrecision" fill="currentColor">
+  <title>Isotipo Blink</title>
+  <desc>Tres figuras: ojo guiñado, ojo abierto y boca. Sin fondo ni contenedor.</desc>
+  <g inkscape:groupmode="layer" inkscape:label="Ojo guiñado" id="capa-ojo-guino">
+    <path id="ojo-guino" d="M 122 164 H 178 C 198 164 224 164 224 198 C 224 232 198 232 178 232 H 122 C 102 232 76 232 76 198 C 76 164 102 164 122 164 Z"/>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Ojo abierto" id="capa-ojo-abierto">
+    <path id="ojo-abierto" d="M 436 182 A 68 68 0 1 1 299.99 182 A 68 68 0 1 1 436 182 Z"/>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Boca" id="capa-boca">
+    <path id="boca" d="M 212 286 H 300 C 331.55 286 340.42 286 337.5 314 C 332.064081 366.125250 298 398 256 398 C 214 398 179.935919 366.125250 174.5 314 C 171.58 286 180.45 286 212 286 Z"/>
+  </g>
+</svg>

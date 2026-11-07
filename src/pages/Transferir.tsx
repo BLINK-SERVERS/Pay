@@ -156,7 +156,7 @@ export function Transferir({
   const comprobante = useMemo(() => {
     if (!resultado) return "";
     return [
-      "BLINK TARJETA — transferencia de saldo",
+      "Blink Pay — transferencia de saldo",
       `Origen: ${resultado.transferencia.origen.serial}`,
       `Destino: ${resultado.transferencia.destino.serial}`,
       `Titular destino: ${resultado.transferencia.destino.titular ?? "—"}`,
@@ -391,7 +391,7 @@ export function Transferir({
             etiqueta="PIN de 6 dígitos para transferir"
           />
           <span className="campo__ayuda">
-            Confirma la operación con el PIN con el que entras a BLINK TARJETA.
+            Confirma la operación con el PIN con el que entras a Blink Pay.
           </span>
         </div>
 

@@ -15,7 +15,7 @@ export function AvisoDemo() {
       <Icon name="alerta" />
       <span>
         Modo demostración: las tarjetas y los saldos que ves son de prueba y no
-        hay cobro real. BLINK TARJETA maneja dinero únicamente conectada a la
+        hay cobro real. Blink Pay maneja dinero únicamente conectada a la
         nube.
       </span>
     </div>

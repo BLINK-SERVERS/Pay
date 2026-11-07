@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "./Icon";
+import { MarcaPay } from "./MarcaPay";
 import { mensajeBiometria } from "../lib/biometria";
 
 interface Props {
@@ -29,15 +30,10 @@ export function Desbloqueo({ nombre, cedula, alDesbloquear, alUsarPin }: Props) 
 
   return (
     <div className="acceso acceso--desbloqueo">
-      <div className="acceso__fondo" aria-hidden="true">
-        <span className="acceso__orbe acceso__orbe--uno" />
-        <span className="acceso__orbe acceso__orbe--dos" />
-      </div>
+      <div className="acceso__fondo" aria-hidden="true" />
 
       <header className="acceso__marca">
-        <span className="marca">
-          BLINK<em>TARJETA</em>
-        </span>
+        <MarcaPay />
         <p className="acceso__lema">
           Hola de nuevo,
           <br />

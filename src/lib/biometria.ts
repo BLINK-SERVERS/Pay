@@ -289,7 +289,7 @@ export async function activarBiometria(
   // mismo usuario en cualquier teléfono; el autenticador lo limita a 64 B.
   const opciones: PublicKeyCredentialCreationOptions = {
     challenge: desafio(),
-    rp: { name: "BLINK TARJETA" },
+    rp: { name: "Blink Pay" },
     user: {
       id: await idUsuario(sesion.cuenta.cedula),
       name: sesion.cuenta.cedula,

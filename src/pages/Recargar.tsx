@@ -189,7 +189,7 @@ export function Recargar({
   const comprobante = useMemo(() => {
     if (!reportada || !cotizacion) return "";
     return [
-      "BLINK TARJETA — reporte de recarga",
+      "Blink Pay — reporte de recarga",
       `Tarjeta: ${tarjeta.serial}`,
       `Titular: ${tarjeta.titular.nombre}`,
       `Pasajes: ${cotizacion.pasajes}`,

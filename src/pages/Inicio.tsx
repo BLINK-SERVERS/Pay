@@ -115,8 +115,8 @@ export function Inicio({
     <div className="vista vista--inicio">
       <header className="cabecera">
         <div>
-          <span className="cabecera__saludo">{saludo()}</span>
-          <h1 className="cabecera__titulo">{nombre}</h1>
+          <span className="cabecera__saludo">{saludo()}, {nombre}</span>
+          <h1 className="cabecera__titulo cabecera__titulo--grande">Cartera</h1>
         </div>
         <button
           type="button"
@@ -165,12 +165,19 @@ export function Inicio({
             className="billetera__carrusel"
             ref={carrusel}
             onScroll={alDesplazar}
+            onKeyDown={(evento) => {
+              if (evento.target !== evento.currentTarget) return;
+              const destino = evento.key === "ArrowRight" ? Math.min(indice + 1, tarjetas.length - 1)
+                : evento.key === "ArrowLeft" ? Math.max(indice - 1, 0)
+                : evento.key === "Home" ? 0 : evento.key === "End" ? tarjetas.length - 1 : null;
+              if (destino !== null) { evento.preventDefault(); irATarjeta(destino); }
+            }}
             tabIndex={0}
             role="group"
             aria-label={`Tarjeta ${indice + 1} de ${tarjetas.length}`}
           >
-            {tarjetas.map((item) => (
-              <div className="billetera__slide" key={item.serial}>
+            {tarjetas.map((item, posicion) => (
+              <div className="billetera__slide" key={item.serial} inert={posicion !== indice} aria-hidden={posicion !== indice}>
                 <TarjetaVirtual
                   tarjeta={item}
                   saldoOculto={saldoOculto}
@@ -182,13 +189,12 @@ export function Inicio({
 
           <div className="billetera__controles">
             {tarjetas.length > 1 && (
-              <div className="billetera__puntos" role="tablist" aria-label="Elegir tarjeta">
+              <div className="billetera__puntos" role="group" aria-label="Elegir tarjeta">
                 {tarjetas.map((item, posicion) => (
                   <button
                     key={item.serial}
                     type="button"
-                    role="tab"
-                    aria-selected={posicion === indice}
+                    aria-pressed={posicion === indice}
                     aria-label={`Tarjeta ${item.serial}`}
                     className={`billetera__punto${
                       posicion === indice ? " billetera__punto--activo" : ""
@@ -306,7 +312,7 @@ export function Inicio({
       )}
 
       <p className="pie-marca">
-        BLINK TARJETA · {tarjetas.length} {tarjetas.length === 1 ? "tarjeta" : "tarjetas"} en tu
+        Blink Pay · {tarjetas.length} {tarjetas.length === 1 ? "tarjeta" : "tarjetas"} en tu
         cuenta
       </p>
     </div>

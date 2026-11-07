@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="982" height="406" viewBox="0 0 982 406" version="1.1" shape-rendering="geometricPrecision" fill="currentColor">
+  <title>Blink Pay (icono)</title>
+  <desc>Isotipo, la palabra «Pay» y las tres ondas de pago sin contacto.</desc>
+  <g inkscape:groupmode="layer" inkscape:label="Isotipo" id="capa-isotipo">
+<g id="isotipo" transform="translate(0 128.9) scale(0.7852) translate(-76 -114)" fill="currentColor">
+      <path id="ojo-guino" d="M 122 164 H 178 C 198 164 224 164 224 198 C 224 232 198 232 178 232 H 122 C 102 232 76 232 76 198 C 76 164 102 164 122 164 Z"/>
+      <path id="ojo-abierto" d="M 436 182 A 68 68 0 1 1 299.99 182 A 68 68 0 1 1 436 182 Z"/>
+      <path id="boca" d="M 212 286 H 300 C 331.55 286 340.42 286 337.5 314 C 332.064081 366.125250 298 398 256 398 C 214 398 179.935919 366.125250 174.5 314 C 171.58 286 180.45 286 212 286 Z"/>
+    </g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Palabra" id="capa-palabra">
+    <g id="wordmark" transform="translate(322.23 351.9)">
+      <path d="M21.44 0H49.01V-78.87H100.16C141.67 -78.87 171.07 -108.13 171.07 -150.09V-150.4C171.07 -192.36 141.67 -221 100.16 -221H21.44ZM93.12 -196.5C124.67 -196.5 142.89 -179.19 142.89 -150.09V-149.78C142.89 -120.68 124.67 -103.38 93.12 -103.38H49.01V-196.5Z"/>
+      <path d="M231.26 3.06C252.55 3.06 271.69 -8.42 281.04 -25.88H281.65V0H308.3V-110.12C308.3 -141.97 284.71 -162.34 247.04 -162.34C209.51 -162.34 186.69 -141.21 184.4 -115.02L184.24 -113.33H209.97L210.28 -114.71C213.34 -128.95 226.21 -138.76 246.73 -138.76C268.94 -138.76 281.65 -126.96 281.65 -107.51V-94.19L236.01 -91.59C199.41 -89.44 178.27 -72.44 178.27 -45.33V-45.03C178.27 -16.08 199.56 3.06 231.26 3.06ZM205.53 -45.03V-45.33C205.53 -60.19 217.78 -69.68 239.07 -70.91L281.65 -73.51V-60.5C281.65 -37.37 262.35 -20.06 237.23 -20.06C218.09 -20.06 205.53 -29.71 205.53 -45.03Z"/>
+      <path d="M357.46 53.6C386.25 53.6 400.19 40.43 411.52 9.95L473.7 -159.28H445.68L401.57 -26.65H400.95L357 -159.28H328.51L387.63 0.15L384.41 9.19C377.98 27.26 368.64 31.55 351.79 31.55C348.58 31.55 345.51 31.09 343.22 30.63V52.38C346.59 52.99 352.25 53.6 357.46 53.6Z"/>
+    </g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Ondas NFC" id="capa-ondas">
+    <g id="nfc" transform="translate(322.23 351.9)">
+      <path id="nfc-1" d="M 525.9 -142.32 A 76.6 76.6 0 0 0 449.3 -218.92" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
+      <path id="nfc-2" d="M 585.04 -142.32 A 135.74 135.74 0 0 0 449.3 -278.06" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
+      <path id="nfc-3" d="M 643.56 -142.32 A 194.25 194.25 0 0 0 449.3 -336.58" fill="none" stroke="currentColor" stroke-width="30.64" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>

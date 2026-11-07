@@ -51,7 +51,7 @@ export function BarraSuperior({ pestana, cuenta, alRecargar, alVerPerfil }: Prop
         />
         <span className="barra-sup__titulo">{TITULOS[pestana]}</span>
         <span className="barra-sup__contexto mono">
-          {pestana === "perfil" ? cuenta.cedula : "BLINK TARJETA"}
+          {pestana === "perfil" ? cuenta.cedula : "Blink Pay"}
         </span>
       </div>
 

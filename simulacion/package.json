@@ -2,7 +2,7 @@
   "name": "blink-simulacion",
   "private": true,
   "type": "module",
-  "description": "Base local y guion del flujo completo de BLINK TARJETA",
+  "description": "Base local y guion del flujo completo de Blink Pay",
   "scripts": {
     "flujo": "node flujo.mjs",
     "claves": "node generar-claves.mjs"

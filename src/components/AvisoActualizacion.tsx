@@ -27,7 +27,7 @@ export function AvisoActualizacion() {
         </span>
         <div className="actualizacion__texto">
           <strong>Actualización disponible</strong>
-          <span>Hay una versión nueva de BLINK TARJETA. Actualiza para recibir las mejoras.</span>
+          <span>Hay una versión nueva de Blink Pay. Actualiza para recibir las mejoras.</span>
         </div>
       </div>
       <div className="actualizacion__acciones">

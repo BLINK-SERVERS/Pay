@@ -3,6 +3,7 @@ import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
 import { Hoja } from "../components/Hoja";
 import { HojaLegal } from "../components/HojaLegal";
+import { MarcaPay } from "../components/MarcaPay";
 import { mensajeBiometria } from "../lib/biometria";
 import { ErrorBlink } from "../lib/repo";
 import { repositorio, type Repositorio } from "../lib/repo";
@@ -202,19 +203,12 @@ export function Acceso({
 
   return (
     <div className="acceso">
-      <div className="acceso__fondo" aria-hidden="true">
-        <span className="acceso__orbe acceso__orbe--uno" />
-        <span className="acceso__orbe acceso__orbe--dos" />
-      </div>
+      <div className="acceso__fondo" aria-hidden="true" />
 
       <header className="acceso__marca">
-        <span className="marca">
-          BLINK<em>TARJETA</em>
-        </span>
-        <p className="acceso__lema">
-          Tu billetera de transporte,<br />
-          en el bolsillo.
-        </p>
+        <MarcaPay />
+        <h1 className="acceso__lema">Tu transporte.<br />Siempre contigo.</h1>
+        <img className="acceso__tarjeta" src={`${import.meta.env.BASE_URL}brand/blink-pay-tarjeta.svg`} width="1011" height="638" alt="Tarjeta Blink Pay" />
       </header>
 
       <section className="acceso__panel">
@@ -658,7 +652,7 @@ export function Acceso({
           >
             términos y condiciones
           </button>{" "}
-          de BLINK TARJETA. Tus datos se tratan según la sección de datos personales de
+          de Blink Pay. Tus datos se tratan según la sección de datos personales de
           esos términos.
         </p>
       </footer>

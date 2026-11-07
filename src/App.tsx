@@ -6,6 +6,7 @@ import { Desbloqueo } from "./components/Desbloqueo";
 import { Hoja } from "./components/Hoja";
 import { HojaVincular } from "./components/HojaVincular";
 import { Icon } from "./components/Icon";
+import { PayLoader } from "./components/PayLoader";
 import { BarraLateral } from "./components/ui/BarraLateral";
 import { BarraSuperior } from "./components/ui/BarraSuperior";
 import { Inspector } from "./components/ui/Inspector";
@@ -406,12 +407,7 @@ export function App() {
   if (restaurando) {
     return (
       <>
-        <div className="arranque" role="status" aria-label="Abriendo tu tarjeta">
-          <span className="marca marca--grande">
-            BLINK<em>TARJETA</em>
-          </span>
-          <span className="girador girador--grande" />
-        </div>
+        <PayLoader />
         <AvisoDemo />
         <AvisoActualizacion />
       </>

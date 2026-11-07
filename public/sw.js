@@ -1,4 +1,4 @@
-/* BLINK TARJETA — capa offline.
+/* Blink Pay — capa offline.
    El primer arranque en línea cachea el armazón y, tras tomar el control,
    los recursos con hash. Las llamadas a Supabase son de otro origen y no
    pasan por aquí. Al cambiar la lógica, subir CACHE para borrar la vieja.
@@ -7,8 +7,11 @@
    (`blink-servers.github.io`), así que: se borran solo las cachés propias,
    se guardan solo recursos estáticos del alcance del worker y nunca se
    cachean respuestas de API ni de otros orígenes. */
-const PREFIJO = "blink-tarjeta-";
-const CACHE = PREFIJO + "v7";
+const PREFIJO = "blink-pay-";
+// Las cachés de la etapa «Blink Tarjeta» se borran una vez al activar esta
+// versión; sin esto quedarían huérfanas al cambiar el prefijo.
+const PREFIJO_LEGADO = "blink-tarjeta-";
+const CACHE = PREFIJO + "v8";
 const RAIZ = new URL("./", self.location).href;
 const ARMAZON = [
   RAIZ,
@@ -48,7 +51,11 @@ self.addEventListener("activate", (evento) => {
       .then((claves) =>
         Promise.all(
           claves
-            .filter((clave) => clave.startsWith(PREFIJO) && clave !== CACHE)
+            .filter(
+              (clave) =>
+                (clave.startsWith(PREFIJO) || clave.startsWith(PREFIJO_LEGADO)) &&
+                clave !== CACHE
+            )
             .map((clave) => caches.delete(clave))
         )
       )

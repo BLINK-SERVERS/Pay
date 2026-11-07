@@ -1,5 +1,5 @@
 /*
- * Genera un lote de tarjetas BLINK TARJETA.
+ * Genera un lote de tarjetas de Blink Pay.
  *
  *   npm run lote -- --cantidad 500 --lote 7 --patrocinante "Comercial, C.A."
  *
@@ -21,7 +21,7 @@ const PORTAL_POR_DEFECTO = "https://blink-servers.github.io/TARJETA/";
 const SALIDA_POR_DEFECTO = "lotes";
 const TARJETAS_POR_HOJA = 8;
 
-const AYUDA = `BLINK TARJETA · generador de lotes
+const AYUDA = `Blink Pay · generador de lotes
 
   npm run lote -- [opciones]
 
@@ -339,7 +339,7 @@ function documento(lote: LoteGenerado, url: string): string {
     hojas.push(`
     <section class="hoja">
       <header class="hoja-cabecera">
-        <span><strong>BLINK TARJETA</strong> · datos variables del reverso</span>
+        <span><strong>Blink Pay</strong> · datos variables del reverso</span>
         <span class="rango">${primero} → ${ultimo}</span>
         <span>Lote ${lote.numero} · ${lote.cantidad} tarjetas · hoja ${pagina + 1} de ${paginas}</span>
       </header>

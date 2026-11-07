@@ -1,13 +1,12 @@
 /* ============================================================
-   BLINK POS — Base
+   BLINK PAY — Base
    ------------------------------------------------------------
    Lo mínimo que necesita CUALQUIER página: el reset, los iconos
-   y las utilidades. Va aparte de `app.css` para que la landing
-   (que no usa la aplicación) no cargue el CSS del POS.
+   y las utilidades. Va aparte de `app.css` para separar lo común
+   del armazón de la cartera.
 
    El orden de importación en `main.tsx` es:
-     base.css → tokens.css → landing.css
-   y `app.css` + `konsta.css` se cargan solo con la aplicación.
+     fonts.css → base.css → tokens.css → app.css
    ============================================================ */
 
 /* --- Reset / base --- */

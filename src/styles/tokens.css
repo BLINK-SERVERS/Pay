@@ -1,12 +1,12 @@
 /* ============================================================
-   BLINK POS — Design tokens
+   BLINK PAY — Design tokens
 
    DOS APARIENCIAS (claro y oscuro), una sola paleta de marca.
    Los valores de cada modo salen del UI Kit oficial de iOS 27
    (docs/ios27-geometry.json, docs/DESIGN_IOS27_KIT.md):
 
    Claro (HIG · Dark Mode, "no son necesariamente la inversion"):
-     · Fondo    #FFFEFB  (papel de la marca)
+     · Fondo    #f2f2f7  (papel de la marca)
      · Texto    #1D1D1F  (tinta de la marca) · secundario #424242
      · Acento   #007AFF  (IOS_SYSTEM_COLORS.blue.light)
    Oscuro (mismos tokens del kit, variante dark):
@@ -32,9 +32,10 @@
   color-scheme: light dark;
 
   /* --- Marca (paleta oficial Blink) --- */
-  --blink-bg-main: #FFFEFB;
-  --blink-bg-main: light-dark(#FFFEFB, #000000);
-  --blink-primary: #0088ff;
+  --color-card-brand: #007AFF; /* Arte aprobado; idéntico en ambas apariencias. */
+  --blink-bg-main: #f2f2f7;
+  --blink-bg-main: light-dark(#f2f2f7, #000000);
+  --blink-primary: #007AFF;
   --blink-primary: light-dark(var(--blink-blue-light), var(--blink-blue-dark));
   --blink-text-muted: #424242;
   --blink-text-muted: light-dark(#424242, #EBEBF5);
@@ -47,8 +48,8 @@
   --blink-dark: #1D1D1F;
   --blink-dark: light-dark(#1D1D1F, #FFFFFF);
 
-  --color-bg-primary: #FFFEFB;
-  --color-bg-primary: light-dark(#FFFEFB, #000000);
+  --color-bg-primary: #f2f2f7;
+  --color-bg-primary: light-dark(#f2f2f7, #000000);
   --color-text-primary: #1D1D1F;
   --color-text-primary: light-dark(#1D1D1F, #FFFFFF);
   --color-accent: var(--blink-blue-light);
@@ -61,15 +62,14 @@
     color-mix(in srgb, var(--blink-blue-dark) 84%, #ffffff)
   );
 
-  /* --- Superficies ---
-     En claro todo es #FFFEFB; en oscuro, el material "Dark/Regular"
-     del kit: #1a1a1a en las superficies elevadas y #000000 en el fondo. */
-  --color-bg-elevated: #FFFEFB;
-  --color-bg-elevated: light-dark(#FFFEFB, #1a1a1a);
-  --color-bg-subtle: #fffefb;
-  --color-bg-subtle: light-dark(#fffefb, #1a1a1a);
-  --color-bg-inset: #fffefb;
-  --color-bg-inset: light-dark(#fffefb, #000000);
+  /* Superficies agrupadas: el contraste de fondo, no la sombra,
+     separa los grupos. Decisiones locales HIG, no valores de Figma. */
+  --color-bg-elevated: #ffffff;
+  --color-bg-elevated: light-dark(#ffffff, #1c1c1e);
+  --color-bg-subtle: #f2f2f7;
+  --color-bg-subtle: light-dark(#f2f2f7, #2c2c2e);
+  --color-bg-inset: #f2f2f7;
+  --color-bg-inset: light-dark(#f2f2f7, #000000);
 
   /* --- Textos derivados del color base ---
      Opacidades elegidas para cumplir contraste AA (>=4.5:1) en los dos
@@ -88,7 +88,8 @@
      de la lista de pasos). El azul de marca es igual de claro en los
      dos modos, asi que el texto encima es SIEMPRE claro: si se
      invirtiera con la apariencia, en oscuro salia negro sobre azul. */
-  --color-text-on-accent: #FFFEFB;
+  --color-text-on-accent: #ffffff;
+  --color-action-fill: #0066cc; /* Contraste del texto pequeño sobre relleno azul. */
 
   /* --- Acentos derivados --- */
   --color-accent-soft: rgb(from var(--acento) r g b / 0.08);
@@ -199,7 +200,7 @@
   --blink-teal2-dark: #0fd5e2;
   --blink-cyan-light: #00c0e8;
   --blink-cyan-dark: #3cd3fe;
-  --blink-blue-light: #0088ff;
+  --blink-blue-light: #007AFF;
   --blink-blue-dark: #0091ff;
   --blink-indigo-light: #6a5ff6;
   --blink-indigo-dark: #7684ff;
@@ -221,9 +222,9 @@
      token es un color, no una lista de canales. */
   --tinta: light-dark(#424242, #EBEBF5);
   --tinta-inversa: light-dark(#FFFEFB, #000000);
-  --papel: light-dark(#FFFEFB, #000000);
-  --superficie: light-dark(#FFFEFB, #1a1a1a);
-  --acento: light-dark(#0088ff, #0091ff);
+  --papel: light-dark(#f2f2f7, #000000);
+  --superficie: light-dark(#ffffff, #1c1c1e);
+  --acento: light-dark(#007AFF, #0091ff);
   --rojo: light-dark(#ff383c, #ff4245);
   --verde: light-dark(#34c759, #30d158);
   --negro: light-dark(#1D1D1F, #000000);
@@ -238,11 +239,8 @@
   --shadow-card: 0 1px 2px rgba(66, 66, 66, 0.04);
   --shadow-pop: 0 12px 32px rgba(66, 66, 66, 0.18);
 
-  /* --- Elevación (iOS 27 · superficies flotantes) ---
-     La paleta exige que TODOS los fondos sean #FFFEFB, así que la
-     jerarquía entre superficies NO se construye con un tinte distinto
-     (como haría systemGroupedBackground), sino con sombra: el grupo se
-     recorta sobre el lienzo blanco, igual que en iOS. */
+  /* Elevación reservada a paneles flotantes; las listas usan superficies
+     agrupadas. Se conservan los tokens compartidos por los demás estados. */
   --shadow-ios-card: 0 1px 2px rgba(29, 29, 31, 0.04);
   /* `light-dark()` solo resuelve COLORES, así que la geometría de la
      sombra no puede ir dentro de la función. Cada capa lleva su color

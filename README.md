@@ -1,13 +1,17 @@
-# BLINK TARJETA
+# Blink Pay
 
-Portal del pasajero para consultar, vincular, recargar y transferir saldo de la
-tarjeta de transporte de **BLINK**. React 19 + Vite 8 + TypeScript estricto.
+Cartera del pasajero para consultar, vincular, recargar y transferir el saldo de
+la tarjeta de transporte de **Blink**. React 19 + Vite 8 + TypeScript estricto.
 
-- **Sitio publicado:** https://blink-servers.github.io/TARJETA/
-- **Panel administrativo:** https://blink-servers.github.io/BACKOFFICE/
+- **Destino:** https://pay.blink.com.ve — *pendiente de publicar* (ver «Despliegue»)
+- **Publicación actual:** https://blink-servers.github.io/TARJETA/
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
 - **Versión:** 2.1.0 · [CHANGELOG](CHANGELOG.md)
+
+Este repositorio nació como **Blink Tarjeta** y conserva íntegro su historial,
+su esquema de datos y sus flujos. Desde `QODER-BLINK-HIG-2026` el producto se
+llama **Blink Pay** y reúne toda la tarjeta en una sola cartera.
 
 ## Qué hace
 
@@ -51,28 +55,24 @@ cd simulacion
 ./detener.sh      # apaga y borra la base efímera
 ```
 
-Los detalles están en [docs/06 §5.7](../docs/06-operacion-y-despliegue.md).
-
 ## Usar en el celular y sin conexión
 
 El portal es instalable y guarda la última tarjeta vista para abrirla sin
 datos:
 
-1. Abre <https://blink-servers.github.io/TARJETA/> con internet e inicia
-   sesión una vez. Eso guarda en ese teléfono la tarjeta, el saldo y los
-   movimientos.
+1. Abre el portal con internet e inicia sesión una vez. Eso guarda en ese
+   teléfono la tarjeta, el saldo y los movimientos.
 2. Instálalo: en Android/Chrome, menú **⋮ → Instalar aplicación** (o
    **Añadir a pantalla de inicio**); en iPhone/Safari, **Compartir →
    Añadir a pantalla de inicio**.
-3. Ábrelo desde el icono **BLINK**. A partir de ahí funciona en modo avión:
+3. Ábrelo desde el icono **Blink Pay**. A partir de ahí funciona en modo avión:
    muestra la tarjeta y el último saldo sincronizado.
 4. Sin red no se puede recargar, transferir, vincular otra tarjeta ni cambiar
-   PIN o datos de pago; la sesión guardada dura 12 horas y el saldo es el de la última
-   sincronización. La copia local caduca a las 12 horas de la última vez que
-   hubo red y se borra al cerrar sesión. Abre el portal una vez con internet
-   para recibir actualizaciones: si hay una versión nueva aparece el aviso
-   **Actualización disponible** y tú decides cuándo aplicarla (ver
-   [BLINK-DOC-24](../docs/24-aviso-actualizacion-portal.md)).
+   PIN o datos de pago; la sesión guardada dura 12 horas y el saldo es el de la
+   última sincronización. La copia local caduca a las 12 horas de la última vez
+   que hubo red y se borra al cerrar sesión. Abre el portal una vez con
+   internet para recibir actualizaciones: si hay una versión nueva aparece el
+   aviso **Actualización disponible** y tú decides cuándo aplicarla.
 5. Tras el primer acceso, el portal ofrece **activar el acceso con huella o
    rostro**; también se activa o desactiva en **Perfil › Seguridad**. La
    biometría desbloquea la sesión guardada, no sustituye al PIN, y se desactiva
@@ -86,10 +86,11 @@ tarjeta.
 
 ```bash
 npm ci
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5175
 npm run typecheck
-npm test           # 108 pruebas
-npm run verificar:hig   # capturas y 78 comprobaciones en Chromium
+npm test
+npm run verificar:hig   # capturas y comprobaciones HIG en Chromium
+npm run verificar:movimiento  # cascada NFC y reensamblado del isotipo
 npm run build
 npm run lote       # genera un lote de seriales y la hoja de impresión
 ```
@@ -107,48 +108,49 @@ VITE_SUPABASE_ANON_KEY=<clave publishable>
 src/
   pages/            Acceso, Inicio, Movimientos, Recargar, Transferir, Perfil
   components/       TarjetaVirtual, HojaVincular, PinEntrada, BarraTabs…
-    BarraLateral    Barra lateral translúcida de macOS
-    Inspector       Detalle del movimiento en escritorio
+    MarcaPay        logotipo Blink Pay incrustado como SVG (hereda el color)
+    PayLoader       restauración de sesión con las ondas NFC animadas
     ui/BlinkSymbol  adaptador único de SF Symbols (4 variantes y animaciones)
+  assets/           marca-blink-pay.svg → fuente del logotipo incrustado
   lib/
     repo.ts         elige nube o local
     nube.ts         cliente de los RPC bt_*
     local.ts        espejo local del mismo contrato
     dominio.ts      validaciones de cédula, teléfono, serial, montos
   styles/           tokens, base y BEM de la app (tarjeta con cqw)
+marca/              SVG fuente de la marca (logotipo, isotipo, iconos, tarjeta)
+public/brand/       los SVG de marca que usa la interfaz
 supabase/migrations/ 0001…0023 (esquema compartido del ecosistema)
 scripts/lote.ts      generador de lotes y hoja imprimible
 scripts/verificar-hig.mjs  verificación visual y estructural HIG (Playwright)
+scripts/verificar-movimiento.mjs  claves y tiempos de los dos cargadores
 simulacion/          pila Docker, semilla y flujo completo
-../docs/             suite ISO y documentación central del ecosistema
 ```
 
 ## Despliegue
 
 Cada push a `main` dispara `.github/workflows/pages.yml`: `typecheck` → `test` →
-`build --base=/TARJETA/` → GitHub Pages. Si falla un paso, no se publica.
+`build` → GitHub Pages. Si falla un paso, no se publica.
+
+El dominio **pay.blink.com.ve** aún no está configurado: falta el token de
+Cloudflare y el registro DNS. Mientras tanto la publicación vive en
+`https://blink-servers.github.io/TARJETA/` y el `base` del build sigue siendo
+`/TARJETA/`; al activar el dominio hay que pasar `base` a `/`, añadir el CNAME
+y ajustar la redirección legacy.
 
 ## Documentación
 
 | Documento | Contenido |
 | --- | --- |
-| [docs/README.md](../docs/README.md) | Índice y control documental (ISO 9001 / 12207). |
-| [docs/02-arquitectura.md](../docs/02-arquitectura.md) | Componentes, flujos y decisiones. |
-| [docs/03-modelo-de-datos.md](../docs/03-modelo-de-datos.md) | Tablas, migraciones y reglas. |
-| [docs/04-api-rpc.md](../docs/04-api-rpc.md) | Contrato de las funciones RPC. |
-| [docs/06-operacion-y-despliegue.md](../docs/06-operacion-y-despliegue.md) | Despliegue, DNS, base de datos, simulación y firmware. |
-| [docs/07-pruebas-y-calidad.md](../docs/07-pruebas-y-calidad.md) | Estrategia y resultados. |
-| [docs/08-manual-de-usuario.md](../docs/08-manual-de-usuario.md) | Guía del pasajero, chofer y operación. |
-| [docs/10-guia-de-retoma.md](../docs/10-guia-de-retoma.md) | Cómo continuar el desarrollo. |
-| [docs/12-enrolado-de-lotes.md](../docs/12-enrolado-de-lotes.md) | Producción física de lotes. |
-| [docs/23-acceso-biometrico.md](../docs/23-acceso-biometrico.md) | Acceso con huella o rostro (WebAuthn), límites y modelo de amenazas. |
-| [docs/25-rediseno-estetico-apple-hig.md](../docs/25-rediseno-estetico-apple-hig.md) | Rediseño Apple HIG: chasis iOS/macOS, SF Symbols y verificación. |
-| [docs/26-transferencia-de-saldo.md](../docs/26-transferencia-de-saldo.md) | Transferencia de saldo entre tarjetas: contrato, topes, idempotencia y ajustes del chip. |
-| [ISO-HIG-BLINK-001](../docs/diseno/ISO-HIG-BLINK-001_Documento_Maestro_Estetica_Apple.md) | Documento maestro de estética Apple (fuente de verdad visual). |
+| [docs/documento-maestro-estetica.md](docs/documento-maestro-estetica.md) | **Documento maestro de estética Blink**: marca, color, tipografía, materiales, movimiento, accesibilidad y activos. |
+| [../POS/docs/HIG/](../POS/docs/HIG/) | Corpus local de la Human Interface Guidelines de Apple (Apple Pay, iconos, materiales, tipografía…). |
+| [../POS/docs/DESIGN_IOS27_KIT.md](../POS/docs/DESIGN_IOS27_KIT.md) | Tokens y métricas extraídos del UI Kit de iOS 27. |
+| [../POS/docs/ios27-geometry.json](../POS/docs/ios27-geometry.json) | Geometría y estilos del kit en JSON. |
+| [CHANGELOG.md](CHANGELOG.md) | Historial de cambios (incluye la etapa como Blink Tarjeta). |
 
 ## Base de datos compartida
 
-BLINK TARJETA, BLINK BACK-OFFICE y BLINK POS usan el mismo proyecto de Supabase.
+Blink Pay, el BACKOFFICE y Blink POS usan el mismo proyecto de Supabase.
 El esquema de transporte vive en `supabase/migrations/` dentro de este
 repositorio y es la **fuente de verdad**; cualquier cambio debe probarse contra
 las aplicaciones que lo consumen antes de publicarse.

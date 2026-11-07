@@ -1,4 +1,4 @@
-// Dominio de BLINK TARJETA: la cuenta del pasajero y su billetera de plásticos.
+// Dominio de Blink Pay: la cuenta del pasajero y su billetera de plásticos.
 
 import { TARIFARIO_POR_DEFECTO, type ParametrosTarifarios } from "./tarifa";
 

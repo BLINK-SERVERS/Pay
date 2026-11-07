@@ -422,7 +422,7 @@ export function Perfil({
       </section>
 
       <p className="panel__nota panel__nota--centro">
-        BLINK TARJETA v{__APP_VERSION__} ·{" "}
+        Blink Pay{__APP_VERSION__} ·{" "}
         {modoDatos === "nube" ? "Conectada a BLINK Cloud" : "Modo demostración (datos locales)"}
       </p>
 

@@ -1,4 +1,4 @@
-// Recorre el ciclo completo de BLINK TARJETA contra la base local:
+// Recorre el ciclo completo de Blink Pay contra la base local:
 // lote y enrolado (back-office) → registro → reclamo → recarga → aprobación
 // del operador → sincronización del validador → entrega al chip → cobro.
 // No usa el proyecto de Supabase de producción.
