@@ -16,7 +16,7 @@ select r.id, 'SIM001', 'BUS', 'Chofer Simulación', 'V-10000001',
 -- Operador del back-office para la simulación. PIN 258036, sin TOTP.
 insert into public.accounts
   (nombres, apellidos, cedula, telefono, correo, pin_hash, rol)
-select 'Operador', 'Simulación', 'V-34201580', '04141234567',
+select 'Operador', 'Simulación', '34201580', '04141234567',
        'operador@blink.local',
        extensions.crypt('258036', extensions.gen_salt('bf', 10)), 'ADMIN'
  where not exists (select 1 from public.accounts where cedula_digitos = '34201580');

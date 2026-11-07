@@ -3,6 +3,7 @@
 // del operador → sincronización del validador → entrega al chip → cobro.
 // No usa el proyecto de Supabase de producción.
 import { readFileSync } from "node:fs";
+import { createHmac } from "node:crypto";
 import assert from "node:assert/strict";
 import { Client } from "pg";
 
@@ -45,6 +46,41 @@ async function servicio(texto, valores = []) {
     await db.query("rollback");
     throw error;
   }
+}
+
+async function capturar(fn) {
+  try {
+    await fn();
+    return "";
+  } catch (error) {
+    return error.message;
+  }
+}
+
+const MAC_VALIDADOR = "A0B1C2D3E4F5";
+let secretoValidador = "";
+
+// El ESP32 firma el cuerpo y el sello de tiempo con su clave del NVS:
+// HMAC-SHA256(cuerpo ∥ timestamp), igual que en 0025.
+function firmar(cuerpo, sello) {
+  return createHmac("sha256", secretoValidador)
+    .update(cuerpo + String(sello))
+    .digest("hex");
+}
+
+async function sincronizar(datos = {}, opciones = {}) {
+  const cuerpo = JSON.stringify(datos);
+  const sello = opciones.sello ?? Math.floor(Date.now() / 1000);
+  const nonce = opciones.nonce ?? crypto.randomUUID();
+  const firma = opciones.firma ?? firmar(cuerpo, sello);
+
+  return rpc("bt_validador_sincronizar_firma", {
+    p_mac: MAC_VALIDADOR,
+    p_cuerpo: cuerpo,
+    p_timestamp: sello,
+    p_nonce: nonce,
+    p_firma: firma,
+  });
 }
 
 try {
@@ -130,38 +166,50 @@ try {
   assert.equal(Number(aprobadaFila.r.saldo), 1000);
   ok(`saldo virtual acreditado: ${aprobadaFila.r.saldo} Bs`);
 
-  paso(6, "Validador: token del equipo y descarga de recargas aprobadas");
+  paso(6, "Validador: credenciales del equipo y descarga de recargas aprobadas");
   const [tokenFila] = await servicio(
     "select public.bt_validador_emitir_token($1) as r",
-    ["A0B1C2D3E4F5"],
+    [MAC_VALIDADOR],
   );
   const tokenValidador = tokenFila.r.token;
-  const sync1 = await rpc("bt_validador_sincronizar_token", {
-    p_token: tokenValidador,
-  });
+
+  const [claveFila] = await servicio(
+    "select public.bt_validador_emitir_secreto($1) as r",
+    [MAC_VALIDADOR],
+  );
+  secretoValidador = claveFila.r.secreto;
+  assert.equal(claveFila.r.algoritmo, "HMAC-SHA256");
+  assert.equal(claveFila.r.ventana_segundos, 30);
+  assert.match(secretoValidador, /^[0-9a-f]{64}$/);
+  ok("token de sincronización y clave HMAC de 32 bytes emitidos");
+
+  const sync1 = await sincronizar();
   const descargada = sync1.pendientes.find((p) => p.id === pendiente.recarga);
   assert.ok(descargada, "la recarga aprobada debe bajar al validador");
   ok(`descargada ${descargada.serial} por ${descargada.monto} Bs`);
 
   paso(7, "Chip: aplica la recarga y cobra el pasaje");
-  const offlineId = `sim-${Date.now()}`;
+  const offlineId = crypto.randomUUID();
+  const nonceToque = crypto.randomUUID();
   console.log(
     `    · RECARGA_APLICADA,serial=${descargada.serial},monto=${descargada.monto},id=${descargada.id}`,
   );
-  const sync2 = await rpc("bt_validador_sincronizar_token", {
-    p_token: tokenValidador,
-    p_taps: [
-      {
-        offline_id: offlineId,
-        visible_id: descargada.serial,
-        fare_charged: 500,
-        fare_type: 1,
-        chip_balance_after: 500,
-        tapped_at: new Date().toISOString(),
-      },
-    ],
-    p_recargas: [{ id: descargada.id }],
-  });
+  const sync2 = await sincronizar(
+    {
+      taps: [
+        {
+          offline_id: offlineId,
+          visible_id: descargada.serial,
+          fare_charged: 500,
+          fare_type: 1,
+          chip_balance_after: 500,
+          tapped_at: new Date().toISOString(),
+        },
+      ],
+      recargas: [{ id: descargada.id }],
+    },
+    { nonce: nonceToque },
+  );
   assert.equal(sync2.procesadas, 1, "el toque debe procesarse");
   assert.equal(sync2.rechazadas.length, 0);
   assert.equal(sync2.pendientes.length, 0, "no deben quedar recargas sin bajar");
@@ -331,9 +379,7 @@ try {
   ok("el extracto del portal muestra la salida");
 
   paso(11, "Validador: entrega los ajustes al chip y cobra el saldo recibido");
-  const sync3 = await rpc("bt_validador_sincronizar_token", {
-    p_token: tokenValidador,
-  });
+  const sync3 = await sincronizar();
   assert.equal(sync3.pendientes.length, 2, "deben bajar los dos ajustes");
   const ajusteDestino = sync3.pendientes.find(
     (p) => p.serial === seriales[1] && Number(p.monto) === 500,
@@ -343,11 +389,10 @@ try {
   );
   assert.ok(ajusteDestino && ajusteOrigen);
 
-  const sync4 = await rpc("bt_validador_sincronizar_token", {
-    p_token: tokenValidador,
-    p_taps: [
+  const sync4 = await sincronizar({
+    taps: [
       {
-        offline_id: `sim-tr-${Date.now()}`,
+        offline_id: crypto.randomUUID(),
         visible_id: seriales[1],
         fare_charged: 500,
         fare_type: 1,
@@ -355,7 +400,7 @@ try {
         tapped_at: new Date().toISOString(),
       },
     ],
-    p_recargas: [{ id: ajusteDestino.id }, { id: ajusteOrigen.id }],
+    recargas: [{ id: ajusteDestino.id }, { id: ajusteOrigen.id }],
   });
   assert.equal(sync4.procesadas, 1);
   assert.equal(sync4.rechazadas.length, 0);
@@ -373,15 +418,15 @@ try {
   assert.equal(Number(final[seriales[1]].last_chip_balance), 0);
   ok("ajustes acusados, viaje de 500 Bs cobrado y ambos plásticos en cero");
 
-  paso(12, "Pruebas adversariales de la sincronización (B-62…B-66)");
-  const macValidador = "A0B1C2D3E4F5";
+  paso(12, "Pruebas adversariales de la sincronización (B-62…B-66 + firma)");
+  const macValidador = MAC_VALIDADOR;
 
-  // B-62: el RPC interno no puede invocarse sin el token del validador.
+  // B-62: el RPC interno no puede invocarse sin firma ni token.
   let puertaAbierta = null;
   try {
     await rpc("bt_validador_sincronizar", {
       p_validator_mac: macValidador,
-      p_taps: [{ offline_id: "ataque-anon", visible_id: seriales[0], fare_charged: 500 }],
+      p_taps: [{ offline_id: crypto.randomUUID(), visible_id: seriales[0], fare_charged: 500 }],
     });
   } catch (error) {
     puertaAbierta = error.message;
@@ -389,26 +434,41 @@ try {
   assert.match(puertaAbierta ?? "", /permission denied|Could not find|PGRST202|42501|not authorized/i);
   ok("anon/authenticated no puede llamar a bt_validador_sincronizar directo");
 
-  // B-63/B-65/B-66: toques inventados, con chip hinchado, de tarjeta ajena,
-  // con céntimos y sin identificadores. Ninguno debe aprobarse y todos deben
-  // quedar registrados en validator_rejections.
+  // QODER-BLINK-BANKING-SEC-2026 §3.1: sello vencido, firma falsa y trama
+  // reutilizada. El servidor vuelve a calcular el HMAC y corta los tres.
+  const selloVencido = await capturar(() =>
+    sincronizar({}, { sello: Math.floor(Date.now() / 1000) - 60 }),
+  );
+  assert.match(selloVencido, /Sello de tiempo vencido/);
+
+  const firmaFalsa = await capturar(() => sincronizar({}, { firma: "0".repeat(64) }));
+  assert.match(firmaFalsa, /Firma inválida/);
+
+  const tramaRepetida = await capturar(() => sincronizar({}, { nonce: nonceToque }));
+  assert.match(tramaRepetida, /Trama repetida/);
+  ok("sello vencido, firma falsa y nonce reutilizado rechazados");
+
+  // B-63/B-65/B-66 + §2: toques inventados, con chip hinchado, de tarjeta
+  // ajena, con céntimos, con clave de texto y sin identificador. Ninguno se
+  // aprueba y todos quedan registrados en validator_rejections.
   const { rows: rechazoAntes } = await db.query(
     "select count(*)::int n from public.validator_rejections",
   );
-  const sync5 = await rpc("bt_validador_sincronizar_token", {
-    p_token: tokenValidador,
-    p_taps: [
-      { offline_id: "adv-sin-saldo", visible_id: seriales[0], fare_charged: 500, chip_balance_after: 0 },
-      { offline_id: "adv-chip-hinchado", visible_id: seriales[0], fare_charged: 500, chip_balance_after: 999999 },
-      { offline_id: "adv-desconocida", visible_id: "G-99999-999-Z", fare_charged: 500, chip_balance_after: 0 },
-      { offline_id: "adv-decimal", visible_id: seriales[0], fare_charged: 499.5, chip_balance_after: 0 },
+  const sync5 = await sincronizar({
+    taps: [
+      { offline_id: crypto.randomUUID(), visible_id: seriales[0], fare_charged: 500, chip_balance_after: 0 },
+      { offline_id: crypto.randomUUID(), visible_id: seriales[0], fare_charged: 500, chip_balance_after: 999999 },
+      { offline_id: crypto.randomUUID(), visible_id: "G-99999-999-Z", fare_charged: 500, chip_balance_after: 0 },
+      { offline_id: crypto.randomUUID(), visible_id: seriales[0], fare_charged: 499.5, chip_balance_after: 0 },
+      { offline_id: "adv-texto", visible_id: seriales[0], fare_charged: 500, chip_balance_after: 0 },
       { visible_id: seriales[0], fare_charged: 500, chip_balance_after: 0 },
     ],
   });
   assert.equal(sync5.procesadas, 0, "ningún toque adversarial se aprueba");
-  assert.equal(sync5.rechazadas.length, 5);
+  assert.equal(sync5.rechazadas.length, 6);
   const motivos = sync5.rechazadas.map((r) => r.motivo).sort();
   const esperados = [
+    "Clave de idempotencia inválida (UUID v4)",
     "Falta offline_id",
     "Saldo del chip fuera de rango",
     "Saldo virtual insuficiente",
@@ -423,13 +483,13 @@ try {
       order by offline_id`,
     [macValidador],
   );
-  assert.equal(auditoria.length, Number(rechazoAntes[0].n) + 5, "cada rechazo deja su huella");
+  assert.equal(auditoria.length, Number(rechazoAntes[0].n) + 6, "cada rechazo deja su huella");
   assert.equal(
     auditoria.filter((f) => f.offline_id === null).length,
     1,
     "solo el toque sin offline_id se registra sin identificador",
   );
-  ok(`5 rechazos registrados: ${motivos.join(" · ")}`);
+  ok(`6 rechazos registrados: ${motivos.join(" · ")}`);
 
   const { rows: sinCambio } = await db.query(
     `select virtual_balance, last_chip_balance from public.cards where visible_id = $1`,
@@ -440,9 +500,8 @@ try {
 
   // Tarjeta inactiva: el viaje se rechaza aunque el chip traiga saldo.
   await db.query("update public.cards set status = 'BLOCKED' where visible_id = $1", [seriales[1]]);
-  const sync6 = await rpc("bt_validador_sincronizar_token", {
-    p_token: tokenValidador,
-    p_taps: [{ offline_id: "adv-bloqueada", visible_id: seriales[1], fare_charged: 500, chip_balance_after: 0 }],
+  const sync6 = await sincronizar({
+    taps: [{ offline_id: crypto.randomUUID(), visible_id: seriales[1], fare_charged: 500, chip_balance_after: 0 }],
   });
   assert.equal(sync6.procesadas, 0);
   assert.equal(sync6.rechazadas[0]?.motivo, "Tarjeta no activa");
@@ -452,9 +511,8 @@ try {
   const [viajesAntes] = await db.query(
     "select count(*)::int n from public.trips_telemetry",
   ).then((r) => r.rows);
-  const sync7 = await rpc("bt_validador_sincronizar_token", {
-    p_token: tokenValidador,
-    p_taps: [{ offline_id: offlineId, visible_id: seriales[0], fare_charged: 500, chip_balance_after: 500 }],
+  const sync7 = await sincronizar({
+    taps: [{ offline_id: offlineId, visible_id: seriales[0], fare_charged: 500, chip_balance_after: 500 }],
   });
   assert.equal(sync7.procesadas, 0, "el toque repetido se ignora");
   assert.equal(sync7.rechazadas.length, 0, "y no hace falta rechazarlo");
@@ -464,18 +522,16 @@ try {
   assert.equal(viajesDespues.n, viajesAntes.n, "no se duplica el viaje");
   ok("viaje repetido ignorado y tarjeta inactiva rechazada");
 
-  // Validador dado de baja: el token deja de servir (lo corta 0004 antes
-  // incluso de entrar al RPC endurecido de 0023).
+  // Validador dado de baja: ni la firma ni el token sirven.
   await db.query("update public.vehicles set active = false where validator_mac = $1", [macValidador]);
-  let validadorInactivo = null;
-  try {
-    await rpc("bt_validador_sincronizar_token", { p_token: tokenValidador });
-  } catch (error) {
-    validadorInactivo = error.message;
-  }
-  assert.match(validadorInactivo ?? "", /inactivo|token de validador inválido/i);
+  const inactivoFirma = await capturar(() => sincronizar());
+  assert.match(inactivoFirma, /inactivo/i);
+  const inactivoToken = await capturar(() =>
+    rpc("bt_validador_sincronizar_token", { p_token: tokenValidador }),
+  );
+  assert.match(inactivoToken, /inactivo|token de validador inválido/i);
   await db.query("update public.vehicles set active = true where validator_mac = $1", [macValidador]);
-  ok("un validador inactivo no sincroniza aunque conserve su token");
+  ok("un validador inactivo no sincroniza ni con firma ni con token");
 
   // B-65: céntimos dentro del chip no existen, ni por la API ni por la base.
   const conCentimos = await transferir(seriales[1], 100.5, "258036");
@@ -511,12 +567,106 @@ try {
   assert.match(ajusteDecimal ?? "", /card_adjustments_monto_entero/);
   ok("la base también rechaza transferencias y ajustes con céntimos");
 
+  // El camino por token de 0004 sigue vivo para el firmware ya desplegado,
+  // pero comparte el mismo núcleo endurecido de 0025.
   const syncFinal = await rpc("bt_validador_sincronizar_token", { p_token: tokenValidador });
   assert.ok(Array.isArray(syncFinal.pendientes), "la respuesta mantiene el contrato del firmware");
   assert.equal(typeof syncFinal.procesadas, "number");
   ok("respuesta estable: procesadas, rechazadas, pendientes y bloqueadas");
 
-  paso(13, "Resumen operativo");
+  const syncFirmado = await sincronizar();
+  assert.deepEqual(
+    Object.keys(syncFirmado).sort(),
+    ["bloqueadas", "pendientes", "procesadas", "rechazadas", "validador"],
+    "la firma devuelve el mismo contrato que el token",
+  );
+  ok("firma y token comparten respuesta");
+
+  paso(13, "Bitácora de transacciones particionada (§1.2)");
+  const {
+    rows: [conteo],
+  } = await db.query(
+    `select (select count(*) from public.card_movements)::int    as movimientos,
+            (select count(*) from public.transactions_log)::int  as bitacora,
+            (select count(*) from public.transactions_log_default)::int as sueltas`,
+  );
+  assert.equal(conteo.bitacora, conteo.movimientos, "cada movimiento tiene su fila en la bitácora");
+  assert.equal(conteo.sueltas, 0, "nada cae fuera de las particiones mensuales");
+
+  const {
+    rows: [particion],
+  } = await db.query(
+    `select to_regclass('public.transactions_log_' || to_char(now(), 'YYYY_MM')) is not null as existe`,
+  );
+  assert.equal(particion.existe, true, "existe la partición del mes en curso");
+
+  // Aprobar o rechazar una recarga cambia el movimiento; la bitácora sigue
+  // el estado final y no la foto del momento en que se creó.
+  const { rows: espejo } = await db.query(
+    `select r.bank_reference, l.estado, l.saldo_despues
+       from public.recharges r
+       join public.transactions_log l on l.movimiento_id = r.movement_id
+      order by r.bank_reference`,
+  );
+  const aprobada = espejo.find((f) => f.bank_reference === "4821");
+  const rechazada = espejo.find((f) => f.bank_reference === "7777");
+  assert.equal(aprobada.estado, "aprobado");
+  assert.equal(Number(aprobada.saldo_despues), 1000);
+  assert.equal(rechazada.estado, "rechazado");
+
+  const {
+    rows: [cruce],
+  } = await db.query(
+    `select count(*)::int n
+       from public.trips_telemetry t
+       join public.transactions_log l on l.movimiento_id = t.movement_id
+      where l.tipo = 'viaje'
+        and l.idempotency_key = t.idempotency_key
+        and l.vehicle_id is not null`,
+  );
+  assert.ok(cruce.n >= 2, "los viajes quedan enlazados con su unidad y su clave UUID");
+
+  // El disparador escribe la bitácora con cualquier inserción de movimiento.
+  // Se prueba dentro de una transacción que luego se deshace para no ensuciar
+  // el extracto de la pasajera.
+  const {
+    rows: [tarjetaSonda],
+  } = await db.query("select id from public.cards where visible_id = $1", [seriales[0]]);
+  await db.query("begin");
+  try {
+    const {
+      rows: [sonda],
+    } = await db.query(
+      `insert into public.card_movements (card_id, tipo, monto, saldo_despues, detalle)
+       values ($1, 'ajuste', 0, 0, 'sonda de bitácora')
+       returning id`,
+      [tarjetaSonda.id],
+    );
+    const {
+      rows: [copiada],
+    } = await db.query(
+      "select count(*)::int filas from public.transactions_log where movimiento_id = $1",
+      [sonda.id],
+    );
+    assert.equal(copiada.filas, 1, "el disparador copia el movimiento recién insertado");
+  } finally {
+    await db.query("rollback");
+  }
+
+  let bitacoraCerrada = null;
+  await db.query("begin");
+  try {
+    await db.query("set local role anon");
+    await db.query("select 1 from public.transactions_log limit 1");
+  } catch (error) {
+    bitacoraCerrada = error.message;
+  } finally {
+    await db.query("rollback");
+  }
+  assert.match(bitacoraCerrada ?? "", /permission denied/);
+  ok(`${conteo.bitacora} movimientos copiados, partición mensual vigente y tabla cerrada al portal`);
+
+  paso(14, "Resumen operativo");
   const [resumenFila] = await servicio(
     "select public.bt_resumen_operativo() as r",
   );

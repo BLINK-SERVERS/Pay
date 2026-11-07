@@ -6,7 +6,7 @@ la tarjeta de transporte de **Blink**. React 19 + Vite 8 + TypeScript estricto.
 - **Sitio:** https://pay.blink.com.ve
 - **Redirección legacy:** https://pasajes.blink.com.ve/ → este portal
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 2.2.0 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 2.3.0 · [CHANGELOG](CHANGELOG.md)
 
 Este repositorio nació como **Blink Tarjeta** y conserva íntegro su historial,
 su esquema de datos y sus flujos. Desde `QODER-BLINK-HIG-2026` el producto se

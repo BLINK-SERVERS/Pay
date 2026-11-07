@@ -5,6 +5,64 @@ Todos los cambios relevantes de este producto se documentan aquí.
 Formato basado en [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/)
 y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 8601.
 
+## [2.3.0] — 2026-11-07
+
+Implementa `QODER-BLINK-BANKING-SEC-2026` en `0025_escudo_validador.sql` y fija
+el contrato del firmware en [`docs/seguridad-validador.md`](docs/seguridad-validador.md).
+
+### Añadido
+
+- **Firma HMAC-SHA256 por equipo** (§3 de la norma): `validator_secrets` guarda
+  la clave de 32 bytes de cada ESP32, `validator_nonces` impide reutilizar una
+  trama y `bt_validador_sincronizar_firma(mac, cuerpo, timestamp, nonce, firma)`
+  recalcula el HMAC, rechaza sellos de más de 30 s y compara los digests de las
+  firmas. `bt_validador_emitir_secreto` emite o rota la clave (solo
+  `service_role`) y la devuelve una única vez.
+- **Idempotencia en UUID v4** (§2 de la norma): el toque debe traer
+  `offline_id` con forma de UUID v4; `trips_telemetry.idempotency_key` guarda la
+  clave como `uuid` con índice único y `card_movements.idempotency_key` enlaza
+  el recibo con el toque. Un texto libre se rechaza y queda en
+  `validator_rejections` con el motivo «Clave de idempotencia inválida (UUID v4)».
+- **Bitácora particionada por mes** (§1.2 de la norma): `transactions_log`
+  copia cada movimiento de dinero, con particiones mensuales creadas por
+  `bt_asegurar_particion` y el disparador de `card_movements`; el histórico se
+  copia una vez y la partición por defecto queda como red de seguridad. Solo
+  `service_role` la lee.
+- **Pasos 13 (bitácora) y pruebas de firma** en `simulacion/flujo.mjs`: sello
+  vencido, firma falsa, nonce reutilizado, clave de texto y toque sin clave.
+- **`docs/seguridad-validador.md`**: contrato del toque, formatos de la firma,
+  aprovisionamiento, archivo de meses cerrados, permisos y transporte.
+
+### Cambiado
+
+- `bt_validador_sincronizar` exige UUID v4, enlaza el viaje con su movimiento y
+  deja de admitir claves de texto. El camino por token de 0004 sigue vivo para
+  el firmware instalado y comparte el mismo núcleo endurecido.
+- `simulacion/seed.sql` crea el operador con la cédula numérica que exige 0024.
+- Los toques históricos con clave de texto se normalizan a un UUID v4 derivado,
+  de modo que la liquidación de viajes viejos siga funcionando.
+
+### Pruebas
+
+- `node simulacion/flujo.mjs` completo (14 pasos) sobre la base local recién
+  migrada: firma, token, rechazos, transferencias y bitácora sin errores.
+- 0025 aplicada sobre una base con toques anteriores de texto: se normalizan,
+  la restricción queda validada y un `update ... set settled = true` sobre las
+  filas viejas pasa. Un segundo pase de la migración no cambia nada.
+- `npm run typecheck`, `npm test` (110 pruebas) y `npm run build` sin cambios
+  respecto de 2.2.0: esta entrega no toca el portal.
+
+### Conocido
+
+- `0024` y `0025` siguen **sin aplicar en Supabase**: deben pegarse en el SQL
+  Editor del proyecto. Mientras tanto la nube no firma, no tiene bitácora y la
+  biometría del portal no puede crear enlaces; el modo local no se ve afectado.
+- El firmware ESP32 no está en este repositorio. Hasta que implemente el UUID
+  v4 y la firma de la sección 2 del documento, los equipos en calle siguen
+  usando el camino por token.
+- GitHub Pages continúa sirviendo el paquete de 2.2.0; no hay cambios de
+  interfaz en esta versión.
+
 ## [2.2.0] — 2026-11-07
 
 ### Añadido
