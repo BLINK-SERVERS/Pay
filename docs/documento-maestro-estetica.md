@@ -631,9 +631,10 @@ actualizar el documento.
 
 ## 13. Estado y pendientes
 
-- **Dominio:** `pay.blink.com.ve` aún no está publicado (falta el token de
-  Cloudflare y el DNS). La app se sirve hoy en
-  `https://blink-servers.github.io/TARJETA/`.
+- **Dominio:** `pay.blink.com.ve` ya apunta al repositorio `Pay` por `CNAME`
+  (sin proxy de Cloudflare) y sirve la última publicación; GitHub está emitiendo
+  el certificado para forzar HTTPS. La ruta histórica
+  `blink-servers.github.io/TARJETA/` queda solo como redirección.
 - **Licencias:** SF Pro y SF Symbols se usan con autorización expresa de la
   dirección para Android, Windows, Linux y web; el riesgo queda registrado
   (R-26). No se distribuye ningún fichero de Apple.

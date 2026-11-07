@@ -82,8 +82,10 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ### Conocido
 
-- `0022` y `0023` están aplicadas en Supabase desde el 2026-11-06; `0024` se
-  aplica junto con esta entrega. La **2.1.0 quedó publicada en GitHub Pages el
+- `0022` y `0023` están aplicadas en Supabase desde el 2026-11-06. `0024`
+  todavía debe pegarse en el SQL Editor del proyecto: hasta entonces la
+  biometría del portal en la nube no puede crear ni reabrir enlaces, y el modo
+  local no se ve afectado. La **2.1.0 quedó publicada en GitHub Pages el
   2026-11-06** (commit `2048157`, bundle `index-0DsCmtA8.js`, `CACHE` `v7`).
 - La defensa contra dos sincronizaciones simultáneas del mismo validador no es
   medible con una sola conexión de prueba (BLINK-DOC-07 §4.18).
