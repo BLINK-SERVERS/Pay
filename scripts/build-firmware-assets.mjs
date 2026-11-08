@@ -185,7 +185,7 @@ const base = maestro.slice(0, inicioOndas) + maestro.slice(finOndas);
 const finRaiz = base.indexOf(">", base.indexOf("<svg"));
 const conFondo =
   base.slice(0, finRaiz + 1) +
-  `<rect x="0" y="0" width="1067" height="321" fill="#007AFF"/>` +
+  `<rect x="0" y="0" width="1121" height="321" fill="#007AFF"/>` +
   base.slice(finRaiz + 1);
 
 function ondasParciales(etapa) {
@@ -197,9 +197,9 @@ function ondasParciales(etapa) {
     if (f === 0) continue;
     const r = radios[i];
     const th = (-90 * f * Math.PI) / 180;
-    const ex = (899.93 + r * Math.cos(th)).toFixed(2);
+    const ex = (953.75 + r * Math.cos(th)).toFixed(2);
     const ey = (-111 + r * Math.sin(th)).toFixed(2);
-    paths += `<path d="M ${(899.93 + r).toFixed(2)} -111 A ${r} ${r} 0 0 0 ${ex} ${ey}"/>`;
+    paths += `<path d="M ${(953.75 + r).toFixed(2)} -111 A ${r} ${r} 0 0 0 ${ex} ${ey}"/>`;
   }
   return `<g transform="translate(0 277.9)" fill="none" stroke="#FFFEFB" stroke-width="24.4" stroke-linecap="round">${paths}</g>`;
 }
@@ -207,7 +207,7 @@ function ondasParciales(etapa) {
 const etapas = [];
 for (let e = 0; e <= 4; e++) {
   const svg = conFondo.replace("</svg>", ondasParciales(e) + "</svg>");
-  const r = await rasterizar(svg, 232, 70, "#007AFF");
+  const r = await rasterizar(svg, 232, 66, "#007AFF");
   etapas.push(rgb565(r.rgba));
   if (e === 4) guardarPreview("splash", r.png);
 }
@@ -233,7 +233,7 @@ constexpr int16_t SIN_CONTACTO_H = 120;
 constexpr int16_t ISOTIPO_W = 132;
 constexpr int16_t ISOTIPO_H = 104;
 constexpr int16_t SPLASH_W = 232;
-constexpr int16_t SPLASH_H = 70;
+constexpr int16_t SPLASH_H = 66;
 constexpr uint8_t SPLASH_ETAPAS = 5;
 
 `;
