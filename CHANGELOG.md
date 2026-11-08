@@ -49,6 +49,10 @@ migraciones del contrato bancario.
 - Unidad de banco (`/dev/ttyUSB0`, MAC `1C608BDF948C`): flasheada por USB con
   la 15 conservando la NVS (token, placa `A12BC3D` y colas), `INFO` reporta
   `fw=15` y `SYNC,ok=1,…,placa=A12BC3D` contra producción.
+- **Canal OTA verificado en vivo** tras el despliegue de Pages (run de
+  `a771fe4` en `success`): `manifest.json` devuelve la 15, el binario responde
+  HTTP 200 con `Content-Length: 1527232` y el SHA-256 descargado coincide; la
+  unidad forzó `OTA` y respondió `OTA,sin-novedad,actual=15,remota=15`.
 
 ### Conocido
 
