@@ -285,6 +285,9 @@ for (const ancho of [393, 1440]) {
     const pagina = await contexto.newPage();
     await pagina.goto(BASE, { waitUntil: "networkidle" });
     await pagina.waitForSelector(".app__main");
+    // La tarjeta vive en un trozo diferido: esperarla evita medir un inicio
+    // todavía sin plástico (el saldo saldría vacío y tabular-nums también).
+    await pagina.waitForSelector(".tarjeta__saldo", { timeout: 20000 });
     await pagina.waitForTimeout(400);
 
     console.log(`\n${ancho}px · ${esquema}`);

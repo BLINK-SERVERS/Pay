@@ -540,7 +540,7 @@
 .lp-mini {
   display: flex;
   flex-direction: column;
-  gap: 3cqw;
+  gap: 2.6cqw;
   height: 100%;
   padding: 13cqw 4.6cqw 8cqw;
   font-size: 4cqw;
@@ -556,6 +556,12 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
+}
+
+/* El hero va centrado, pero la interfaz del teléfono se lee a la izquierda. */
+.lp-mini--billetera,
+.lp-mini--registro {
+  text-align: left;
 }
 
 .lp-mini__tarjeta {
@@ -618,23 +624,78 @@
   text-transform: uppercase;
 }
 
-.lp-mini__acciones {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2.4cqw;
-}
-
-.lp-mini__accion {
-  display: flex;
+.lp-mini__reverso {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 1.4cqw;
-  min-height: 9cqw;
-  border-radius: 3cqw;
-  background: var(--mini-superficie);
+  align-self: center;
+  min-height: 8cqw;
+  padding: 0 4cqw;
+  border-radius: 2.6cqw;
+  background: rgba(0, 122, 255, 0.12);
   color: #0066cc;
   font-size: 3.2cqw;
   font-weight: 600;
+}
+
+.lp-mini__carrusel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+}
+
+.lp-mini__puntos {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.6cqw;
+}
+
+.lp-mini__punto {
+  width: 1.6cqw;
+  height: 1.6cqw;
+  border-radius: 50%;
+  background: rgba(66, 66, 66, 0.25);
+}
+
+.lp-mini__punto--activo {
+  width: 4.4cqw;
+  border-radius: 1cqw;
+  background: #007aff;
+}
+
+.lp-mini__vincular {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2cqw;
+  color: #0066cc;
+  font-size: 3.2cqw;
+  font-weight: 600;
+}
+
+.lp-mini__rotulo {
+  font-size: 4.6cqw;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: #1d1d1f;
+}
+
+.lp-mini__lista {
+  display: flex;
+  flex-direction: column;
+  border-radius: 3cqw;
+  background: var(--mini-superficie);
+  overflow: hidden;
+}
+
+.lp-mini__lista .lp-mini__fila {
+  border-radius: 0;
+  background: none;
+}
+
+.lp-mini__lista .lp-mini__fila + .lp-mini__fila {
+  border-top: 1px solid var(--mini-borde);
 }
 
 .lp-mini__fila {
@@ -645,6 +706,25 @@
   border-radius: 3cqw;
   background: var(--mini-superficie);
   color: var(--mini-texto-3);
+}
+
+.lp-mini__fila > .icon {
+  width: 7cqw;
+  height: 7cqw;
+  padding: 1.6cqw;
+  box-sizing: border-box;
+  border-radius: 2cqw;
+  background: rgba(66, 66, 66, 0.08);
+  color: #6e6e6e;
+}
+
+.lp-mini__fila--entra > .icon {
+  background: rgba(52, 199, 89, 0.16);
+  color: #1e7a34;
+}
+
+.lp-mini__fila--entra .lp-mini__monto {
+  color: #1e7a34;
 }
 
 .lp-mini__fila-texto {
@@ -675,21 +755,41 @@
 
 .lp-mini__tabs {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-around;
+  gap: 1cqw;
   margin-top: auto;
-  padding-top: 3cqw;
+  padding-top: 2.4cqw;
   border-top: 1px solid var(--mini-borde);
   color: var(--mini-texto-3);
 }
 
-.lp-mini__tabs .icon:first-child {
+.lp-mini__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8cqw;
+  font-size: 2.2cqw;
+  font-weight: 500;
+}
+
+.lp-mini__tab .icon {
+  width: 5cqw;
+  height: 5cqw;
+}
+
+.lp-mini__tab--activa {
   color: #007aff;
 }
 
 /* Registro */
 .lp-mini--registro {
   gap: 3.4cqw;
+}
+
+/* El aviso del PIN queda al pie, como el footer legal del acceso real. */
+.lp-mini--registro .lp-mini__nota {
+  margin-top: auto;
 }
 
 .lp-mini__campo {
@@ -763,6 +863,18 @@
   margin-bottom: auto;
 }
 
+.lp-mini__celda {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4cqw;
+  min-width: 0;
+}
+
+.lp-mini__celda .lp-mini__app {
+  width: 100%;
+}
+
 .lp-mini__app {
   display: grid;
   place-items: center;
@@ -790,15 +902,11 @@
 }
 
 .lp-mini__etiqueta-app {
-  margin-top: -2.2cqw;
-  margin-bottom: 2cqw;
-  font-size: 2.7cqw;
-  font-weight: 600;
+  font-size: 2.5cqw;
+  font-weight: 500;
+  line-height: 1.2;
   text-align: center;
   color: #1d1d1f;
-  /* La etiqueta va bajo el último icono de la rejilla (Blink Pay). */
-  align-self: flex-end;
-  width: 25%;
 }
 
 .lp-mini--inicio__dock {

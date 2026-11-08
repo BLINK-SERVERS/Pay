@@ -109,11 +109,11 @@ function Telefono({ etiqueta, children }: { etiqueta: string; children: ReactNod
   );
 }
 
-/** La billetera tal como se ve en la app: tarjeta, saldo, pasajes y titular. */
+/** La billetera tal como se ve en la app: saludo, tarjeta, saldo y extracto. */
 function MiniBilletera() {
   return (
     <div className="lp-mini lp-mini--billetera">
-      <p className="lp-mini__titulo">Billetera</p>
+      <p className="lp-mini__titulo">Buenas noches, María</p>
       <div className="lp-mini__tarjeta">
         <img
           className="lp-mini__arte"
@@ -129,30 +129,84 @@ function MiniBilletera() {
         <span className="lp-mini__pasajes">3 pasajes</span>
         <span className="lp-mini__titular">María Pérez</span>
       </div>
-      <div className="lp-mini__acciones">
-        <span className="lp-mini__accion">
+      <span className="lp-mini__reverso">
+        <Icon name="qr" tamano="sm" />
+        Ver reverso
+      </span>
+      <div className="lp-mini__carrusel">
+        <span className="lp-mini__puntos" aria-hidden="true">
+          <i className="lp-mini__punto lp-mini__punto--activo" />
+          <i className="lp-mini__punto" />
+        </span>
+        <span className="lp-mini__vincular">
+          <Icon name="mas" tamano="sm" />
+          Vincular tarjeta
+        </span>
+      </div>
+      <p className="lp-mini__rotulo">Últimos movimientos</p>
+      <div className="lp-mini__lista">
+        <div className="lp-mini__fila">
+          <Icon name="autobus" tamano="sm" />
+          <span className="lp-mini__fila-texto">
+            <strong>Pasaje en la línea</strong>
+            <em>Hoy · 07:42 · Demo-01</em>
+          </span>
+          <span className="lp-mini__monto">−500</span>
+        </div>
+        <div className="lp-mini__fila">
+          <Icon name="autobus" tamano="sm" />
+          <span className="lp-mini__fila-texto">
+            <strong>Pasaje en la línea</strong>
+            <em>Hoy · 06:58 · Demo-01</em>
+          </span>
+          <span className="lp-mini__monto">−500</span>
+        </div>
+        <div className="lp-mini__fila lp-mini__fila--entra">
+          <Icon name="rayo" tamano="sm" />
+          <span className="lp-mini__fila-texto">
+            <strong>Pago Móvil aprobado</strong>
+            <em>Ayer · 06:20 · Banesco</em>
+          </span>
+          <span className="lp-mini__monto">+1.000</span>
+        </div>
+        <div className="lp-mini__fila">
+          <Icon name="autobus" tamano="sm" />
+          <span className="lp-mini__fila-texto">
+            <strong>Pasaje en la línea</strong>
+            <em>05-nov · 05:05 · Demo-02</em>
+          </span>
+          <span className="lp-mini__monto">−500</span>
+        </div>
+        <div className="lp-mini__fila">
+          <Icon name="autobus" tamano="sm" />
+          <span className="lp-mini__fila-texto">
+            <strong>Pasaje en la línea</strong>
+            <em>04-nov · 07:15 · Demo-01</em>
+          </span>
+          <span className="lp-mini__monto">−500</span>
+        </div>
+      </div>
+      <div className="lp-mini__tabs">
+        <span className="lp-mini__tab lp-mini__tab--activa">
+          <Icon name="inicio" tamano="sm" />
+          Inicio
+        </span>
+        <span className="lp-mini__tab">
+          <Icon name="movimientos" tamano="sm" />
+          Movimientos
+        </span>
+        <span className="lp-mini__tab">
           <Icon name="recargar" tamano="sm" />
           Recargar
         </span>
-        <span className="lp-mini__accion">
+        <span className="lp-mini__tab">
           <Icon name="transferir" tamano="sm" />
           Transferir
         </span>
-      </div>
-      <div className="lp-mini__fila">
-        <Icon name="autobus" tamano="sm" />
-        <span className="lp-mini__fila-texto">
-          <strong>Viaje</strong>
-          <em>Línea 12 · hoy</em>
+        <span className="lp-mini__tab">
+          <Icon name="perfil" tamano="sm" />
+          Perfil
         </span>
-        <span className="lp-mini__monto">−Bs 500</span>
-      </div>
-      <div className="lp-mini__tabs">
-        <Icon name="inicio" tamano="sm" />
-        <Icon name="movimientos" tamano="sm" />
-        <Icon name="recargar" tamano="sm" />
-        <Icon name="transferir" tamano="sm" />
-        <Icon name="perfil" tamano="sm" />
       </div>
     </div>
   );
@@ -189,20 +243,33 @@ function MiniRegistro() {
  * marcas de terceros.
  */
 function MiniPantallaInicio() {
-  const genericos = ["correo", "telefono", "reloj", "sol", "banco", "documento", "qr"] as const;
+  const genericas = [
+    { nombre: "correo", etiqueta: "Correo" },
+    { nombre: "telefono", etiqueta: "Llamadas" },
+    { nombre: "reloj", etiqueta: "Reloj" },
+    { nombre: "sol", etiqueta: "Clima" },
+    { nombre: "banco", etiqueta: "Banco" },
+    { nombre: "documento", etiqueta: "Notas" },
+    { nombre: "qr", etiqueta: "Código" },
+  ] as const;
   return (
     <div className="lp-mini lp-mini--inicio">
       <div className="lp-mini--inicio__rejilla">
-        {genericos.map((nombre) => (
-          <span key={nombre} className="lp-mini__app lp-mini__app--generica">
-            <Icon name={nombre} tamano="sm" />
+        {genericas.map((app) => (
+          <span key={app.nombre} className="lp-mini__celda">
+            <span className="lp-mini__app lp-mini__app--generica">
+              <Icon name={app.nombre} tamano="sm" />
+            </span>
+            <span className="lp-mini__etiqueta-app">{app.etiqueta}</span>
           </span>
         ))}
-        <span className="lp-mini__app lp-mini__app--blink">
-          <img src={`${BASE}icon.png`} width="512" height="512" alt="" draggable={false} />
+        <span className="lp-mini__celda">
+          <span className="lp-mini__app lp-mini__app--blink">
+            <img src={`${BASE}icon.png`} width="512" height="512" alt="" draggable={false} />
+          </span>
+          <span className="lp-mini__etiqueta-app">Blink Pay</span>
         </span>
       </div>
-      <p className="lp-mini__etiqueta-app">Blink Pay</p>
       <div className="lp-mini--inicio__dock">
         <span className="lp-mini__app lp-mini__app--generica">
           <Icon name="persona" tamano="sm" />
