@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { AvisoCookies } from "../components/AvisoCookies";
 import { AvisoDemo } from "../components/AvisoDemo";
 import { HojaLegal } from "../components/HojaLegal";
+import { HojaPrivacidad } from "../components/HojaPrivacidad";
 import { Icon } from "../components/Icon";
 import { useConsultaMedio } from "../lib/hooks";
 import marca from "../assets/marca-blink-pay.svg?raw";
@@ -603,6 +605,7 @@ function Configuracion() {
 
 export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
   const [legal, setLegal] = useState(false);
+  const [privacidad, setPrivacidad] = useState(false);
 
   const preguntas: Pregunta[] = [
     {
@@ -957,6 +960,11 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
                 </button>
               </li>
               <li>
+                <button type="button" className="lp-enlace" onClick={() => setPrivacidad(true)}>
+                  Privacidad
+                </button>
+              </li>
+              <li>
                 <button type="button" className="lp-enlace" onClick={alEntrar}>
                   Entrar
                 </button>
@@ -969,7 +977,9 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
         </div>
       </footer>
 
+      <AvisoCookies alPrivacidad={() => setPrivacidad(true)} />
       <HojaLegal abierta={legal} alCerrar={() => setLegal(false)} tarifa={tarifa} />
+      <HojaPrivacidad abierta={privacidad} alCerrar={() => setPrivacidad(false)} />
     </div>
   );
 }

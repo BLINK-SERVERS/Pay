@@ -7,6 +7,23 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+### Aviso de cookies
+
+- **pay.blink.com.ve** pregunta una sola vez con tres respuestas —«Aceptar
+  todas», «Solo las necesarias» y «Rechazar»— en una tarjeta con el material de
+  la hoja del sistema. La decisión se guarda en `blink.pay.cookies`
+  (`src/lib/cookies.ts`, versión 1 con fecha) y el aviso no vuelve a aparecer
+  hasta borrar los datos del sitio o cambiar la versión.
+- El enlace «Política de privacidad» abre la nueva hoja `HojaPrivacidad`
+  (LEG-PRI-001), que explica qué datos se tratan y qué queda en el dispositivo;
+  también está en el pie de la landing. No hay cookies publicitarias ni de
+  seguimiento.
+- Alcance: solo la landing pública. La app con sesión y `www.blink.com.ve` no
+  muestran el aviso.
+- Pruebas: `src/lib/cookies.test.ts` (5 casos) y verificación en Chromium con
+  23 comprobaciones (tres respuestas, persistencia, hoja de privacidad, móvil y
+  escritorio, claro y oscuro, sin errores de consola).
+
 ### Tarjeta de instalación propia
 
 - **Inicio** ofrece «Lleva Blink Pay contigo» con la sesión abierta. El aviso

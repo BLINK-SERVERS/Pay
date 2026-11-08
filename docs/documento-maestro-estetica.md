@@ -577,6 +577,27 @@ los tamaños.
 
 Referencias: `app-icons.md`, `app-icons.best-practices.md`.
 
+### Aviso de cookies
+
+La landing pública pregunta una sola vez cómo se usan las cookies. La tarjeta
+(`src/components/AvisoCookies.tsx`) se apoya en el mismo material que la hoja
+del sistema: 20 px de radio, superficie elevada, borde de 1 px y sombra suave;
+centrada abajo en móvil y anclada abajo a la derecha desde 768 px.
+
+- **Contenido:** título en `--fs-base`/650 y explicación en `--fs-sm`; el enlace
+  «Política de privacidad» abre la hoja `HojaPrivacidad` (LEG-PRI-001), también
+  disponible en el pie.
+- **Tres respuestas:** «Aceptar todas», «Solo las necesarias» y «Rechazar».
+  En pantallas de 420 px o menos, «Aceptar todas» ocupa el ancho completo y las
+  otras dos se reparten debajo, sin cambiar el orden de lectura.
+- **Persistencia:** la decisión se guarda en `localStorage`
+  (`blink.pay.cookies`, versión 1) con su fecha; el aviso no vuelve a salir
+  hasta que se borren los datos del sitio o cambie la versión.
+- **Alcance:** solo la landing. La app con sesión y `www.blink.com.ve` no
+  muestran el aviso y no hay cookies publicitarias ni de seguimiento.
+- **Capas:** el aviso vive en `z-index: 55`, por debajo de las hojas modales
+  (60), para que la política de privacidad lo tape al abrirse.
+
 ---
 
 ## 10. Accesibilidad
