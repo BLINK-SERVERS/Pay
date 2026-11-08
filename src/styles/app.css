@@ -2470,6 +2470,84 @@ select.entrada {
   min-height: 40px;
 }
 
+/* Instalación de la app --------------------------------------- */
+/* La tarjeta ocupa el mismo sitio que el aviso de actualización: flota
+   sobre el contenido, con el aire de una hoja del sistema. */
+
+.instalacion {
+  position: fixed;
+  left: 50%;
+  bottom: calc(4.6rem + env(safe-area-inset-bottom));
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  width: calc(100% - 1.6rem);
+  max-width: 440px;
+  padding: 0.9rem 0.95rem 0.95rem;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-pop);
+  transform: translateX(-50%);
+  animation: subir-aviso 0.28s ease-out;
+}
+
+.instalacion__cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.instalacion__icono {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08);
+}
+
+.instalacion__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.instalacion__texto strong {
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--color-text-primary);
+}
+
+.instalacion__texto span {
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.instalacion__glifo {
+  width: 1em;
+  height: 1em;
+  margin-inline: 0.15em;
+  vertical-align: -0.13em;
+  color: var(--color-accent);
+}
+
+.instalacion__glifo-texto {
+  color: var(--color-text-secondary);
+}
+
+.instalacion__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.instalacion__acciones .boton {
+  min-height: 40px;
+}
+
 /* Hojas ------------------------------------------------------ */
 
 .hoja-fondo {

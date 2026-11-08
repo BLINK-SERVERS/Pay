@@ -61,9 +61,13 @@ datos:
 
 1. Abre el portal con internet e inicia sesión una vez. Eso guarda en ese
    teléfono la tarjeta, el saldo y los movimientos.
-2. Instálalo: en Android/Chrome, menú **⋮ → Instalar aplicación** (o
-   **Añadir a pantalla de inicio**); en iPhone/Safari, **Compartir →
-   Añadir a pantalla de inicio**.
+2. En **Inicio** aparece la tarjeta **Lleva Blink Pay contigo**: «Instalar»
+   abre el diálogo del sistema. El aviso propio sustituye al cartel que Chrome
+   enseña por su cuenta (el evento `beforeinstallprompt` se cancela al
+   arrancar y solo se ofrece ahí, nunca en la landing ni fuera de Inicio).
+   En iPhone/Safari, donde no existe ese diálogo, la tarjeta indica
+   **Compartir → Añadir a pantalla de inicio**; en Android sin diálogo, el
+   menú del navegador. «Ahora no» la pospone un mes.
 3. Ábrelo desde el icono **Blink Pay**. A partir de ahí funciona en modo avión:
    muestra la tarjeta y el último saldo sincronizado.
 4. Sin red no se puede recargar, transferir, vincular otra tarjeta ni cambiar

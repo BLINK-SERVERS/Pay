@@ -7,6 +7,19 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+### Tarjeta de instalación propia
+
+- **Inicio** ofrece «Lleva Blink Pay contigo» con la sesión abierta. El aviso
+  cancela `beforeinstallprompt` al arrancar (`src/lib/instalacion.ts`), así que
+  Chrome no enseña su cartel; «Instalar» abre el diálogo guardado y «Ahora no»
+  lo pospone 30 días. En iOS y Android sin diálogo la tarjeta describe los
+  pasos manuales; no aparece en la landing, en el acceso, fuera de Inicio ni
+  con la app ya instalada.
+- **www.blink.com.ve** deja de declarar manifiesto: la landing del ecosistema
+  no se instala. Solo se instalan pay. y pos.
+- Pruebas: `src/lib/instalacion.test.ts` (7 casos) y verificación en Chromium
+  en móvil y escritorio, claro y oscuro, sin errores de consola.
+
 ## [2.4.1] — 2026-11-07
 
 Parche de firmware y base de datos: el validador ya genera la clave de

@@ -1,5 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AvisoActualizacion } from "./components/AvisoActualizacion";
+import { AvisoInstalacion } from "./components/AvisoInstalacion";
 import { AvisoDemo } from "./components/AvisoDemo";
 import { BarraTabs, type Pestana } from "./components/BarraTabs";
 import { Desbloqueo } from "./components/Desbloqueo";
@@ -711,6 +712,7 @@ export function App() {
       <div className="app__cuerpo">
         <main className="app__main" id="contenido">
           <AvisoDemo />
+          <AvisoInstalacion visible={pestana === "inicio"} />
         <Suspense fallback={<VistaCargando />}>
         {pestana === "inicio" && (
           <Inicio

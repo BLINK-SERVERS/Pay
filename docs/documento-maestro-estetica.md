@@ -96,18 +96,36 @@ cartera y de la tarjeta.
 
 | Dato | Valor |
 | --- | --- |
-| Lienzo | 1133,15 × 320,59 |
-| «Blink» | SF Pro Display **Bold Italic**, cap 176 |
-| «Pay» | SF Pro Display **Regular**, mismo cap y misma línea base |
+| Lienzo | 1121 × 321 |
+| «Blink» | SF Pro Display **Heavy Italic**, cap 176 |
+| «Pay» | SF Pro Display **Medium**, mismo cap y misma línea base |
 | Línea base | y = 277,9 |
-| Ondas | 3 arcos de 90°, radio 61 / 108,1 / 154,7; trazo 24,4 con remates redondos |
-| Centro de las ondas | (966,25, 166,9) |
-| Caja de ondas | x 954,05–1133,15 · y 0–179,1 |
+| Ondas | 3 arcos de 90°, centro (953,75, 166,9); radios de eje 61 / 108,1 / 154,7; trazo 24,4 con remates redondos |
+| Caja de las ondas (trazo incluido) | x 941,55–1120,65 · y 0–179,1 |
 
 El borde superior del lienzo es **tangente al trazo de la onda exterior**, y su
 borde derecho coincide con el ancho de esa onda: la marca no lleva relleno
 alrededor por arriba ni por la derecha. El descendente de la «y» toca el borde
 inferior.
+
+### 2.4 Logotipo Blink POS
+
+Palabra **Blink POS**, sin ondas. Las ondas de pago sin contacto son
+**exclusivas de Blink Pay**: no se añaden a la marca de POS ni a ninguna otra
+pieza del producto.
+
+| Dato | Valor |
+| --- | --- |
+| Lienzo | 1055,42 × 192,85 (ceñido a la tinta: sin reserva de ondas) |
+| «Blink» | idéntico al de Pay: SF Pro Display **Heavy Italic**, cap 176 |
+| «POS» | SF Pro Display **Medium**, mismo cap, misma línea base y mismo apriete que «Pay» |
+| Línea base | y = 277,9 en el sistema de dibujo; el `viewBox` empieza en y = 88 |
+| Archivos | `POS/marca/blink-pos.svg` · `blink-pos-blanco.svg` |
+
+Como el recuadro de POS no reserva sitio para las ondas, su alto no se compara
+con el de Pay: lo que se iguala es la **escala de las mayúsculas**. Al llevar
+ambas marcas a la misma caja, la proporción es
+`alto POS = alto Pay × 192,85 / 321`.
 
 Variantes de color:
 
@@ -117,7 +135,7 @@ Variantes de color:
 | `blink-pay-azul.svg` | `#007AFF` | Sobre fondos claros y en papelería |
 | `blink-pay-blanco.svg` | `#FFFFFF` | Sobre azul, foto oscura o vídeo |
 
-### 2.4 Icono de app Blink Pay (isotipo + Pay + ondas)
+### 2.5 Icono de app Blink Pay (isotipo + Pay + ondas)
 
 Composición horizontal para cabeceras estrechas y para el icono de marca.
 
@@ -132,7 +150,7 @@ No sustituye al logotipo en la cabecera de la app (ahí va `blink-pay.svg`): se
 usa cuando hace falta la carita junto a la palabra en un espacio casi
 cuadrado.
 
-### 2.5 Color de marca
+### 2.6 Color de marca
 
 | Rol | Valor | Uso |
 | --- | --- | --- |
@@ -154,7 +172,7 @@ Dos precisiones para no confundir marca con interfaz:
   iOS `#F2F2F7`; POS usa el papel de marca `#FFFEFB`. Ninguno de los dos toca
   el arte de la marca.
 
-### 2.6 Área de respeto y tamaños mínimos
+### 2.7 Área de respeto y tamaños mínimos
 
 Estas son normas de este documento, no medidas del SVG.
 
@@ -167,19 +185,20 @@ Estas son normas de este documento, no medidas del SVG.
 | --- | --- | --- |
 | Logotipo Blink | 96 px | cap ≈ 19,6 px |
 | Logotipo Blink Pay | 120 px | cap ≈ 18,6 px |
+| Logotipo Blink POS | 96 px | cap ≈ 16 px |
 | Isotipo suelto | — | 24 px de alto |
 | Icono de app | — | 48 × 48 px (el maestro es 1024) |
 
 - **Impresión:** logotipo ≥ 24 mm de ancho; isotipo ≥ 6 mm de alto.
 
-### 2.7 Usos incorrectos
+### 2.8 Usos incorrectos
 
 No se permite:
 
 1. Estirar, comprimir ni rotar la marca (la itálica ya es parte del dibujo:
    inclinarla otra vez la deforma).
 2. Cambiar la tipografía, el grosor, el *tracking* o separar letras.
-3. Recolorear fuera de las variantes de §2.5, aplicar degradados, sombras,
+3. Recolorear fuera de las variantes de §2.6, aplicar degradados, sombras,
    contornos o biseles.
 4. Poner el isotipo dentro de un cuadrado, círculo o pastilla (el contenedor
    solo existe en el **icono de app**, §9).
@@ -188,8 +207,10 @@ No se permite:
 6. Usar la versión de un solo color sobre un fondo con contraste < 4,5:1.
 7. Animar el logotipo completo: en los cargadores se mueven solo las piezas
    indicadas en §8.
+8. Añadir las ondas de pago sin contacto a la marca de **POS** ni a ninguna
+   pieza que no sea Blink Pay (§2.4).
 
-### 2.8 La tarjeta
+### 2.9 La tarjeta
 
 Arte estático y aprobado, sin vehículos ni iconos de transporte.
 
@@ -526,6 +547,30 @@ Android aplican su propia máscara.
 - El nombre corto del sistema es **Blink Pay**; en Pay el tema de la barra del
   navegador es `#F2F2F7` en claro y `#000000` en oscuro.
 
+### Tarjeta de instalación
+
+El navegador ofrece instalar la app con su propio cartel; Blink Pay lo cancela
+(`preventDefault` sobre `beforeinstallprompt` al arrancar, en
+`src/lib/instalacion.ts`) y ofrece en su lugar una tarjeta propia:
+
+- **Dónde:** solo en **Inicio** y con la sesión abierta. La landing, el acceso
+  y el resto de pestañas nunca la muestran.
+- **Forma:** hoja flotante con esquinas de 20 px, superficie elevada, borde de
+  1 px y sombra suave; icono de la app a 44 × 44 con radio 11. En móvil flota
+  sobre la barra de pestañas; en escritorio se ancla abajo a la derecha.
+- **Contenido:** título en 13 px/650, explicación en 11 px, y dos acciones
+  («Ahora no» fantasma + «Instalar» primaria) alineadas a la derecha.
+- **Casos:** con diálogo nativo, «Instalar» lo abre; en iOS y Android sin
+  diálogo la tarjeta describe los pasos de Safari/Chrome; si la app ya corre
+  instalada, o el equipo es escritorio sin diálogo, no aparece. «Ahora no»
+  guarda el descarte 30 días en `localStorage` (`blink.pay.instalacion`).
+- **Actualización:** `appinstalled` borra el descarte y retira la tarjeta.
+
+**Alcance del ecosistema:** solo las apps se instalan. `www.blink.com.ve` es la
+landing compartida: no declara `manifest` ni registra service worker, así que
+el navegador nunca la ofrece como aplicación. Blink POS aplica la misma tarjeta
+en su pantalla General (`POS/app/src/components/AvisoInstalacion.tsx`).
+
 Reglas de la HIG que se respetan: arte a sangre, sin texto pequeño, sin
 transparencia en el maestro, una sola idea visual y la misma silueta en todos
 los tamaños.
@@ -587,6 +632,8 @@ apariencia; un `<img>` resolvería `currentColor` a negro).
 | `blink.svg` | `app/public/brand/` | 875,78 × 190,00 | Logotipo, tinta oscura |
 | `blink-blanco.svg` | `app/public/brand/` | 875,78 × 190,00 | Logotipo, blanco |
 | `blink-isotipo.svg` | `app/public/brand/` | 360 × 284 | Isotipo suelto |
+| `blink-pos.svg` | `marca/` y `app/public/brand/` | 1055,42 × 192,85 | Lockup «Blink POS», solo texto (§2.4) |
+| `blink-pos-blanco.svg` | `marca/` y `app/public/brand/` | 1055,42 × 192,85 | El mismo lockup en blanco |
 | `blink-icono-app.svg` | `marca/` | 1024² | Icono de app |
 | `blink-icono-maskable.svg` | `marca/` | 1024² | Icono maskable |
 | `blink-favicon.svg` | `marca/` | 1024² | Favicon vectorial |
