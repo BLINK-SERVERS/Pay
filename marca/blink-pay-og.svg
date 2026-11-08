@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1200" height="630" viewBox="0 0 1200 630" version="1.1" shape-rendering="geometricPrecision">
+  <title>Blink Pay — imagen para compartir (OG)</title>
+  <desc>Composición 1200×630 al estilo de la referencia autorizada de Apple Pay: campo azul de marca, lockup aprobado en blanco detrás y un teléfono emergiendo desde el borde inferior con la tarjeta Blink Pay y la confirmación «Listo». El lockup y el arte de la tarjeta se reproducen tal cual de los SVG maestros; sin geometría nueva de marca.</desc>
+  <defs>
+    <clipPath id="recorte-tarjeta-og"><rect x="0" y="0" width="1011" height="638" rx="40"/></clipPath>
+    <clipPath id="recorte-pantalla-og"><rect x="452" y="250" width="296" height="446" rx="42"/></clipPath>
+  </defs>
+  <g inkscape:groupmode="layer" inkscape:label="Fondo" id="capa-fondo">
+    <rect id="campo" x="0" y="0" width="1200" height="630" fill="#007AFF"/>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Lockup aprobado" id="capa-lockup" style="color:#FFFEFB" fill="#FFFEFB" transform="translate(270 95) scale(0.6186)">
+    <g id="wordmark" transform="translate(-0 277.9)" fill="currentColor">
+      <path d="M90.87 0C129.53 0 157.09 -23.42 157.09 -56.11C157.09 -74.16 143.8 -87.7 125.02 -91.72L125.14 -92.57C148.92 -97.33 165.88 -114.89 165.88 -138.19C165.88 -159.78 147.83 -176 114.53 -176H37.44L0 0ZM75.01 -146.97H98.67C113.43 -146.97 121.11 -140.39 121.11 -130.02C121.11 -116.24 109.41 -106.23 91.72 -106.23H66.47ZM50.62 -31.71 60.25 -77.33H87.21C103.79 -77.33 112.33 -70.13 112.33 -58.18C112.33 -42.32 99.89 -31.71 80.62 -31.71Z"/>
+      <path d="M146.93 0H189.01L226.45 -176H184.37Z"/>
+      <path d="M258.85 -148.07C270.8 -148.07 280.19 -157.58 280.19 -168.93C280.19 -180.39 270.8 -189.9 258.85 -189.9C246.9 -189.9 237.51 -180.39 237.51 -168.93C237.51 -157.58 246.9 -148.07 258.85 -148.07ZM201.77 0H243.85L272.15 -132.82H230.07Z"/>
+      <path d="M253.68 0H295.52L312.23 -78.3C315.28 -93.06 326.25 -102.82 339.18 -102.82C351.14 -102.82 359.31 -95.5 359.31 -84.77C359.31 -81.96 358.94 -79.04 358.33 -75.25L342.35 0H384.07L401.27 -81.84C402.49 -87.7 403.09 -93.18 403.09 -98.06C403.09 -120.63 386.63 -135.99 362.72 -135.99C344.67 -135.99 328.21 -127.46 319.06 -112.58H318.08L322.47 -132.82H281.98Z"/>
+      <path d="M430.49 0 439.03 -40.49 451.84 -52.32 476.23 0H521.73L485.5 -75.13L546.12 -132.82H497.58L449.28 -84.16H448.3L467.94 -176H425.98L388.54 0Z"/>
+      <g transform="translate(560.9 0)">
+        <path d="M16.22 0H43.54V-60.13H81.72C116.24 -60.13 140.14 -83.67 140.14 -118.07V-118.31C140.14 -152.83 116.24 -176 81.72 -176H16.22ZM74.89 -152.95C98.67 -152.95 112.33 -140.14 112.33 -118.19V-117.94C112.33 -95.87 98.67 -83.06 74.89 -83.06H43.54V-152.95Z"/>
+        <path d="M170.96 2.32C187.91 2.32 202.79 -6.46 210.23 -20.25H210.72V0H237.18V-88.43C237.18 -114.16 217.3 -130.75 185.96 -130.75C154.37 -130.75 135.22 -113.8 133.39 -91.72L133.27 -90.38H158.15L158.39 -91.48C160.59 -101.72 169.98 -108.92 185.23 -108.92C201.57 -108.92 210.72 -100.38 210.72 -86.23V-76.6L175.83 -74.52C145.46 -72.69 128.14 -59.03 128.14 -36.71V-36.47C128.14 -13.42 145.34 2.32 170.96 2.32ZM154.73 -37.08V-37.32C154.73 -48.18 163.52 -55.13 179.37 -56.11L210.72 -58.06V-48.06C210.72 -31.35 196.69 -18.78 178.15 -18.78C164 -18.78 154.73 -25.86 154.73 -37.08Z"/>
+        <path d="M260.07 42.81C285.2 42.81 298.61 32.57 308.13 5.98L355.94 -128.31H328.13L295.81 -23.91H294.95L262.63 -128.31H234.09L280.8 0.12L278.61 6.22C274.22 18.66 267.39 21.95 254.95 21.95C251.41 21.95 248.36 21.47 246.29 20.98V41.59C249.46 42.2 254.95 42.81 260.07 42.81Z"/>
+      </g>
+    </g>
+    <g id="nfc" transform="translate(-0 277.9)">
+      <path id="nfc-1" d="M 960.93 -111 A 61 61 0 0 0 899.93 -172" fill="none" stroke="currentColor" stroke-width="24.4" stroke-linecap="round"/>
+      <path id="nfc-2" d="M 1008.03 -111 A 108.1 108.1 0 0 0 899.93 -219.1" fill="none" stroke="currentColor" stroke-width="24.4" stroke-linecap="round"/>
+      <path id="nfc-3" d="M 1054.63 -111 A 154.7 154.7 0 0 0 899.93 -265.7" fill="none" stroke="currentColor" stroke-width="24.4" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Teléfono" id="capa-telefono">
+    <g id="botones" fill="#1d1d1f">
+      <rect x="436" y="352" width="4" height="26" rx="2"/>
+      <rect x="436" y="392" width="4" height="44" rx="2"/>
+      <rect x="760" y="372" width="4" height="64" rx="2"/>
+    </g>
+    <rect id="bisel" x="440" y="238" width="320" height="470" rx="54" fill="#1d1d1f"/>
+    <rect id="pantalla" x="452" y="250" width="296" height="446" rx="42" fill="#f2f2f7"/>
+    <g id="estado" clip-path="url(#recorte-pantalla-og)">
+      <text x="478" y="279" font-family="SF Pro Text, SF Pro, Inter, sans-serif" font-size="15" font-weight="600" fill="#1d1d1f">9:41</text>
+      <rect id="isla" x="560" y="262" width="80" height="22" rx="11" fill="#000000"/>
+      <g id="senal" fill="#1d1d1f">
+        <rect x="668" y="276" width="3" height="4" rx="1"/>
+        <rect x="672.5" y="274" width="3" height="6" rx="1"/>
+        <rect x="677" y="272" width="3" height="8" rx="1"/>
+        <rect x="681.5" y="270" width="3" height="10" rx="1"/>
+      </g>
+      <g id="wifi" fill="none" stroke="#1d1d1f" stroke-width="1.8" stroke-linecap="round">
+        <path d="M 693.5 276.5 A 7.8 7.8 0 0 1 704.5 276.5"/>
+        <path d="M 696 279 A 4.2 4.2 0 0 1 702 279"/>
+      </g>
+      <circle cx="699" cy="281.5" r="1.5" fill="#1d1d1f"/>
+      <g id="bateria">
+        <rect x="712" y="272" width="22" height="11" rx="3" fill="none" stroke="#1d1d1f" stroke-opacity="0.4"/>
+        <rect x="714" y="274" width="18" height="7" rx="1.5" fill="#1d1d1f"/>
+        <rect x="735" y="275.5" width="1.5" height="4" rx="0.75" fill="#1d1d1f" fill-opacity="0.4"/>
+      </g>
+    </g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Tarjeta aprobada" id="capa-tarjeta">
+    <g id="arte-tarjeta" transform="translate(470 300) scale(0.25717)">
+      <rect x="0" y="0" width="1011" height="638" rx="40" fill="#007AFF"/>
+      <g id="figuras" clip-path="url(#recorte-tarjeta-og)" fill="#FFFEFB" fill-opacity="0.5">
+        <g transform="translate(-442.5 -425) scale(3)">
+          <path id="ojo-guino" d="M 122 164 H 178 C 198 164 224 164 224 198 C 224 232 198 232 178 232 H 122 C 102 232 76 232 76 198 C 76 164 102 164 122 164 Z"/>
+          <path id="ojo-abierto" d="M 436 182 A 68 68 0 1 1 299.99 182 A 68 68 0 1 1 436 182 Z"/>
+          <path id="boca" d="M 212 286 H 300 C 331.55 286 340.42 286 337.5 314 C 332.064081 366.125250 298 398 256 398 C 214 398 179.935919 366.125250 174.5 314 C 171.58 286 180.45 286 212 286 Z"/>
+        </g>
+      </g>
+    </g>
+    <g id="datos-tarjeta" fill="#FFFEFB" font-family="SF Pro Text, SF Pro, Inter, sans-serif">
+      <text x="486" y="402" font-size="26" font-weight="700"><tspan font-size="13" font-weight="600">Bs </tspan>1.500</text>
+      <text x="486" y="424" font-size="13" font-weight="600">3 pasajes</text>
+      <text x="714" y="452" text-anchor="end" font-size="10" font-weight="600" letter-spacing="1">MARÍA PÉREZ</text>
+    </g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="Confirmación" id="capa-confirmacion">
+    <path id="circulo-listo" d="M 622 520 A 22 22 0 1 1 578 520 A 22 22 0 1 1 622 520 Z" fill="none" stroke="#007AFF" stroke-width="2.4"/>
+    <path id="check-listo" d="M 590 520.5 L 597.5 528 L 611 512.5" fill="none" stroke="#007AFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text id="rotulo-listo" x="600" y="568" text-anchor="middle" font-family="SF Pro Text, SF Pro, Inter, sans-serif" font-size="15" fill="#6e6e6e">Listo</text>
+  </g>
+</svg>

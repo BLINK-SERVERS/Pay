@@ -185,6 +185,22 @@ function MiniBilletera() {
           </span>
           <span className="lp-mini__monto">−500</span>
         </div>
+        <div className="lp-mini__fila">
+          <Icon name="autobus" tamano="sm" />
+          <span className="lp-mini__fila-texto">
+            <strong>Pasaje en la línea</strong>
+            <em>03-nov · 06:50 · Demo-02</em>
+          </span>
+          <span className="lp-mini__monto">−500</span>
+        </div>
+        <div className="lp-mini__fila">
+          <Icon name="autobus" tamano="sm" />
+          <span className="lp-mini__fila-texto">
+            <strong>Pasaje en la línea</strong>
+            <em>02-nov · 07:30 · Demo-01</em>
+          </span>
+          <span className="lp-mini__monto">−500</span>
+        </div>
       </div>
       <div className="lp-mini__tabs">
         <span className="lp-mini__tab lp-mini__tab--activa">
@@ -217,6 +233,24 @@ function MiniRegistro() {
   return (
     <div className="lp-mini lp-mini--registro">
       <p className="lp-mini__titulo">Crear cuenta</p>
+      <ol className="lp-mini__pasos" aria-hidden="true">
+        <li className="lp-mini__paso lp-mini__paso--actual">
+          <i>1</i> Tus datos
+        </li>
+        <li className="lp-mini__paso">
+          <i>2</i> Pago Móvil
+        </li>
+      </ol>
+      <div className="lp-mini__dupla">
+        <div className="lp-mini__campo">
+          <em>Nombres</em>
+          <span className="lp-mini__valor">María Fernanda</span>
+        </div>
+        <div className="lp-mini__campo">
+          <em>Apellidos</em>
+          <span className="lp-mini__valor">Pérez</span>
+        </div>
+      </div>
       <div className="lp-mini__campo">
         <em>Cédula</em>
         <span className="lp-mini__valor">12.345.678</span>
@@ -226,7 +260,18 @@ function MiniRegistro() {
         <span className="lp-mini__valor">0414-1234567</span>
       </div>
       <div className="lp-mini__campo">
+        <em>Correo</em>
+        <span className="lp-mini__valor">maria@ejemplo.com</span>
+        <span className="lp-mini__ayuda">Avisos de recarga y recuperación de acceso.</span>
+      </div>
+      <div className="lp-mini__campo">
         <em>PIN de 6 dígitos</em>
+        <span className="lp-mini__pin" aria-hidden="true">
+          <i /><i /><i /><i /><i /><i />
+        </span>
+      </div>
+      <div className="lp-mini__campo">
+        <em>Repite el PIN</em>
         <span className="lp-mini__pin" aria-hidden="true">
           <i /><i /><i /><i /><i /><i />
         </span>
@@ -243,42 +288,58 @@ function MiniRegistro() {
  * marcas de terceros.
  */
 function MiniPantallaInicio() {
+  // Rejilla de 4×4 como una pantalla de inicio real: catorce apps genéricas
+  // (sin logos de terceros) y Blink Pay en el segundo renglón, destacado.
   const genericas = [
     { nombre: "correo", etiqueta: "Correo" },
-    { nombre: "telefono", etiqueta: "Llamadas" },
     { nombre: "reloj", etiqueta: "Reloj" },
     { nombre: "sol", etiqueta: "Clima" },
     { nombre: "banco", etiqueta: "Banco" },
     { nombre: "documento", etiqueta: "Notas" },
     { nombre: "qr", etiqueta: "Código" },
+    { nombre: "autobus", etiqueta: "Rutas" },
+    { nombre: "personas", etiqueta: "Contactos" },
+    { nombre: "barras", etiqueta: "Bolsa" },
+    { nombre: "luna", etiqueta: "Descanso" },
+    { nombre: "escudo", etiqueta: "Seguridad" },
+    { nombre: "tarjeta", etiqueta: "Cartera" },
+    { nombre: "actualizar", etiqueta: "Tienda" },
+    { nombre: "ayuda", etiqueta: "Soporte" },
+    { nombre: "compartir", etiqueta: "Compartir" },
   ] as const;
+  const celdaGenerica = (app: (typeof genericas)[number]) => (
+    <span key={app.nombre} className="lp-mini__celda">
+      <span className="lp-mini__app lp-mini__app--generica">
+        <Icon name={app.nombre} tamano="sm" />
+      </span>
+      <span className="lp-mini__etiqueta-app">{app.etiqueta}</span>
+    </span>
+  );
   return (
     <div className="lp-mini lp-mini--inicio">
       <div className="lp-mini--inicio__rejilla">
-        {genericas.map((app) => (
-          <span key={app.nombre} className="lp-mini__celda">
-            <span className="lp-mini__app lp-mini__app--generica">
-              <Icon name={app.nombre} tamano="sm" />
-            </span>
-            <span className="lp-mini__etiqueta-app">{app.etiqueta}</span>
-          </span>
-        ))}
+        {genericas.slice(0, 7).map(celdaGenerica)}
         <span className="lp-mini__celda">
           <span className="lp-mini__app lp-mini__app--blink">
             <img src={`${BASE}icon.png`} width="512" height="512" alt="" draggable={false} />
           </span>
           <span className="lp-mini__etiqueta-app">Blink Pay</span>
         </span>
+        {genericas.slice(7).map(celdaGenerica)}
       </div>
+      <span className="lp-mini--inicio__buscar">Buscar</span>
       <div className="lp-mini--inicio__dock">
         <span className="lp-mini__app lp-mini__app--generica">
-          <Icon name="persona" tamano="sm" />
+          <Icon name="telefono" tamano="sm" />
         </span>
         <span className="lp-mini__app lp-mini__app--generica">
           <Icon name="movimientos" tamano="sm" />
         </span>
         <span className="lp-mini__app lp-mini__app--generica">
           <Icon name="destello" tamano="sm" />
+        </span>
+        <span className="lp-mini__app lp-mini__app--generica">
+          <Icon name="persona" tamano="sm" />
         </span>
       </div>
     </div>
