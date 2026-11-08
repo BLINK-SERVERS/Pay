@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="180" height="180" viewBox="887.73 0 179.1 179.1" version="1.1" shape-rendering="geometricPrecision" fill="none">
+  <title>Ondas de pago sin contacto Blink</title>
+  <desc>Las tres ondas aprobadas del lockup Blink Pay (arcos de 90°, radios 61 / 108,1 / 154,7, trazo 24,4 con remates redondos), reencuadradas en su caja de tinta 179,1 × 179,1 sin alterar ninguna path ni proporción. El color lo pone currentColor.</desc>
+  <g inkscape:groupmode="layer" inkscape:label="Ondas de marca" id="capa-ondas" stroke="currentColor" stroke-width="24.4" stroke-linecap="round">
+    <path id="nfc-1" d="M 960.93 166.9 A 61 61 0 0 0 899.93 105.9"/>
+    <path id="nfc-2" d="M 1008.03 166.9 A 108.1 108.1 0 0 0 899.93 58.8"/>
+    <path id="nfc-3" d="M 1054.63 166.9 A 154.7 154.7 0 0 0 899.93 12.2"/>
+  </g>
+</svg>

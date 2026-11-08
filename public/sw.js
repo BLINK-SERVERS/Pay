@@ -11,7 +11,7 @@ const PREFIJO = "blink-pay-";
 // Las cachés de la etapa «Blink Tarjeta» se borran una vez al activar esta
 // versión; sin esto quedarían huérfanas al cambiar el prefijo.
 const PREFIJO_LEGADO = "blink-tarjeta-";
-const CACHE = PREFIJO + "v8";
+const CACHE = PREFIJO + "v10";
 const RAIZ = new URL("./", self.location).href;
 const ARMAZON = [
   RAIZ,

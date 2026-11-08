@@ -7,6 +7,7 @@ import { mkdir } from "node:fs/promises";
  * Usa el Chromium del sistema (no descarga navegadores) y comprueba,
  * en 393×852 y 1440×900, con apariencia clara y oscura:
  *   · que no haya desbordamiento horizontal ni saltos de maqueta,
+ *   · que la landing de `/` no desborde, respete los 44 pt y abra el acceso,
  *   · que el acceso pida solo dígitos y no muestre la tarjeta,
  *   · que el frente de la tarjeta solo lleve saldo, pasajes y titular,
  *   · que todos los iconos sean SF Symbols,
@@ -37,6 +38,15 @@ const navegador = await chromium.launch({
   args: ["--no-sandbox", "--disable-dev-shm-usage"],
 });
 
+// La raíz ya no es el acceso: es la landing de pay.blink.com.ve. Entrar
+// siempre pasa por ella, así que las medidas del acceso se toman después
+// de pulsar «Ya tengo cuenta», que es el camino real del usuario.
+async function abrirAcceso(pagina) {
+  await pagina.waitForSelector(".lp-hero__cta", { timeout: 20000 });
+  await pagina.locator(".lp-hero__cta .lp-boton--fantasma").click();
+  await pagina.waitForSelector(".acceso__panel", { timeout: 20000 });
+}
+
 async function iniciarSesion() {
   const contexto = await navegador.newContext({
     viewport: { width: 393, height: 852 },
@@ -45,6 +55,7 @@ async function iniciarSesion() {
   });
   const pagina = await contexto.newPage();
   await pagina.goto(BASE, { waitUntil: "networkidle" });
+  await abrirAcceso(pagina);
   await pagina.fill("#cedula", CEDULA_DEMO);
   await pagina.fill('input[aria-label="PIN de acceso"]', PIN_DEMO);
   await pagina.waitForSelector(".app__main", { timeout: 20000 });
@@ -58,7 +69,7 @@ function revisar(etiqueta, valor, correcto) {
   console.log(`  ✓ ${etiqueta}`);
 }
 
-// Pantalla de acceso, sin sesión: debe respirar igual en iPhone y macOS.
+// Landing: la puerta de entrada. Se mide entera, no solo el primer pliegue.
 for (const ancho of [393, 1440]) {
   for (const esquema of ["light", "dark"]) {
     const movil = ancho < 768;
@@ -70,6 +81,159 @@ for (const ancho of [393, 1440]) {
     await contexto.addInitScript(CLS);
     const pagina = await contexto.newPage();
     await pagina.goto(BASE, { waitUntil: "networkidle" });
+    await pagina.waitForSelector(".lp-hero__marca svg");
+    await pagina.waitForTimeout(400);
+    console.log(`\nlanding ${ancho}px · ${esquema}`);
+
+    const datos = await pagina.evaluate(() => {
+      const selectores = [
+        ".lp-boton",
+        ".lp-enlace",
+        ".lp-acordeon__boton",
+        ".lp-nav__enlaces a",
+        ".lp-nav__titulo",
+      ];
+      const objetivos = selectores.flatMap((selector) =>
+        [...document.querySelectorAll(selector)]
+          .filter((el) => el.getBoundingClientRect().width > 0)
+          .map((el) => ({ selector, alto: Math.round(el.getBoundingClientRect().height) }))
+      );
+      const iconos = [...document.querySelectorAll("svg.icon")];
+      // Se recorre la página entera: el desbordamiento puede estar al final.
+      const pasos = [0, 0.25, 0.5, 0.75, 1].map((fraccion) => {
+        window.scrollTo(0, (document.documentElement.scrollHeight - window.innerHeight) * fraccion);
+        return document.documentElement.scrollWidth - window.innerWidth;
+      });
+      window.scrollTo(0, 0);
+      return {
+        desborde: Math.max(...pasos),
+        cls: window.__cls,
+        objetivos,
+        iconos: iconos.length,
+        sf: iconos.filter((svg) => svg.hasAttribute("data-variante")).length,
+        fuente: getComputedStyle(document.querySelector(".lp")).fontFamily,
+        marca: Boolean(document.querySelector(".lp-hero__marca svg")),
+        ondas: document.querySelectorAll(".lp-onda").length,
+        beneficios: document.querySelectorAll(".lp-beneficio").length,
+        preguntas: document.querySelectorAll(".lp-acordeon__item").length,
+        notas: document.querySelectorAll(".lp-notas__lista li").length,
+        dominios: document.body.innerText.includes("pay.blink.com.ve"),
+        maracaibo: document.body.innerText.includes("Maracaibo"),
+      };
+    });
+
+    revisar("sin desbordamiento en toda la página", datos.desborde, datos.desborde <= 1);
+    revisar("sin saltos de maqueta (CLS < 0,02)", datos.cls, datos.cls < 0.02);
+    revisar(
+      "objetivos táctiles ≥ 44 px",
+      datos.objetivos.filter((o) => o.alto < 44),
+      datos.objetivos.length > 0 && datos.objetivos.every((o) => o.alto >= 44)
+    );
+    revisar(
+      "todos los iconos son SF Symbols",
+      `${datos.sf}/${datos.iconos}`,
+      datos.iconos > 0 && datos.sf === datos.iconos
+    );
+    revisar("pila tipográfica SF Pro/Inter", datos.fuente, /SF Pro|Inter/.test(datos.fuente));
+    revisar("lockup aprobado en el hero", datos.marca, datos.marca);
+    revisar("tres ondas de marca en el glifo inline", datos.ondas, datos.ondas >= 3);
+    revisar("cuatro beneficios como la referencia", datos.beneficios, datos.beneficios === 4);
+    revisar("acordeón de preguntas presente", datos.preguntas, datos.preguntas >= 6);
+    revisar("notas al pie numeradas", datos.notas, datos.notas === 5);
+    revisar("el copy nombra el dominio", datos.dominios, datos.dominios);
+    revisar("el copy nombra Maracaibo", datos.maracaibo, datos.maracaibo);
+
+    await pagina.screenshot({ path: `${SALIDA}/landing-${ancho}-${esquema}.png`, fullPage: true });
+
+    // El acordeón abre una sola pregunta y la cierra al volver a pulsar.
+    const primera = pagina.locator(".lp-acordeon__boton").first();
+    await primera.scrollIntoViewIfNeeded();
+    await primera.click();
+    await pagina.waitForTimeout(400);
+    const acordeon = await pagina.evaluate(() => {
+      const abiertos = [...document.querySelectorAll(".lp-acordeon__boton")].filter(
+        (boton) => boton.getAttribute("aria-expanded") === "true"
+      );
+      const bandeja = document.querySelector(".lp-acordeon__item--abierto .lp-acordeon__bandeja");
+      return {
+        abiertos: abiertos.length,
+        alto: Math.round(bandeja?.getBoundingClientRect().height ?? 0),
+        region: bandeja?.getAttribute("role"),
+      };
+    });
+    revisar("el acordeón abre una sola pregunta", acordeon.abiertos, acordeon.abiertos === 1);
+    revisar("la bandeja abierta tiene altura", acordeon.alto, acordeon.alto > 40);
+    revisar("la bandeja es una región etiquetada", acordeon.region, acordeon.region === "region");
+    await pagina.screenshot({
+      path: `${SALIDA}/landing-preguntas-${ancho}-${esquema}.png`,
+      fullPage: false,
+    });
+    await primera.click();
+    await pagina.waitForTimeout(400);
+    const cerradas = await pagina.locator(".lp-acordeon__item--abierto").count();
+    revisar("el acordeón se cierra al volver a pulsar", cerradas, cerradas === 0);
+
+    // «Ya tengo cuenta» lleva al acceso y deja la página arriba.
+    await pagina.locator(".lp-hero__cta .lp-boton--fantasma").click();
+    await pagina.waitForSelector(".acceso__panel");
+    await pagina.waitForTimeout(350);
+    const salto = await pagina.evaluate(() => ({
+      hash: window.location.hash,
+      arriba: window.scrollY,
+      cedula: Boolean(document.querySelector("#cedula")),
+      landing: Boolean(document.querySelector(".lp")),
+    }));
+    revisar("el CTA abre el acceso en #entrar", salto.hash, salto.hash === "#entrar");
+    revisar("el acceso arranca arriba", salto.arriba, salto.arriba === 0);
+    revisar("el formulario de cédula está presente", salto.cedula, salto.cedula);
+    revisar("la landing se desmonta", salto.landing, !salto.landing);
+
+    // «Volver» devuelve a la puerta de entrada y limpia la URL.
+    await pagina.locator(".acceso__volver").click();
+    await pagina.waitForSelector(".lp-hero__marca svg");
+    await pagina.waitForTimeout(300);
+    const vuelta = await pagina.evaluate(() => ({
+      hash: window.location.hash,
+      landing: Boolean(document.querySelector(".lp")),
+      acceso: Boolean(document.querySelector(".acceso__panel")),
+    }));
+    revisar("volver deja la URL en la raíz", vuelta.hash, vuelta.hash === "");
+    revisar("volver pinta la landing", vuelta.landing, vuelta.landing);
+    revisar("volver desmonta el acceso", vuelta.acceso, !vuelta.acceso);
+
+    // «Configura tu tarjeta» abre el alta, no el login.
+    await pagina.locator(".lp-hero__cta .lp-boton--primario").click();
+    await pagina.waitForSelector(".acceso__panel");
+    await pagina.waitForTimeout(300);
+    const alta = await pagina.evaluate(() => ({
+      hash: window.location.hash,
+      crear: document.querySelector('.segmentado__opcion[aria-selected="true"]')?.textContent ?? "",
+    }));
+    revisar("configurar abre #registro", alta.hash, alta.hash === "#registro");
+    revisar("configurar selecciona Crear cuenta", alta.crear.trim(), alta.crear.trim() === "Crear cuenta");
+    await pagina.screenshot({
+      path: `${SALIDA}/landing-registro-${ancho}-${esquema}.png`,
+      fullPage: false,
+    });
+
+    await contexto.close();
+  }
+}
+
+// Pantalla de acceso, sin sesión: debe respirar igual en iPhone y macOS.
+for (const ancho of [393, 1440]) {
+  for (const esquema of ["light", "dark"]) {
+    const movil = ancho < 768;
+    const contexto = await navegador.newContext({
+      viewport: { width: ancho, height: movil ? 852 : 900 },
+      colorScheme: esquema,
+      hasTouch: movil,
+    });
+    await contexto.addInitScript(CLS);
+    const pagina = await contexto.newPage();
+    await pagina.goto(new URL("#entrar", BASE).href, { waitUntil: "networkidle" });
+    // El enlace profundo monta el acceso sin pintar la landing: así el CLS
+    // mide esta pantalla y no la navegación entre las dos.
     // En producción el paquete compilado puede montar un fotograma después;
     // esperar al panel evita medir una pantalla todavía vacía.
     await pagina.waitForSelector(".acceso__panel");

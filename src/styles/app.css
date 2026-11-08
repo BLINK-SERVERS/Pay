@@ -182,6 +182,40 @@ body {
   background: var(--color-bg-primary);
 }
 
+/* Volver a la landing: aprovecha el aire superior en vez de añadir una fila. */
+.acceso__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  align-self: flex-start;
+  min-height: 44px; /* --ios-touch-target */
+  margin: -1.5rem 0 -1.15rem -0.6rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-accent-text);
+  font-size: var(--ios-fs-body);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.acceso__volver .icon {
+  width: 0.75em;
+  height: 0.75em;
+  vertical-align: 0;
+}
+
+.acceso__volver:hover {
+  color: var(--color-accent);
+}
+
+.acceso__volver:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--color-accent-ring);
+}
+
 .acceso__marca {
   display: flex;
   flex-direction: column;

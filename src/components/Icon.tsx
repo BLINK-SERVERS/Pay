@@ -1,5 +1,8 @@
-import type { SVGProps } from "react";
-import { BlinkSymbol, type NombreSimbolo } from "./ui/BlinkSymbol";
+import {
+  BlinkSymbol,
+  type NombreSimbolo,
+  type Props as BlinkSymbolProps,
+} from "./ui/BlinkSymbol";
 
 /**
  * Alias histórico de los nombres usados por la interfaz.
@@ -8,9 +11,9 @@ import { BlinkSymbol, type NombreSimbolo } from "./ui/BlinkSymbol";
  */
 export type IconName = NombreSimbolo;
 
-interface Props extends Omit<SVGProps<SVGSVGElement>, "name"> {
+type Props = Omit<BlinkSymbolProps, "nombre"> & {
   name: IconName;
-}
+};
 
 export function Icon({ name, ...resto }: Props) {
   return <BlinkSymbol nombre={name} {...resto} />;

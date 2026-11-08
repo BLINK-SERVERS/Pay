@@ -229,7 +229,7 @@ const PIXELES: Record<Exclude<TamanoSimbolo, number>, number> = {
   xl: 32,
 };
 
-interface Props extends Omit<SVGProps<SVGSVGElement>, "name"> {
+export interface Props extends Omit<SVGProps<SVGSVGElement>, "name"> {
   nombre: NombreSimbolo;
   variante?: VarianteSimbolo;
   tamano?: TamanoSimbolo;

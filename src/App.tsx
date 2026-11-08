@@ -49,6 +49,9 @@ const VIGENCIA_REFRESCO = 10_000;
 // Cada vista viaja en su propio trozo de JavaScript. El arranque solo carga
 // la pantalla que se va a ver; las demás llegan al navegar (y quedan en la
 // caché del service worker para la siguiente visita).
+const Landing = lazy(() =>
+  import("./pages/Landing").then((modulo) => ({ default: memo(modulo.Landing) }))
+);
 const Acceso = lazy(() =>
   import("./pages/Acceso").then((modulo) => ({ default: memo(modulo.Acceso) }))
 );
@@ -99,6 +102,38 @@ function guardarSesion(token: string, expira = Date.now() + 12 * 60 * 60 * 1000)
   localStorage.setItem(CLAVE_SESION, JSON.stringify({ token, expira }));
 }
 
+/** Lo que ve quien no tiene sesión abierta. */
+type VistaPublica = "landing" | "acceso";
+type ModoAcceso = "entrar" | "registro";
+
+/**
+ * Sin sesión, el hash decide la puerta: `/` es la landing de pay.blink.com.ve
+ * y `#entrar` / `#registro` abren el acceso (enlaces que se pueden compartir).
+ * Los anclas de la propia landing (`#configurar`, `#seguridad`, `#preguntas`)
+ * no son rutas: dejan la puerta de entrada tal cual.
+ */
+function leerVistaPublica(): { vista: VistaPublica; modo: ModoAcceso } {
+  const hash = window.location.hash.replace(/^#/, "").toLowerCase();
+  if (hash === "registro") return { vista: "acceso", modo: "registro" };
+  if (hash === "entrar" || hash === "acceso") return { vista: "acceso", modo: "entrar" };
+  return { vista: "landing", modo: "entrar" };
+}
+
+/** Cambiar de vista pública no debe dejar la página a media altura. */
+function irArriba() {
+  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+}
+
+/** Deja la URL en la raíz sin añadir una entrada al historial. */
+function limpiarHash() {
+  if (!window.location.hash) return;
+  window.history.replaceState(
+    null,
+    "",
+    window.location.pathname + window.location.search
+  );
+}
+
 export function App() {
   const [sesion, setSesion] = useState<Sesion | null>(null);
   const [serialActiva, setSerialActiva] = useState<string | null>(null);
@@ -130,6 +165,15 @@ export function App() {
   const [altaBiometriaLista, setAltaBiometriaLista] = useState(false);
   const [errorAltaBiometria, setErrorAltaBiometria] = useState<string | null>(null);
   const [avisoAcceso, setAvisoAcceso] = useState<string | null>(null);
+  // Puerta de entrada: sin sesión se ve la landing; el acceso se abre con un
+  // CTA o con un enlace `#entrar` / `#registro`.
+  const [vistaPublica, setVistaPublica] = useState<VistaPublica>(
+    () => leerVistaPublica().vista
+  );
+  const [modoAcceso, setModoAcceso] = useState<ModoAcceso>(
+    () => leerVistaPublica().modo
+  );
+  const vistaPublicaRef = useRef<VistaPublica>(vistaPublica);
   const ocultoDesde = useRef<number | null>(null);
   // Un solo refresco en vuelo y una ventana de vigencia: cambiar de pestaña o
   // volver a la app no dispara la misma lectura dos veces.
@@ -328,6 +372,12 @@ export function App() {
     setPestana("inicio");
     setBloqueo(null);
     setMovimientoActivo(null);
+    // Cerrar sesión devuelve a la puerta de entrada, no al formulario.
+    vistaPublicaRef.current = "landing";
+    setVistaPublica("landing");
+    setModoAcceso("entrar");
+    limpiarHash();
+    irArriba();
     localStorage.removeItem(CLAVE_SESION);
     // La credencial del teléfono se conserva: la huella vuelve a abrir la
     // cuenta sin pedir el PIN.
@@ -379,6 +429,39 @@ export function App() {
     return () => document.removeEventListener("visibilitychange", alCambiarVisibilidad);
   }, [bloquear, refrescar, sesion]);
 
+  // El hash manda: así «atrás» (también el de Android dentro de la PWA)
+  // vuelve a la landing en lugar de sacar al usuario de la app.
+  useEffect(() => {
+    function alCambiarHash() {
+      const { vista, modo } = leerVistaPublica();
+      if (vistaPublicaRef.current !== vista) irArriba();
+      vistaPublicaRef.current = vista;
+      setVistaPublica(vista);
+      setModoAcceso(modo);
+    }
+    window.addEventListener("hashchange", alCambiarHash);
+    return () => window.removeEventListener("hashchange", alCambiarHash);
+  }, []);
+
+  const abrirAcceso = useCallback((modo: ModoAcceso) => {
+    vistaPublicaRef.current = "acceso";
+    setVistaPublica("acceso");
+    setModoAcceso(modo);
+    window.location.hash = modo === "registro" ? "registro" : "entrar";
+    irArriba();
+  }, []);
+
+  const volverALanding = useCallback(() => {
+    vistaPublicaRef.current = "landing";
+    setVistaPublica("landing");
+    setModoAcceso("entrar");
+    limpiarHash();
+    irArriba();
+  }, []);
+
+  const configurarTarjeta = useCallback(() => abrirAcceso("registro"), [abrirAcceso]);
+  const entrarConCuenta = useCallback(() => abrirAcceso("entrar"), [abrirAcceso]);
+
   async function desbloquear() {
     const prueba = await desbloquearConBiometria();
     try {
@@ -390,6 +473,7 @@ export function App() {
       setBloqueo(null);
       setAvisoAcceso(null);
       setBiometria(leerRegistroBiometria());
+      limpiarHash();
     } catch (error) {
       if (error instanceof ErrorBlink && error.codigo === "credenciales") {
         localStorage.removeItem(CLAVE_SESION);
@@ -397,6 +481,8 @@ export function App() {
         setBloqueo(null);
         setBiometria(leerRegistroBiometria());
         setAvisoAcceso(error.message);
+        // La llave biométrica ya no sirve: se explica en el acceso con PIN.
+        abrirAcceso("entrar");
       }
       throw error;
     }
@@ -405,6 +491,8 @@ export function App() {
   function usarPin() {
     setBloqueo(null);
     setAvisoAcceso(null);
+    // «Usar mi PIN» desde el desbloqueo biométrico abre el formulario.
+    abrirAcceso("entrar");
   }
 
   async function ofrecerAccesoBiometrico(nueva: Sesion) {
@@ -465,6 +553,7 @@ export function App() {
     setPestana("inicio");
     setBloqueo(null);
     setAvisoAcceso(null);
+    limpiarHash();
     if (mismaCuenta && !registroDesbloqueable(previo)) {
       // Un registro anterior sin llave se reactiva al entrar con PIN.
       void repositorio
@@ -578,16 +667,35 @@ export function App() {
     );
   }
 
+  if (!sesion && vistaPublica === "landing") {
+    return (
+      <>
+        <Suspense fallback={<PayLoader />}>
+          <Landing
+            alConfigurar={configurarTarjeta}
+            alEntrar={entrarConCuenta}
+            tarifa={ajustes.tarifario.base}
+          />
+        </Suspense>
+        {/* `AvisoDemo` lo pinta la propia landing dentro del hero. */}
+        <AvisoActualizacion />
+      </>
+    );
+  }
+
   if (!sesion) {
     return (
       <>
         <Suspense fallback={<PayLoader />}>
           <Acceso
+            key={modoAcceso}
             alEntrar={alEntrar}
             tarifa={ajustes.tarifario.base}
             biometria={accesoBiometrico}
             alEntrarConBiometria={accesoBiometrico ? desbloquear : undefined}
             avisoInicial={avisoAcceso}
+            modoInicial={modoAcceso}
+            alVolver={volverALanding}
           />
         </Suspense>
         <AvisoDemo />

@@ -31,6 +31,10 @@ interface Props {
   alEntrarConBiometria?: () => Promise<void>;
   /** Aviso que dejó una sesión vencida o revocada. */
   avisoInicial?: string | null;
+  /** Pestaña con la que abre: la decide el enlace (`#entrar` o `#registro`). */
+  modoInicial?: Modo;
+  /** Vuelve a la landing de pay.blink.com.ve. Sin él no se muestra el botón. */
+  alVolver?: () => void;
 }
 
 export function Acceso({
@@ -40,8 +44,10 @@ export function Acceso({
   biometria = null,
   alEntrarConBiometria,
   avisoInicial = null,
+  modoInicial = "entrar",
+  alVolver,
 }: Props) {
-  const [modo, setModo] = useState<Modo>("entrar");
+  const [modo, setModo] = useState<Modo>(modoInicial);
 
   // Entrar
   const [cedula, setCedula] = useState("");
@@ -198,6 +204,18 @@ export function Acceso({
   return (
     <div className="acceso">
       <div className="acceso__fondo" aria-hidden="true" />
+
+      {alVolver && (
+        <button
+          type="button"
+          className="acceso__volver"
+          onClick={alVolver}
+          aria-label="Volver a la página de inicio de Blink Pay"
+        >
+          <Icon name="atras" tamano="sm" />
+          Volver
+        </button>
+      )}
 
       <header className="acceso__marca">
         <MarcaPay />
