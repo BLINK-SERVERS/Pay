@@ -5,6 +5,83 @@ Todos los cambios relevantes de este producto se documentan aquí.
 Formato basado en [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/)
 y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 8601.
 
+## [No publicado]
+
+## [2.4.0] — 2026-11-07
+
+Nueva puerta de entrada pública y canal OTA de la flota de validadores. GitHub
+Pages vuelve a servir el paquete de interfaz (la 2.3.0 fue solo contrato de
+base de datos) y ahora aloja también el firmware del validador.
+
+### Añadido
+
+- **Landing de `pay.blink.com.ve`** (`src/pages/Landing.tsx`,
+  `src/styles/landing.css`): sin sesión, `/` muestra una página de producto
+  réplica de la estructura de apple.com/la/apple-pay, con maquetas CSS del
+  validador y de la PWA (el alta, el cobro y el saldo). El acceso se abre con
+  `#entrar` o `#registro`; las anclas `#configurar`, `#seguridad` y `#preguntas`
+  navegan dentro de la propia landing. `App.tsx` la carga perezosa y memoizada.
+- **Activos de marca** en `src/assets/` (isotipo y ondas NFC) y
+  `marca/blink-pay-sin-contacto.svg` (el símbolo sin contacto con las tres
+  ondas de la marca), más la referencia de geometría en `marca/referencias/`.
+- **Canal OTA del firmware** en `public/firmware/`: `manifest.json` y
+  `BLINK_Validador.bin` de la versión 14, servidos por HTTPS en
+  `https://pay.blink.com.ve/firmware/`. El workflow `pages.yml` los copia a
+  `dist/firmware/` en cada despliegue.
+- **`scripts/build-firmware-assets.mjs`**: rasteriza los SVG maestros de
+  `marca/` a bitmaps RGB565 (`assets.h`) para el splash, el isotipo y el
+  símbolo sin contacto del validador ESP32. `potrace` entra como devDep.
+
+### Cambiado
+
+- **`Icon` reenvía las props de `BlinkSymbol`** (`tamano`, `variante`,
+  `animacion`, colores y título): el envoltorio ya no las descarta, así que la
+  landing puede pedir símbolos monocromos y tamaños concretos. `BlinkSymbol`
+  exporta su tipo `Props`.
+- **Iconos, favicon y maskable** regenerados desde los SVG maestros con
+  `scripts/build-icons.mjs`; el favicon va con fondo transparente.
+- **Caché del service worker** a `blink-pay-v10` para forzar el refresh del
+  armazón anterior.
+- La puerta pública por defecto pasa de la pantalla de acceso a la landing;
+  «volver» desde el acceso regresa a la landing en lugar de salir de la app.
+
+### Firmware del validador (repo `~/BLINK/firmware/validador`)
+
+- **Versión 14**: corrige la sincronización con Pay añadiendo las cabeceras
+  `Accept-Profile` y `Content-Profile: public` a la RPC (PostgREST de Pay
+  expone `api` por defecto y la función vive en `public`; antes daba PGRST202,
+  HTTP 404). Binario de **1 526 944 B**, SHA-256
+  `48962f7244e1b2eccc6c78edced4cce345e5ac9729f8e2d748846c3131cccca2`.
+- El canal OTA queda apuntado en `config.example.h`
+  (`OTA_MANIFEST_URL = https://pay.blink.com.ve/firmware/manifest.json`).
+
+### Pruebas
+
+- `npm run typecheck` limpio; `npm test`: **111 pruebas** en 9 archivos;
+  `npm run build` correcto. El workflow de Pages (`construir` + `publicar`)
+  terminó en `success`.
+- **Canal OTA verificado en vivo**: `manifest.json` devuelve la 14 con su URL,
+  SHA-256 y `size`; el binario responde HTTP 200 con `Content-Length: 1526944`
+  y el SHA-256 descargado coincide con el del manifest y con el flasheado por
+  USB en la unidad real.
+- **Unidad de banco** (`/dev/ttyUSB0`, fw 14): tras fijar `OTA_URL` y forzar
+  `OTA`, el equipo descargó el manifest por HTTPS y respondió
+  `OTA,sin-novedad,actual=14,remota=14`; `OTA_ESTADO` persiste `remota=14`,
+  `fallo=0`. En la misma pasada `SYNC,ok=1,…,placa=A12BC3D` reconfirma el fix
+  de sincronización en hardware real.
+
+### Conocido
+
+- **La escritura del canal OTA es la del repo Pay**: quien pueda pushear a
+  `main` publica firmware. La rama debe estar protegida (R-24); el SHA-256
+  detecta corrupción, no un canal comprometido.
+- Sigue pendiente el corte de energía a mitad de descarga OTA (D-14) y la
+  instalación de una versión mayor en la flota (la 14 solo pudo comprobarse
+  como `sin-novedad` por ser la misma que corre la unidad).
+- `0024` y `0025` continúan sin aplicar en Supabase (ver 2.3.0): el modo local
+  no se ve afectado, pero la nube no firma ni tiene bitácora hasta pegarlas en
+  el SQL Editor.
+
 ## [2.3.0] — 2026-11-07
 
 Implementa `QODER-BLINK-BANKING-SEC-2026` en `0025_escudo_validador.sql` y fija
