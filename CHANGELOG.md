@@ -7,6 +7,57 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+## [2.4.1] — 2026-11-07
+
+Parche de firmware y base de datos: el validador ya genera la clave de
+idempotencia que exige `0025` y la nube de producción queda al día con las
+migraciones del contrato bancario.
+
+### Firmware del validador (repo `~/BLINK/firmware/validador`)
+
+- **Versión 15 por OTA**: cada toque nace con un `offline_id` UUID v4 generado
+  con 16 bytes del RNG hardware del ESP32 (versión 4 y variante RFC 4122),
+  como exige `0025` y `QODER-BLINK-BANKING-SEC-2026` §2. La 14 mandaba una
+  clave de texto (`UID-epoch-contador-azar`) que la nube viva rechazaba con
+  «Clave de idempotencia inválida (UUID v4)». Binario de **1 527 232 B**,
+  SHA-256 `e90cb24f20b3459236e1e192e73f09fb1d226600f649c148168ead78df2673ea`.
+- `public/firmware/manifest.json` apunta a la 15; el canal sigue siendo
+  `https://pay.blink.com.ve/firmware/`.
+- La firma HMAC de §3 (`bt_validador_sincronizar_firma`) sigue pendiente para
+  una versión posterior; el camino por token de 0004 permanece.
+
+### Base de datos (producción `gakkfzqcrapxeierfdhk`)
+
+- **`0024` y `0025` verificadas como ya aplicadas** en la nube viva: marcador
+  de esquema, `bt_validador_sincronizar` rechazando claves de texto, 22
+  viajes históricos normalizados y `transactions_log` con 31 movimientos.
+- **`0021_endurece_acceso.sql` aplicada** (faltaba en producción aunque
+  `0024`/`0025` estaban): crea `account_sessions.mfa` y
+  `accounts.totp_ultimo_contador`, sin los cuales `bt_reanudar` —el enlace
+  biométrico de 0024— fallaba en tiempo de ejecución. Aplicada en una sola
+  transacción con respaldo previo de las definiciones anteriores;
+  `notify pgrst, 'reload schema'` emitido.
+
+### Pruebas
+
+- Generador UUID v4 probado en host: **100 000 claves**, 0 inválidas contra
+  el regex exacto de `0025`, 0 colisiones; caso extremo `0xFF` produce
+  versión 4 y variante `b`.
+- Prueba transaccional contra la nube viva (con rollback): un toque con
+  UUID v4 de la 15 se procesa (`procesadas=1`); el mismo toque con clave de
+  texto de la 14 se rechaza y queda en `validator_rejections`.
+- Unidad de banco (`/dev/ttyUSB0`, MAC `1C608BDF948C`): flasheada por USB con
+  la 15 conservando la NVS (token, placa `A12BC3D` y colas), `INFO` reporta
+  `fw=15` y `SYNC,ok=1,…,placa=A12BC3D` contra producción.
+
+### Conocido
+
+- La instalación de una versión mayor por OTA en la flota sigue sin
+  comprobarse en calle (D-14: corte de energía a mitad de descarga); la
+  unidad de banco ya corre la 15 por USB.
+- La escritura del canal OTA sigue siendo la del repo Pay (R-24): proteger
+  `main`.
+
 ## [2.4.0] — 2026-11-07
 
 Nueva puerta de entrada pública y canal OTA de la flota de validadores. GitHub
@@ -78,9 +129,9 @@ base de datos) y ahora aloja también el firmware del validador.
 - Sigue pendiente el corte de energía a mitad de descarga OTA (D-14) y la
   instalación de una versión mayor en la flota (la 14 solo pudo comprobarse
   como `sin-novedad` por ser la misma que corre la unidad).
-- `0024` y `0025` continúan sin aplicar en Supabase (ver 2.3.0): el modo local
-  no se ve afectado, pero la nube no firma ni tiene bitácora hasta pegarlas en
-  el SQL Editor.
+- ~~`0024` y `0025` continúan sin aplicar en Supabase~~: esta nota era
+  incorrecta; la verificación en vivo de la 2.4.1 demostró que ambas ya
+  estaban aplicadas. Lo que faltaba era `0021`, aplicada en la 2.4.1.
 
 ## [2.3.0] — 2026-11-07
 
@@ -131,9 +182,9 @@ el contrato del firmware en [`docs/seguridad-validador.md`](docs/seguridad-valid
 
 ### Conocido
 
-- `0024` y `0025` siguen **sin aplicar en Supabase**: deben pegarse en el SQL
-  Editor del proyecto. Mientras tanto la nube no firma, no tiene bitácora y la
-  biometría del portal no puede crear enlaces; el modo local no se ve afectado.
+- ~~`0024` y `0025` siguen sin aplicar en Supabase~~: nota corregida en la
+  2.4.1 tras verificar en vivo que ambas ya estaban aplicadas; la que
+  faltaba era `0021` (prerrequisito del enlace biométrico), aplicada allí.
 - El firmware ESP32 no está en este repositorio. Hasta que implemente el UUID
   v4 y la firma de la sección 2 del documento, los equipos en calle siguen
   usando el camino por token.
