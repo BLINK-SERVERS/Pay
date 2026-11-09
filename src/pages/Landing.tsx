@@ -96,20 +96,82 @@ function Ondas({ titulo, animadas = false }: { titulo?: string; animadas?: boole
 }
 
 /* ------------------------------------------------------------------ *
- * Mockups (composiciones CSS, no fotografías)
+ * Mockups (composiciones CSS con bezels de productos Apple)
+ *
+ * Las proporciones y radios corresponden a:
+ * - iPhone 15/16 Pro: 393×852 CSS px, Dynamic Island, botones laterales
+ * - iPad Pro 13": 1024×1366 CSS px, bezel delgado, cámara frontal
+ * - MacBook Pro 14": 1512×982 CSS px, notch superior, bisel de aluminio
  * ------------------------------------------------------------------ */
 
-function Telefono({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
+/**
+ * Bezel de iPhone 15/16 Pro con Dynamic Island, botones laterales y
+ * módulo de cámara. La pantalla usa aspect-ratio 393/852.
+ */
+function IPhone({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
   return (
-    <div className="lp-telefono" role="img" aria-label={etiqueta}>
-      <div className="lp-telefono__marco">
-        <span className="lp-telefono__isla" />
-        <div className="lp-telefono__pantalla">{children}</div>
-        <span className="lp-telefono__barra" />
+    <div className="lp-dispositivo lp-dispositivo--iphone" role="img" aria-label={etiqueta}>
+      <div className="lp-dispositivo__marco lp-dispositivo__marco--iphone">
+        {/* Botón de acción (izquierda) */}
+        <span className="lp-dispositivo__boton lp-dispositivo__boton--accion" aria-hidden="true" />
+        {/* Botones de volumen (izquierda) */}
+        <span className="lp-dispositivo__boton lp-dispositivo__boton--vol-up" aria-hidden="true" />
+        <span className="lp-dispositivo__boton lp-dispositivo__boton--vol-down" aria-hidden="true" />
+        {/* Botón de encendido (derecha) */}
+        <span className="lp-dispositivo__boton lp-dispositivo__boton--power" aria-hidden="true" />
+        {/* Módulo de cámara (trasero, visible como detalle) */}
+        <span className="lp-dispositivo__camara" aria-hidden="true" />
+        {/* Dynamic Island */}
+        <span className="lp-dispositivo__isla" aria-hidden="true" />
+        {/* Pantalla */}
+        <div className="lp-dispositivo__pantalla lp-dispositivo__pantalla--iphone">{children}</div>
+        {/* Home indicator */}
+        <span className="lp-dispositivo__barra" aria-hidden="true" />
       </div>
     </div>
   );
 }
+
+/**
+ * Bezel de iPad Pro 13" con bisel delgado y cámara frontal.
+ * Aspect-ratio 1024/1366 (3:4).
+ */
+export function IPad({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
+  return (
+    <div className="lp-dispositivo lp-dispositivo--ipad" role="img" aria-label={etiqueta}>
+      <div className="lp-dispositivo__marco lp-dispositivo__marco--ipad">
+        {/* Cámara frontal */}
+        <span className="lp-dispositivo__camara-ipad" aria-hidden="true" />
+        {/* Pantalla */}
+        <div className="lp-dispositivo__pantalla lp-dispositivo__pantalla--ipad">{children}</div>
+        {/* Home indicator */}
+        <span className="lp-dispositivo__barra lp-dispositivo__barra--ipad" aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Bezel de MacBook Pro 14" con notch y bisel de aluminio.
+ * Aspect-ratio 1512/982 (16:10).
+ */
+export function Mac({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
+  return (
+    <div className="lp-dispositivo lp-dispositivo--mac" role="img" aria-label={etiqueta}>
+      <div className="lp-dispositivo__marco lp-dispositivo__marco--mac">
+        {/* Notch superior */}
+        <span className="lp-dispositivo__notch" aria-hidden="true" />
+        {/* Pantalla */}
+        <div className="lp-dispositivo__pantalla lp-dispositivo__pantalla--mac">{children}</div>
+        {/* Base del laptop */}
+        <span className="lp-dispositivo__base" aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
+
+/** Alias para compatibilidad con el código existente. */
+const Telefono = IPhone;
 
 /** La billetera tal como se ve en la app: saludo, tarjeta, saldo y extracto. */
 function MiniBilletera() {

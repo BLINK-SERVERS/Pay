@@ -4,7 +4,7 @@
   <desc>Composición 1200×630 al estilo de la referencia autorizada de Apple Pay: campo azul de marca, lockup aprobado en blanco detrás y un teléfono emergiendo desde el borde inferior con la tarjeta Blink Pay y la confirmación «Listo». El lockup y el arte de la tarjeta se reproducen tal cual de los SVG maestros; sin geometría nueva de marca.</desc>
   <defs>
     <clipPath id="recorte-tarjeta-og"><rect x="0" y="0" width="1011" height="638" rx="40"/></clipPath>
-    <clipPath id="recorte-pantalla-og"><rect x="452" y="250" width="296" height="446" rx="42"/></clipPath>
+    <clipPath id="recorte-pantalla-og"><rect x="452" y="250" width="296" height="446" rx="36"/></clipPath>
   </defs>
   <g inkscape:groupmode="layer" inkscape:label="Fondo" id="capa-fondo">
     <rect id="campo" x="0" y="0" width="1200" height="630" fill="#007AFF"/>
@@ -28,28 +28,54 @@
     <path id="nfc-3" d="M 1108.45 -111 A 154.7 154.7 0 0 0 953.75 -265.7" fill="none" stroke="currentColor" stroke-width="24.4" stroke-linecap="round"/>
     </g>
   </g>
-  <g inkscape:groupmode="layer" inkscape:label="Teléfono" id="capa-telefono">
-    <g id="botones" fill="#1d1d1f">
-      <rect x="436" y="352" width="4" height="26" rx="2"/>
-      <rect x="436" y="392" width="4" height="44" rx="2"/>
-      <rect x="760" y="372" width="4" height="64" rx="2"/>
+  <g inkscape:groupmode="layer" inkscape:label="iPhone 15 Pro" id="capa-telefono">
+    <!-- Titanio Natural: gradiente sutil del marco -->
+    <defs>
+      <linearGradient id="titanio" x1="0" y1="0" x2="0.3" y2="1">
+        <stop offset="0%" stop-color="#3a3a3c"/>
+        <stop offset="40%" stop-color="#1c1c1e"/>
+        <stop offset="100%" stop-color="#18181a"/>
+      </linearGradient>
+    </defs>
+    <!-- Botones laterales del iPhone 15 Pro -->
+    <g id="botones-laterales" fill="#2a2a2c">
+      <!-- Botón de acción (izquierda, arriba) -->
+      <rect x="436" y="322" width="4" height="22" rx="2"/>
+      <!-- Volumen arriba (izquierda) -->
+      <rect x="436" y="358" width="4" height="30" rx="2"/>
+      <!-- Volumen abajo (izquierda) -->
+      <rect x="436" y="396" width="4" height="30" rx="2"/>
+      <!-- Encendido (derecha) -->
+      <rect x="760" y="372" width="4" height="50" rx="2"/>
     </g>
-    <rect id="bisel" x="440" y="238" width="320" height="470" rx="54" fill="#1d1d1f"/>
-    <rect id="pantalla" x="452" y="250" width="296" height="446" rx="42" fill="#f2f2f7"/>
+    <!-- Módulo de cámara (insinuación del cuadrado trasero) -->
+    <rect id="modulo-camara" x="456" y="252" width="52" height="52" rx="12" fill="none" stroke="rgba(235,235,245,0.12)" stroke-width="0.8"/>
+    <!-- Bisreel exterior (marco de titanio) -->
+    <rect id="bisel" x="440" y="238" width="320" height="470" rx="44" fill="url(#titanio)"/>
+    <!-- Borde interior del bisel (sutil highlight) -->
+    <rect x="441" y="239" width="318" height="468" rx="43" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+    <!-- Pantalla OLED Super Retina XDR -->
+    <rect id="pantalla" x="452" y="250" width="296" height="446" rx="36" fill="#f2f2f7"/>
+    <!-- Barra de estado y Dynamic Island -->
     <g id="estado" clip-path="url(#recorte-pantalla-og)">
+      <!-- Hora -->
       <text x="478" y="279" font-family="SF Pro Text, SF Pro, Inter, sans-serif" font-size="15" font-weight="600" fill="#1d1d1f">9:41</text>
-      <rect id="isla" x="560" y="262" width="80" height="22" rx="11" fill="#000000"/>
+      <!-- Dynamic Island: 126×37 a escala del mockup ≈ 102×30 -->
+      <rect id="dynamic-island" x="549" y="258" width="102" height="30" rx="15" fill="#000000"/>
+      <!-- Señal celular -->
       <g id="senal" fill="#1d1d1f">
         <rect x="668" y="276" width="3" height="4" rx="1"/>
         <rect x="672.5" y="274" width="3" height="6" rx="1"/>
         <rect x="677" y="272" width="3" height="8" rx="1"/>
         <rect x="681.5" y="270" width="3" height="10" rx="1"/>
       </g>
+      <!-- Wi-Fi -->
       <g id="wifi" fill="none" stroke="#1d1d1f" stroke-width="1.8" stroke-linecap="round">
         <path d="M 693.5 276.5 A 7.8 7.8 0 0 1 704.5 276.5"/>
         <path d="M 696 279 A 4.2 4.2 0 0 1 702 279"/>
       </g>
       <circle cx="699" cy="281.5" r="1.5" fill="#1d1d1f"/>
+      <!-- Batería -->
       <g id="bateria">
         <rect x="712" y="272" width="22" height="11" rx="3" fill="none" stroke="#1d1d1f" stroke-opacity="0.4"/>
         <rect x="714" y="274" width="18" height="7" rx="1.5" fill="#1d1d1f"/>
