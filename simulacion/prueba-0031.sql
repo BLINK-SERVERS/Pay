@@ -41,6 +41,31 @@ select jsonb_pretty(
 select jsonb_pretty(
   (public.bt_sesion(:'p_token')::jsonb -> 'cuenta' -> 'datosPago')) as espejo_plano;
 
+-- Regresión de #163: `set principal = (id = p_id)` en una sola sentencia
+-- dependía del orden físico en que Postgres tocaba las filas. Ir hacia
+-- adelante funcionaba; volver a la cuenta de atrás marcaba la nueva antes de
+-- desmarcar la vieja y reventaba contra pago_cuentas_una_principal (23505).
+select '4b. VOLVER ATRÁS, A LA CUENTA DE ORIGEN' as paso;
+select p.id as propia
+  from public.pago_cuentas p
+  join public.accounts a on a.id = p.account_id
+ where a.cedula_digitos = '30111631' and p.propia \gset r_
+select jsonb_pretty(
+  (public.bt_usar_cuenta_pago(:'p_token', :'r_propia')::jsonb -> 'cuenta' -> 'cuentasPago')) as vuelta_atras;
+select count(*) filter (where principal) as principales,
+       count(*) filter (where not principal) as secundarias
+  from public.pago_cuentas p
+  join public.accounts a on a.id = p.account_id
+ where a.cedula_digitos = '30111631';
+
+select '4c. Y DE NUEVO HACIA ADELANTE' as paso;
+-- Se vuelve a la del medio (no a la última) para dejar la de Banesco viva:
+-- los pasos 7 y 8 la usan para probar el borrado.
+select jsonb_pretty(
+  (public.bt_usar_cuenta_pago(:'p_token', :'g_segunda')::jsonb -> 'cuenta' -> 'cuentasPago')) as otra_vez;
+select jsonb_pretty(
+  (public.bt_sesion(:'p_token')::jsonb -> 'cuenta' -> 'datosPago')) as espejo_tras_vuelta;
+
 select '5. EDITAR UNA CUENTA CONSERVA SU PUESTO' as paso;
 select jsonb_pretty(
   (public.bt_editar_cuenta_pago(:'p_token', :'g_segunda', false, 'BBVA Provincial',

@@ -58,8 +58,22 @@ comment on table public.pago_cuentas is
 -- ------------------------------------------------------------
 -- 2. Backfill desde las columnas planas
 -- ------------------------------------------------------------
+-- Las columnas planas (0005) nunca tuvieron las restricciones de
+-- pago_cuentas: pago_banco es texto libre y pago_telefono/pago_cedula no tienen
+-- CHECK en accounts. Copiadas tal cual, una sola fila heredada con un banco
+-- largo o un teléfono con prefijo rompería el CHECK y abortaría la migración
+-- entera a media `db push`. Aquí se pasa por el mismo tamiz que bt_pago_normalizado:
+-- se recorta el banco y lo que no sea teléfono de 11 dígitos o cédula de 6-8 se
+-- deja vacío. Un dato ilegible no borra la cuenta: solo llega sin ese campo.
 insert into public.pago_cuentas (account_id, propia, banco, telefono, cedula, principal)
-select a.id, a.pago_propio, a.pago_banco, a.pago_telefono, a.pago_cedula, true
+select a.id,
+       a.pago_propio,
+       left(trim(coalesce(a.pago_banco, '')), 80),
+       case when public.bt_solo_digitos(a.pago_telefono) ~ '^0[0-9]{10}$'
+            then public.bt_solo_digitos(a.pago_telefono) else '' end,
+       case when public.bt_solo_digitos(a.pago_cedula) ~ '^[0-9]{6,8}$'
+            then public.bt_solo_digitos(a.pago_cedula) else '' end,
+       true
   from public.accounts a
  where not exists (select 1 from public.pago_cuentas p where p.account_id = a.id)
 on conflict do nothing;
@@ -329,9 +343,23 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_cuenta public.accounts := public.bt_sesion_cuenta(p_token);
 begin
+  -- Dos sentencias, no `set principal = (id = p_id)`: el índice único parcial
+  -- pago_cuentas_una_principal se comprueba fila a fila dentro del propio
+  -- UPDATE y Postgres no garantiza el orden, así que al volver a una cuenta
+  -- anterior la nueva podía marcarse principal antes de desmarcar la vieja y
+  -- el botón reventaba con 23505. Primero se suelta la actual, luego se toma
+  -- la elegida.
   update public.pago_cuentas
-     set principal = (id = p_id)
-   where account_id = v_cuenta.id;
+     set principal = false
+   where account_id = v_cuenta.id
+     and principal
+     and id <> p_id;
+
+  update public.pago_cuentas
+     set principal = true,
+         updated_at = now()
+   where id = p_id
+     and account_id = v_cuenta.id;
 
   if not exists (
     select 1 from public.pago_cuentas
@@ -459,6 +487,16 @@ begin
     v_pago_tel := v_tel;
     v_pago_ced := v_cedula;
   else
+    -- bt_pago_normalizado es la que corta el banco largo cuando alguien ya
+    -- tiene cuenta; aquí no existe todavía, así que el mismo criterio se
+    -- aplica a mano. Sin este filtro, un banco de más de 80 caracteres
+    -- reventaba contra pago_cuentas_banco_corto en el insert de abajo y
+    -- Postgres devolvía el DETAIL con la fila completa: cédula y teléfono en
+    -- texto claro dentro del error que lee el cliente.
+    if length(v_banco) > 80 then
+      raise exception 'bt:datos:El banco seleccionado no es válido.';
+    end if;
+
     if length(v_banco) < 2 then
       raise exception 'bt:datos:Selecciona el banco de tu cuenta de Pago Móvil.';
     end if;
@@ -494,6 +532,14 @@ begin
 
   return jsonb_build_object('token', v_token)
     || public.bt_billetera_json(v_cuenta);
+
+exception when unique_violation then
+  -- Entre el `exists` de arriba y el insert hay un hueco: dos registros
+  -- simultáneos con la misma cédula o el mismo correo llegan vivos al índice
+  -- único, y Postgres devuelve un DETAIL con la fila —cédula y teléfono en
+  -- texto claro— dentro del error que lee el cliente. El aviso se reescribe
+  -- sin datos.
+  raise exception 'bt:ya-activada:Esa cédula o ese correo ya tienen una cuenta. Entra con tu PIN.';
 end;
 $$;
 

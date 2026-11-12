@@ -35,6 +35,70 @@ encabezado de versión, pero **sí está en producción**:
 
 ### Base de datos
 
+- **`0033_toques_resilientes.sql`**, **pendiente de aplicar en Supabase**.
+  Re-crea `bt_validador_sincronizar()` con `create or replace` y la misma
+  firma, así que los permisos y las llamadas del validador siguen valiendo;
+  `0025_escudo_validador.sql` (aplicada el 2026-11-11) no se toca, porque la
+  regla del repo es que una migración ya aplicada no se reescribe. Cubre dos
+  hallazgos de la revisión de bugs del 2026-11-12:
+  - **#162 — un toque podrido se llevaba el lote entero.** El bucle de acuses
+    ya envolvía su cast en `begin … exception`, pero el de toques no:
+    `fare_charged`, `chip_balance_after`, `latitude`, `longitude`, `fare_type`
+    y `tapped_at` se fundían con cast directo dentro de la misma transacción.
+    Un solo elemento mal formado devolvía `22P02` y abortaba la función
+    completa; con `fare_charged = 0` ocurría por `23514` (la tabla exige
+    tarifa mayor que cero desde `0001`). El ESP32 pierde el lote por la red y,
+    al reenviar lo mismo, vuelve a abortar en el mismo sitio: **la cola offline
+    del autobús se atasca de forma permanente y deja de cobrar a los pasajeros
+    siguientes**. Ahora cada toque viaja en su propio bloque con punto de
+    control —lo que sirve se guarda, lo que no se rechaza con motivo legible y
+    su `sqlstate` en `validator_rejections`— y se añaden los frenos de tipo
+    previos («La tarifa del toque no es un número», «El saldo del toque no es
+    un número», «Tarifa en cero o negativa»).
+  - **#165 — el chip por debajo de lo esperable se aceptaba sin rastro.** La
+    cota superior del saldo leído existía; la inferior no. `greatest(v_chip -
+    v_creditos, 0)` se comía la diferencia y el espejo del chip bajaba sin que
+    nada lo registrara. No se puede rechazar (otros validadores pudieron cobrar
+    sin sincronizar todavía, y un rechazo dejaría el pasaje cobrado en el chip y
+    no anotado en la base), así que se acepta y se escribe `CHIP_BAJO` en la
+    bitácora con el leído, el piso esperado, la diferencia, el espejo anterior,
+    los créditos, la tarifa y la `offlineId`. El evento nuevo obliga a ampliar
+    el `CHECK` de `card_events.evento`, también en `0033`.
+  Prueba: `simulacion/prueba-0033.sql` (un SYNC mixto de seis toques → 2
+  aceptados y 4 rechazados con su motivo, `CHIP_BAJO` trazado, ningún viaje
+  duplicado y una clave que no es UUID rechazada sin abortar el resto).
+  Control negativo hecho sobre la versión vieja: el mismo lote devolvía `22P02`
+  y no guardaba nada.
+- **`0031_cuentas_de_pago.sql`**, **aún sin aplicar en Supabase**, corregida en
+  sitio (no estaba aplicada, así que no hace falta una migración nueva) con tres
+  arreglos de la misma revisión:
+  - **#163 — «Usar esta» reventaba contra su propio índice único.**
+    `bt_usar_cuenta_pago()` ponía `principal = (id = p_id)` para todas las
+    filas de un solo `UPDATE`; con dos cuentas, el orden físico decidía y el
+    índice parcial `unique (account_id) where principal` devolvía `23505` en
+    producción en cuanto alguien tuviera la segunda cuenta. Ahora se apaga
+    primero la que estaba, luego se enciende la elegida, y si la cuenta no es
+    de la sesión se responde `bt:datos` en vez de dejar escapar el error.
+  - **#164 — el `insert … select` de relleno podía abortar la migración.**
+    Copiaba `accounts.pago_*` a `pago_cuentas` sin filtro, pero la tabla nueva
+    exige teléfono `^0[0-9]{10}$`, cédula de 6 a 8 dígitos y banco de 80
+    caracteres o menos. Cualquier fila heredada con banco larguísimo o teléfono
+    con prefijo `+58` tiraba el push pendiente. Ahora el respaldo pasa el
+    tamiz (`bt_solo_digitos` + normalización) y degrada lo que no sirve a
+    cadena vacía en lugar de fallar. **Esta rama no tiene prueba de
+    regresión committed**: solo se ejercita volviendo a aplicar la migración
+    sobre una base con cuentas sucias, como se hizo manualmente el 2026-11-12.
+  - **#166 — `bt_registrar` filtraba datos personales en el `DETAIL` del
+    error.** Dos caminos distintos. El primero: un banco de más de 80
+    caracteres reventaba contra `pago_cuentas_banco_corto` (`23514`) y Postgres
+    devolvía el `DETAIL` con la fila completa —cédula y teléfono en texto
+    claro— dentro del error que lee el cliente; ahora la longitud se corta antes
+    con `bt:datos`, igual que hace `bt_pago_normalizado()` cuando la cuenta ya
+    existe. El segundo: entre el `exists` y el `insert` hay hueco, dos altas
+    simultáneas con la misma cédula llegan vivas al índice único (`23505`) y
+    vuelven a filtrar la fila; ahora un `exception when unique_violation`
+    responde el mensaje amable «Esa cédula o ese correo ya tienen una cuenta.
+    Entra con tu PIN.» sin datos.
 - **`0032_ajustes_blink.sql`** (en TARJETA se numeró `0030`), **pendiente de
   aplicar en Supabase**. La fila `settings.publico` seguía trayendo el sembrado
   de `0001`, que es dato de prueba: Banesco, RIF `J-00000000-0`, teléfono
@@ -55,7 +119,9 @@ encabezado de versión, pero **sí está en producción**:
   segunda aplicación sin residuos y ausencia de fila cayendo al respaldo).
   Brecha **B-20** en BLINK-DOC-09.
 - **`0031_cuentas_de_pago.sql`** (en TARJETA se numeró `0029`), **pendiente de
-  aplicar en Supabase**. Una cuenta puede tener varias fuentes de Pago Móvil:
+  aplicar en Supabase** —con sus tres correcciones del 2026-11-12 (#163, #164
+  y #166, arriba) ya incorporadas en el archivo—. Una cuenta puede tener varias
+  fuentes de Pago Móvil:
   tabla `public.pago_cuentas` (hasta 10 por pasajero, una sola `principal`,
   `unique (account_id, propia, banco, telefono, cedula)`, RLS) con
   `bt_pago_normalizado()` como único criterio de validación y las RPC
@@ -64,12 +130,13 @@ encabezado de versión, pero **sí está en producción**:
   sobre la tabla. Las columnas planas `accounts.pago_*` no se borran: siguen
   espejando la cuenta principal porque el portal publicado lee `cuenta.datosPago`
   y, si dejaran de llenarse, *Recargar* se quedaría sin fuente de pago en
-  producción. Prueba: `simulacion/prueba-0031.sql` (10 pasos, con los cinco
+  producción. Prueba: `simulacion/prueba-0031.sql` (12 pasos, con los cinco
   rechazos vivos: duplicada, ajena a la sesión al editar y al borrar, «Mis
   datos» sin banco, teléfono de 10 dígitos y la última cuenta que no se puede
-  borrar). Espejo de `tarjeta/simulacion/prueba-0029.sql` con su propio pasajero
-  (`30111631`) para que ambas baterías corran sobre la misma base; aplicada de
-  nuevo sobre la simulación el 2026-11-11 y en verde.
+  borrar; los pasos 4b y 4c son el salto de ida y vuelta entre cuentas que
+  destapó #163). Espejo de `tarjeta/simulacion/prueba-0029.sql` con su propio
+  pasajero (`30111631`) para que ambas baterías corran sobre la misma base;
+  aplicada de nuevo sobre la simulación el 2026-11-12 y en verde.
 - **`0030_sin_tope_recarga.sql`** (en TARJETA se numeró `0028`), **pendiente de
   aplicar en Supabase**. `bt_recargar_pasajes()` frenaba cualquier recarga cuyo
   total superara `bt_tope_recarga()` (Bs 20.000 desde `0019`), de modo que el
@@ -328,6 +395,38 @@ dos `<h1>` de *Recargar* y *Transferir* están en ramas mutuamente excluyentes.
   «Tarjeta 1 de 2» con `prefers-reduced-motion`. **Ninguna prueba debita
   saldo**: la transferencia se deja siempre en el paso de revisión.
 
+### Batería SQL del 2026-11-12 (#162–#166)
+
+Base de descarte reconstruida desde cero (`arrancar.sh`, `0001`→`0033`, código
+de salida 0) y `./flujo.sh` completo **en verde con 0033 aplicada**. Las ocho
+pruebas SQL devolvieron código de salida 0: `0027`, `0027-multitap`, `0028`,
+`0029`, `0030`, `0031`, `0032` y `0033`.
+
+- **`prueba-0027-multitap.sql` estaba en verde sin probar nada.** Usaba
+  `offline_id` = `N-1`, `N-2`, `N-3`, y `0025` exige un UUID v4: los tres toques
+  salían rechazados con «Clave de idempotencia inválida», `procesadas: 0`, cero
+  viajes cobrados y la batería pasando. Ahora las claves se generan con
+  `gen_random_uuid()` en cada corrida, se borran los viajes previos de la
+  tarjeta (`trips_telemetry.offline_id` es único en toda la tabla) y un bloque
+  final `do $$ … raise exception 'FALLO: …' $$` exige 3 toques cobrados, los 2
+  acuses entregados, cero créditos pendientes, libro y columna cuadrando, un
+  `CHIP_BAJO` trazado y saldo virtual 9 000. Verificado repetible: dos corridas
+  seguidas, ambas en verde.
+- **`prueba-0032.sql` necesita un cliente que resuelva la ruta.** Invocarla
+  como `psql -f - < prueba-0032.sql` dentro del contenedor fallaba en el paso 6
+  (`../supabase/migrations/0032_ajustes_blink.sql: No such file or directory`)
+  porque el `\i` lo resuelve el cliente y el repo no está montado en el
+  contenedor `db`. Ejecutada desde el `psql` del equipo contra
+  `127.0.0.1:54329` sale en verde y deja la fila `settings.publico` idéntica a
+  como estaba; las demás también se corrieron así.
+- Cada arreglo se comprobó con su **control negativo** sobre el código viejo:
+  el salto de cuenta devolvía `23505`, el lote mixto abortaba con `22P02` y el
+  alta duplicada filtraba el `DETAIL` con cédula y teléfono. Con el nuevo
+  código los tres devuelven respuestas estructuradas.
+- Queda **sin prueba de regresión committed** la rama del respaldo sucio de
+  #164: para ejercitarla hay que volver a aplicar `0031` sobre una base con
+  cuentas degradadas, como se hizo a mano el 2026-11-12.
+
 ### Pruebas de la 2.5.0
 
 - `npm test`: **130 pruebas en 11 archivos**, todas en verde. Se suman alta,
@@ -363,13 +462,26 @@ dos `<h1>` de *Recargar* y *Transferir* están en ramas mutuamente excluyentes.
 
 ### Conocido de la 2.5.0
 
-- **`0030`, `0031` y `0032` siguen sin aplicarse en Supabase.** Con `0031`
-  pendiente, *añadir otra cuenta* fallará en producción con «Blink no está
-  disponible en este momento» porque las RPC `bt_alta_cuenta_pago` y sus tres
-  hermanas no existen; leer y recargar con la cuenta principal sí funciona
-  gracias al espejo `datosPago`. Con `0032` pendiente, el portal vivo sigue
-  mostrando el banco de prueba de `0001` (B-20). No se publica la 2.5.0 hasta
-  aplicar las tres y verificarlas contra la nube (B-75).
+- **`0030`, `0031`, `0032` y ahora `0033` siguen sin aplicarse en Supabase.**
+  No es una puerta para publicar —la 2.5.0 y la 2.5.1 ya están servidas—, es
+  deuda viva: `src/lib/nube.ts` llama a `bt_alta_cuenta_pago`,
+  `bt_editar_cuenta_pago`, `bt_borrar_cuenta_pago` y `bt_usar_cuenta_pago`
+  (líneas 358, 368, 379 y 386), y mientras `0031` no esté aplicada *añadir otra
+  cuenta* fallará en producción con «Blink no está disponible en este momento»;
+  leer y recargar con la cuenta principal sí funciona gracias al espejo
+  `datosPago`. Con `0032` pendiente, el portal vivo sigue mostrando el banco de
+  prueba de `0001` (B-20). Con `0033` pendiente, el validador sigue expuesto a
+  #162: un solo toque mal formado aborta el lote completo y la cola offline del
+  autobús se atasca hasta que alguien meta SQL a mano. Hay que aplicar las
+  cuatro en orden y verificarlas contra la nube (B-75).
+- **El clon retirado de TARJETA trae el mismo `#163` sin corregir.** En
+  `tarjeta/supabase/migrations/0029_cuentas_de_pago.sql:329` sigue el
+  `set principal = (id = p_id)` de una sola sentencia que revienta contra el
+  índice único, y su `prueba-0029.sql` no tiene el salto de ida y vuelta (4b/4c)
+  que lo destapó. No se portó aquí porque la línea canónica es Pay y las dos
+  simulaciones comparten puerto; queda para el pase de documentación del retiro
+  (#152) y vale la lección ya escrita en B-76: el verde de Pay no avala la
+  batería gemela de TARJETA.
 - **Nada de esta 2.5.0 está servida todavía** (B-77). `pay.blink.com.ve` sigue
   publicando la 2.4.1 —verificado en vivo: su `index` conserva `Banesco` y
   `rostro` y no contiene ninguna de las cadenas nuevas—, y en el validador el
