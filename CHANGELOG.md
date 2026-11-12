@@ -9,6 +9,18 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ### Base de datos
 
+- **`0029_mfa_bypase_temporal.sql`**, aplicada en Supabase el 2026-11-12.
+  `bt_admin_sesion_mfa()` es la única puerta del panel administrativo y exigía
+  MFA activo, pero la inscripción no cierra: cada vez que se abre el cuadro se
+  genera un secreto nuevo y el QR ya escaneado queda inválido. Se agrega un
+  bypass **acotado por fecha, con rastro y apagable en un comando**: se escribe
+  solo con SQL directo (`settings.clave = 'mfa_bypase'`), ninguna sesión
+  publicada lo lee porque `anon` no tiene permisos sobre `settings` ni sobre las
+  funciones de control, toda sesión abierta durante el bypass nace marcada en
+  `account_sessions.bypase_mfa`, y `bt_admin_estado` / `bt_admin_entrar` devuelven
+  `mfaBypase` para que el panel avise. Al vencer, el bloqueo vuelve tal cual.
+  Riesgo R-07: el panel queda protegido solo por el PIN mientras esté encendido.
+  Prueba: `simulacion/prueba-0029.sql` (6 pasos).
 - **`0028_banco_propio.sql`**, aplicada en Supabase el 2026-11-11. El aviso del
   día era «en la app Pay el banco no se guarda»: `bt_actualizar_pago()`
   vaciaba `pago_banco` siempre que el Pago Móvil era de la propia cuenta
