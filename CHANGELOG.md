@@ -25,8 +25,13 @@ encabezado de versión, pero **sí está en producción**:
   `1 380 672 B`, SHA-256
   `aa670145ff57aa2038b841eb3fac440a44e5271b3bfee5895e90e02f41aee417`— y la
   unidad arrancó `READY,BLINK,17,0,0` con la NVS intacta (`placa=A12BC3D`,
-  `SYNC,ok=1`). Antes de publicar, el propio validador dejó probada la guardia
-  contra regresiones: `OTA,sin-novedad,actual=17,remota=15`.
+  `SYNC,ok=1`). Comprobado en los tres extremos: el manifiesto vivo anuncia
+  `{"version":17,…}`, el `.bin` descargado de producción pesa y hashea igual, y
+  el validador —que antes de publicar había rechazado la 15 más nueva que su
+  versión con `OTA,sin-novedad,actual=17,remota=15`— ahora reporta
+  `OTA,sin-novedad,actual=17,remota=17`. La descarga e instalación por aire
+  (`OTA,disponible` → ranura pasiva → reinicio) sigue sin ejercerse con esta
+  versión: la placa ya estaba en la 17 por USB.
 
 ### Base de datos
 
