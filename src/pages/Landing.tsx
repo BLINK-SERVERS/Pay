@@ -689,8 +689,8 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
       respuesta: (
         <>
           Sí. Tu PIN se guarda con un hash y nunca se devuelve al navegador ni se escribe en
-          registros. Cada sesión dura 12 horas y se cierra sola. Si activas la huella o el
-          rostro, los verifica tu teléfono: Blink no los recibe ni los guarda. El validador
+          registros. Cada sesión dura 12 horas y se cierra sola. Si activas la huella, la
+          verifica tu teléfono: Blink no la recibe ni la guarda. El validador
           autentica el chip con llaves propias y debita la tarifa exacta, sin recargos.
         </>
       ),
@@ -739,8 +739,8 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
         <>
           Sí. En Transferir eliges la tarjeta de origen, escribes el serial de destino y
           confirmas con tu PIN. No cobra comisión y cada tarjeta sigue pagando el pasaje a su
-          propia tarifa. El tope por operación es de Bs 5.000 y por cuenta en 24 horas, de
-          Bs 20.000.<sup>5</sup>
+          propia tarifa. Pasas el saldo que quieras, dentro de lo que permita en cada momento
+          la configuración del servicio.<sup>5</sup>
         </>
       ),
     },
@@ -758,11 +758,14 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
       pregunta: "¿Qué pasa si pierdo la tarjeta u olvido el PIN?",
       respuesta: (
         <>
-          Repórtalo a atención al cliente (0800-BLINK-00). La tarjeta se marca como perdida,
-          desaparece de tu billetera y no puede cobrarse. El PIN se recupera presencial o por
-          el canal de atención; nunca se envía por correo.
+          Repórtalo a atención al cliente escribiendo a support@blink.com.ve. La tarjeta se
+          marca como perdida, desaparece de tu billetera y no puede cobrarse. El PIN se
+          recupera presencial o por el canal de atención; nunca se envía por correo.
         </>
       ),
+      enlaces: [
+        { texto: "Escribir a support@blink.com.ve", href: "mailto:support@blink.com.ve" },
+      ],
     },
   ];
 
@@ -927,9 +930,9 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
                   <Icon name="huella" tamano="xl" />
                 </span>
                 <p className="lp-dos-tonos">
-                  <strong>La biometría la verifica tu teléfono.</strong> Si activas la huella o el
-                  rostro, Blink no los recibe ni los guarda: quedan en el autenticador del
-                  equipo. Desbloquean la sesión guardada y el PIN sigue siendo la llave de
+                  <strong>La biometría la verifica tu teléfono.</strong> Si activas la huella, Blink
+                  no la recibe ni la guarda: queda en el autenticador del
+                  equipo. Desbloquea la sesión guardada y el PIN sigue siendo la llave de
                   respaldo.
                 </p>
               </li>
@@ -990,7 +993,7 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
                 conexión. Las recargas aprobadas se aplican al plástico en el siguiente tap.
               </li>
               <li>
-                BLINK no presta el servicio de transporte ni fija la tarifa. La tarifa del
+                Blink no presta el servicio de transporte ni fija la tarifa. La tarifa del
                 pasaje la homologa la autoridad municipal, se acredita íntegra al
                 transportista y se muestra en la app antes de recargar. La tasa administrativa
                 digital es independiente y se discrimina en el recibo.
@@ -1000,8 +1003,9 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
                 admitan pagos sin contacto. Consulta a tu operador.
               </li>
               <li>
-                Los topes de recarga y de transferencia los fija la configuración del servicio
-                y pueden cambiar.
+                Las recargas y las transferencias se acreditan en el saldo de la tarjeta de
+                destino. Las condiciones del servicio las fija su configuración y pueden
+                cambiar.
               </li>
             </ol>
           </div>
@@ -1032,7 +1036,12 @@ export function Landing({ alConfigurar, alEntrar, tarifa }: Props) {
                 </button>
               </li>
               <li>
-                <span className="lp-pie__atencion">Atención al cliente: 0800-BLINK-00</span>
+                <span className="lp-pie__atencion">
+                  Atención al cliente:{" "}
+                  <a className="lp-enlace" href="mailto:support@blink.com.ve">
+                    support@blink.com.ve
+                  </a>
+                </span>
               </li>
             </ul>
           </div>

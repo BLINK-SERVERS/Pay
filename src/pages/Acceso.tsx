@@ -257,7 +257,7 @@ export function Acceso({
                   <Icon name="huella" />
                 </span>
                 <span className="boton--biometria__texto">
-                  <strong>Entrar con huella o rostro</strong>
+                  <strong>Entrar con huella</strong>
                   <span>
                     {biometria.nombre}
                   </span>

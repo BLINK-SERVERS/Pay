@@ -48,7 +48,7 @@ export function Desbloqueo({ nombre, cedula, alDesbloquear, alUsarPin }: Props) 
         <div className="desbloqueo__texto">
           <h1>Desbloquea tu tarjeta</h1>
           <p>
-            Confirma tu huella o rostro para entrar con la cuenta{" "}
+            Confirma tu huella para entrar con la cuenta{" "}
             <span className="mono">{cedula}</span>.
           </p>
         </div>
@@ -71,7 +71,7 @@ export function Desbloqueo({ nombre, cedula, alDesbloquear, alUsarPin }: Props) 
           ) : (
             <>
               <Icon name="huella" />
-              Desbloquear con huella o rostro
+              Desbloquear con huella
             </>
           )}
         </button>
@@ -83,8 +83,7 @@ export function Desbloqueo({ nombre, cedula, alDesbloquear, alUsarPin }: Props) 
 
       <footer className="acceso__pie">
         <p className="acceso__legal">
-          La huella o el rostro se verifican en tu teléfono. BLINK no los recibe ni los
-          guarda.
+          La huella se verifica en tu teléfono. Blink no la recibe ni la guarda.
         </p>
       </footer>
     </div>

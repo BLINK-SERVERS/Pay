@@ -9,6 +9,51 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ### Base de datos
 
+- **`0032_ajustes_blink.sql`** (en TARJETA se numeró `0030`), **pendiente de
+  aplicar en Supabase**. La fila `settings.publico` seguía trayendo el sembrado
+  de `0001`, que es dato de prueba: Banesco, RIF `J-00000000-0`, teléfono
+  `0414-0000000`, titular «BLINK PASAJES, C.A.» y atención `0800-BLINK-00`. No
+  era un detalle cosmético —`src/lib/nube.ts` mezcla `bt_ajustes()` **sobre**
+  `AJUSTES_POR_DEFECTO`, así que en producción manda la base—: el bloque «Paga a
+  Blink» de *Recargar* mandaba el Pago Móvil a un banco que no cobra y *Perfil ›
+  Blink* armaba un `mailto:0800-BLINK-00` roto. La migración reemplaza
+  `pagoMovil` por Banco Nacional de Crédito · `34201580` · `0424-6603660` (la
+  clave `titular` desaparece porque el portal ya no la muestra) y `atencion` por
+  `support@blink.com.ve`; siembra la fila si no estaba y reescribe también el
+  objeto de respaldo de `bt_ajustes()`, para que un entorno sin la fila tampoco
+  devuelva Banesco. Se conservan `tarifario`, los topes de transferencia y la
+  clave muerta `topeRecarga`. Arregla la base, no el cliente: el campo existe
+  para cambiar de banco o de canal sin recompilar el portal. Prueba:
+  `simulacion/prueba-0032.sql` (10 pasos: pantalla contra las cinco cadenas
+  viejas, claves conservadas, fila degradada y rehecha por la propia migración,
+  segunda aplicación sin residuos y ausencia de fila cayendo al respaldo).
+  Brecha **B-20** en BLINK-DOC-09.
+- **`0031_cuentas_de_pago.sql`** (en TARJETA se numeró `0029`), **pendiente de
+  aplicar en Supabase**. Una cuenta puede tener varias fuentes de Pago Móvil:
+  tabla `public.pago_cuentas` (hasta 10 por pasajero, una sola `principal`,
+  `unique (account_id, propia, banco, telefono, cedula)`, RLS) con
+  `bt_pago_normalizado()` como único criterio de validación y las RPC
+  `bt_alta_cuenta_pago`, `bt_editar_cuenta_pago`, `bt_borrar_cuenta_pago` y
+  `bt_usar_cuenta_pago`. `bt_actualizar_pago` y `bt_registrar` quedan redefinidas
+  sobre la tabla. Las columnas planas `accounts.pago_*` no se borran: siguen
+  espejando la cuenta principal porque el portal publicado lee `cuenta.datosPago`
+  y, si dejaran de llenarse, *Recargar* se quedaría sin fuente de pago en
+  producción. Prueba: `simulacion/prueba-0031.sql` (10 pasos, con los cinco
+  rechazos vivos: duplicada, ajena a la sesión al editar y al borrar, «Mis
+  datos» sin banco, teléfono de 10 dígitos y la última cuenta que no se puede
+  borrar). Espejo de `tarjeta/simulacion/prueba-0029.sql` con su propio pasajero
+  (`30111631`) para que ambas baterías corran sobre la misma base; aplicada de
+  nuevo sobre la simulación el 2026-11-11 y en verde.
+- **`0030_sin_tope_recarga.sql`** (en TARJETA se numeró `0028`), **pendiente de
+  aplicar en Supabase**. `bt_recargar_pasajes()` frenaba cualquier recarga cuyo
+  total superara `bt_tope_recarga()` (Bs 20.000 desde `0019`), de modo que el
+  pasajero que escribía 50 pasajes recibía «El tope por recarga es 20.000 Bs».
+  Se quita únicamente el techo por importe; siguen los seis reportes por tarjeta
+  en 10 minutos, la referencia bancaria duplicada y la validación de teléfono,
+  banco y referencia. `bt_tope_recarga()` se conserva devolviendo `NULL` para no
+  dejar inservibles las definiciones históricas de la función (`0001`, `0005`,
+  `0014`, `0019`, `0021`) y la clave `settings.publico.topeRecarga` se queda sin
+  nadie que la lea. Prueba: `simulacion/prueba-0030.sql`.
 - **`0029_mfa_bypase_temporal.sql`**, aplicada en Supabase el 2026-11-12.
   `bt_admin_sesion_mfa()` es la única puerta del panel administrativo y exigía
   MFA activo, pero la inscripción no cierra: cada vez que se abre el cuadro se
@@ -66,6 +111,110 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
   no se instala. Solo se instalan pay. y pos.
 - Pruebas: `src/lib/instalacion.test.ts` (7 casos) y verificación en Chromium
   en móvil y escritorio, claro y oscuro, sin errores de consola.
+
+### Interfaz del pasajero (2.5.0)
+
+- **La tarjeta habla en pasajes** (`src/components/TarjetaVirtual.tsx`): debajo
+  del saldo aparece «Te quedan 12 pasajes», «Te queda 1 pasaje» o «Sin pasajes —
+  Recarga ahora», y el color avisa del nivel (`tarjeta__pasajes--bajo` en ámbar
+  desde 2 pasajes, `tarjeta__pasajes--sin-saldo` en rojo). El número sale de
+  `pasajesEquivalentes(saldo, tarifa)` sobre el saldo real de la tarjeta y su
+  `tarifa`; ningún texto fija 500 Bs ni 34,52 Bs.
+- **Recarga en bloques de 2, sin tope** (`src/pages/Recargar.tsx`): los botones
+  son 2, 4, 6, 8 y 10 pasajes más el campo libre «Otra cantidad de pasajes», con
+  el aviso «Sin tope: puedes recargar los pasajes que quieras, de uno en uno».
+  El paso 1 se escribe en pasajes y el monto exacto de la transferencia se
+  calcula con `ajustes.tarifario`.
+- **Varias fuentes de Pago Móvil por cuenta** (`src/pages/Perfil.tsx`): *Mi
+  cuenta* lista «Fuentes de pago (Pago Móvil)» con banco, teléfono y cédula de
+  cada fila, marca la principal con «Se usa al recargar» y ofrece *Usar esta* /
+  *Editar* / *Quitar*. Quitar pasa por una hoja de confirmación y el botón solo
+  aparece cuando queda más de una cuenta, así que nadie se queda sin fuente de
+  pago. En el paso de pago de *Recargar* aparece «Cuenta con la que pagaste»
+  cuando hay más de una y llena banco y teléfono solos.
+- **Contrato `cuentasPago`**: `Cuenta` pasa a llevar
+  `cuentasPago: CuentaPago[]` (`src/lib/tipos.ts`) y `src/lib/nube.ts` tolera un
+  proyecto donde todavía no se aplicó `0031`: si viene vacío, construye la
+  principal desde el espejo plano `datosPago`. Por eso el portal se puede
+  publicar antes que la migración.
+- **Pago Móvil de Blink actualizado** (`AJUSTES_POR_DEFECTO.pagoMovil`): Banco
+  Nacional de Crédito · `34201580` · `04246603660`, **sin titular**. El paso de
+  pago ofrece «Copiar todo» y, al lado de cada dato, su propio botón de copiar.
+- **Purga de texto de marca**: desaparece «pasaje urbano» (queda «pasaje»), las
+  referencias sueltas a la tarifa y toda mención a «BLINK» en mayúsculas en la
+  interfaz; la marca se escribe **Blink**. El arte de la tarjeta es el símbolo
+  completo de pago sin contacto —elipse, mano y ondas— heredando el color del
+  texto, igual que en el datáfono.
+- **Solo huella**: la biometría se describe como huella en
+  `src/lib/biometria.ts`, `Desbloqueo.tsx`, `Acceso.tsx`, `Landing.tsx` y
+  *Mi cuenta*, con la nota «La huella la verifica tu teléfono: Blink no la
+  recibe ni la guarda». Fuera el selector de apariencia (el tema lo resuelve el
+  script de arranque de `index.html`) y fuera el origen «Datos de tu registro».
+- **Atención al cliente**: `support@blink.com.ve` (`ajustes.atencion`), único
+  canal visible.
+- **Hoja de Pago Móvil fuera de `App.tsx`**: quedó huérfana en `8713423` al
+  rediseñar *Inicio* — ningún botón la abría — y se elimina junto con el estado
+  `pagoMovilAbierto` y el `useCopiar` del contenedor. El dato vive en el paso de
+  pago de *Recargar*, que sí es alcanzable.
+- **Base local `v8`** (`src/lib/local.ts`, clave `blink.tarjeta.v3`): las bases
+  4–7 migran en un solo embudo; el Pago Móvil plano pasa a ser la cuenta
+  principal y los enlaces biométricos se conservan. A diferencia de TARJETA, en
+  Pay la cédula se guarda **solo en dígitos** (`formatearCedula()`), igual que
+  en la nube, así que un teléfono escrito con puntos no crea una cuenta
+  duplicada. `Repositorio` cambia `actualizarPago(cuenta)` por
+  `altaCuentaPago` / `editarCuentaPago` / `borrarCuentaPago` / `usarCuentaPago`.
+- Se conservan las diferencias propias de Pay: extracto paginado
+  (`PaginaMovimientos`), `Inspector` y disposición de escritorio, `Landing`,
+  reanudación de sesión con la llave del dispositivo y el tema claro/oscuro.
+
+### Pruebas de la 2.5.0
+
+- `npm test`: **130 pruebas en 11 archivos**, todas en verde. Se suman alta,
+  edición, promoción al borrar la principal, tope de 10 cuentas, cuenta
+  duplicada escrita con otro formato y la migración de la base local antigua
+  `v7 → v8`, además de la prueba propia de Pay «reabre la sesión con la llave
+  del dispositivo».
+- `npx tsc --noEmit` limpio.
+- `npm run verificar:hig`: en verde en 393×852 y 1440×900, claro y oscuro
+  (SF Symbols, pila SF Pro/Inter, cifras tabulares, materiales translúcidos, sin
+  desbordamiento ni saltos de maqueta).
+- Verificación funcional en Chromium sobre el modo demo (María `12345678`):
+  **32 comprobaciones** — texto y nivel de pasajes en la tarjeta, bloques
+  2/4/6/8/10, 40 pasajes aceptados sin tope y sin error, BNC · `34201580` ·
+  `04246603660` sin titular, copiar individual en los cuatro datos y «Copiar
+  todo» dejando banco, RIF, teléfono y monto en el portapapeles, selector de
+  cuenta rellenando banco y teléfono, lista de fuentes con *Usar esta*,
+  confirmación antes de quitar y cancelar sin borrar, añadir una tercera
+  cuenta, `support@blink.com.ve`, huella sin rostro, cero «BLINK» en el DOM,
+  sin desbordamiento horizontal y sin errores de consola.
+- **Simulación reconstruida en los dos repos** el 2026-11-12. PAY: `0001`→`0032`
+  con `arrancar.sh`, `flujo.sh --continuar` en verde y `prueba-0030`,
+  `prueba-0031` y `prueba-0032` con código de salida 0. Y además en el clon,
+  porque aquí apareció **B-76**: TARJETA nunca tuvo `0024` ni `0025` —su serie
+  saltaba de `0023` a `0026`—, así que reconstruir su base desde cero dejaba la
+  cédula exigiendo `V-`/`E-` contra un `bt_registrar` que guarda dígitos, y su
+  `flujo.mjs` seguía sincronizando sin la firma HMAC que `0025` exige. Se
+  espejaron las dos migraciones, el `seed.sql` pasó a dígitos y se llevó el
+  flujo firmado; la base del clon reconstruida `0001`→`0030` quedó en verde con
+  sus seis baterías. La lección va a la guía de retoma: el verde de Pay no
+  avala la batería gemela de TARJETA (BLINK-DOC-07 §4.21).
+
+### Conocido de la 2.5.0
+
+- **`0030`, `0031` y `0032` siguen sin aplicarse en Supabase.** Con `0031`
+  pendiente, *añadir otra cuenta* fallará en producción con «Blink no está
+  disponible en este momento» porque las RPC `bt_alta_cuenta_pago` y sus tres
+  hermanas no existen; leer y recargar con la cuenta principal sí funciona
+  gracias al espejo `datosPago`. Con `0032` pendiente, el portal vivo sigue
+  mostrando el banco de prueba de `0001` (B-20). No se publica la 2.5.0 hasta
+  aplicar las tres y verificarlas contra la nube (B-75).
+- La numeración diverge entre los dos portales por diseño: la base local de Pay
+  es `v8` (los enlaces biométricos se añadieron por el camino) y la de TARJETA
+  `v6`; las migraciones de nube `0030`/`0031`/`0032` en Pay son
+  `0028`/`0029`/`0030` en TARJETA, mientras `0024` y `0025` comparten número en
+  los dos desde el 2026-11-12 (antes faltaban en el clon — B-76). `0026`
+  (rendimiento del extracto) y `0029` (bypass de MFA) viven solo en Pay: la
+  primera es un índice y la segunda atañe al back-office.
 
 ## [2.4.1] — 2026-11-07
 

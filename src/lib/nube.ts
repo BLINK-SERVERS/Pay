@@ -1,6 +1,7 @@
 import type {
   Ajustes,
   Cuenta,
+  CuentaPago,
   DatosPago,
   Movimiento,
   PaginaMovimientos,
@@ -109,10 +110,10 @@ async function rpc<T>(funcion: string, argumentos: Record<string, unknown>): Pro
     if (corte.signal.aborted) {
       throw new ErrorBlink(
         "red",
-        "BLINK tardó demasiado en responder. Revisa tu conexión e inténtalo otra vez."
+        "Blink tardó demasiado en responder. Revisa tu conexión e inténtalo otra vez."
       );
     }
-    throw new ErrorBlink("red", "Sin conexión con BLINK. Revisa tu internet e inténtalo otra vez.");
+    throw new ErrorBlink("red", "Sin conexión con Blink. Revisa tu internet e inténtalo otra vez.");
   } finally {
     clearTimeout(reloj);
   }
@@ -126,7 +127,7 @@ async function rpc<T>(funcion: string, argumentos: Record<string, unknown>): Pro
     }
     const fallo = new ErrorBlink(
       "red",
-      "BLINK no está disponible en este momento. Intenta más tarde."
+      "Blink no está disponible en este momento. Intenta más tarde."
     ) as ErrorRpcBlink;
     fallo.estado = respuesta.status;
     fallo.codigoPostgrest = detalle.code;
@@ -141,7 +142,7 @@ async function rpc<T>(funcion: string, argumentos: Record<string, unknown>): Pro
     const codigo = CODIGOS.find((c) => c === datos.error);
     throw new ErrorBlink(
       codigo ?? "red",
-      datos.mensaje ?? "BLINK no está disponible en este momento. Intenta más tarde."
+      datos.mensaje ?? "Blink no está disponible en este momento. Intenta más tarde."
     );
   }
 
@@ -154,7 +155,33 @@ interface CuentaRpc {
   cedula: string;
   telefono: string;
   correo: string;
-  datosPago: DatosPago;
+  cuentasPago?: CuentaPago[];
+  /** Espejo de la principal que la base dejó por la app ya publicada. */
+  datosPago?: DatosPago;
+}
+
+/**
+ * La lista siempre viene de `bt_cuentas_pago`. Si la base todavía no tiene la
+ * migración de cuentas aplicadas, el espejo plano es la única fuente que
+ * existe, así que se presenta como cuenta principal.
+ */
+function aCuentasPago(datos: CuentaRpc): CuentaPago[] {
+  if (datos.cuentasPago?.length) {
+    return datos.cuentasPago.map((pago) => ({ ...pago, cedula: formatearCedula(pago.cedula) }));
+  }
+  if (!datos.datosPago) return [];
+  return [{ id: "principal", principal: true, ...datos.datosPago }];
+}
+
+function aCuenta(datos: CuentaRpc): Cuenta {
+  return {
+    nombres: datos.nombres,
+    apellidos: datos.apellidos,
+    cedula: formatearCedula(datos.cedula),
+    telefono: datos.telefono,
+    correo: datos.correo,
+    cuentasPago: aCuentasPago(datos),
+  };
 }
 
 interface BilleteraRpc {
@@ -164,16 +191,7 @@ interface BilleteraRpc {
 }
 
 function aSesion(datos: BilleteraRpc): Sesion {
-  const cuenta = datos.cuenta as Cuenta;
-  return {
-    token: datos.token,
-    cuenta: {
-      ...cuenta,
-      cedula: formatearCedula(cuenta.cedula),
-      datosPago: { ...cuenta.datosPago, cedula: formatearCedula(cuenta.datosPago.cedula) },
-    },
-    tarjetas: datos.tarjetas,
-  };
+  return { token: datos.token, cuenta: aCuenta(datos.cuenta), tarjetas: datos.tarjetas };
 }
 
 function aSesionGuardada(datos: BilleteraRpc): Sesion {
@@ -234,7 +252,7 @@ export const repositorioNube: Repositorio = {
       p_token: token,
       p_serial: serial,
     });
-    const sesion = { token, cuenta: datos.cuenta as Cuenta, tarjetas: datos.tarjetas };
+    const sesion = { token, cuenta: aCuenta(datos.cuenta), tarjetas: datos.tarjetas };
     guardarCopia(sesion);
     return sesion;
   },
@@ -336,14 +354,39 @@ export const repositorioNube: Repositorio = {
     await rpc<null>("bt_cambiar_pin", { p_token: token, p_actual: actual, p_nuevo: nuevo });
   },
 
-  async actualizarPago(token, datosPago) {
-    return rpc<{ cuenta: Cuenta }>("bt_actualizar_pago", {
+  async altaCuentaPago(token, datos) {
+    return rpc<{ cuenta: CuentaRpc }>("bt_alta_cuenta_pago", {
       p_token: token,
-      p_propio: datosPago.propio,
-      p_banco: datosPago.banco,
-      p_telefono: datosPago.telefono,
-      p_cedula: formatearCedula(datosPago.cedula),
-    }).then((r) => r.cuenta);
+      p_propio: datos.propio,
+      p_banco: datos.banco,
+      p_telefono: datos.telefono,
+      p_cedula: formatearCedula(datos.cedula),
+    }).then((r) => aCuenta(r.cuenta));
+  },
+
+  async editarCuentaPago(token, id, datos) {
+    return rpc<{ cuenta: CuentaRpc }>("bt_editar_cuenta_pago", {
+      p_token: token,
+      p_id: id,
+      p_propio: datos.propio,
+      p_banco: datos.banco,
+      p_telefono: datos.telefono,
+      p_cedula: formatearCedula(datos.cedula),
+    }).then((r) => aCuenta(r.cuenta));
+  },
+
+  async borrarCuentaPago(token, id) {
+    return rpc<{ cuenta: CuentaRpc }>("bt_borrar_cuenta_pago", {
+      p_token: token,
+      p_id: id,
+    }).then((r) => aCuenta(r.cuenta));
+  },
+
+  async usarCuentaPago(token, id) {
+    return rpc<{ cuenta: CuentaRpc }>("bt_usar_cuenta_pago", {
+      p_token: token,
+      p_id: id,
+    }).then((r) => aCuenta(r.cuenta));
   },
 
   crearEnlace(token) {

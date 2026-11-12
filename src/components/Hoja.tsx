@@ -7,7 +7,7 @@ interface Props {
   alCerrar: () => void;
   titulo: string;
   descripcion?: string;
-  children: ReactNode;
+  children?: ReactNode;
   pie?: ReactNode;
 }
 

@@ -1,7 +1,6 @@
-import type { Ajustes, DatosPago, Movimiento } from "./tipos";
+import type { CuentaPago, DatosPago, Movimiento } from "./tipos";
 import { bancoPorNombre } from "./tipos.ts";
-import { soloDigitos } from "./formato.ts";
-import { cotizarRecarga, maximoPasajes, type ParametrosTarifarios } from "./tarifa.ts";
+import { formatearTelefono, soloDigitos } from "./formato.ts";
 
 export interface BorradorRecarga {
   /** Cantidad de pasajes escrita o elegida, como texto de formulario. */
@@ -93,11 +92,35 @@ export function erroresDatosPago(datos: DatosPago): ErroresPago {
   return errores;
 }
 
+/**
+ * Alta o edición de una cuenta guardada. A diferencia del formulario de la
+ * recarga, aquí el banco sí es obligatorio cuando los datos son de otra
+ * persona: sin banco la fila no sirve para identificar de dónde viene la plata.
+ */
+export function erroresCuentaPago(datos: DatosPago): ErroresPago {
+  const errores = erroresDatosPago(datos);
+  if (!datos.banco) {
+    errores.banco = "Selecciona el banco de esa cuenta de Pago Móvil.";
+  }
+  return errores;
+}
+
+/** La cuenta que Recargar trae por defecto; tolera listas sin la marca. */
+export function cuentaPrincipal(cuentas: CuentaPago[]): CuentaPago | undefined {
+  return cuentas.find((cuenta) => cuenta.principal) ?? cuentas[0];
+}
+
+/** Texto corto de una cuenta guardada: banco y teléfono, legible en una fila. */
+export function etiquetaCuentaPago(cuenta: CuentaPago): string {
+  const banco = cuenta.banco || "Banco por definir";
+  return `${banco} · ${formatearTelefono(cuenta.telefono)}`;
+}
+
 /** Alfabeto seguro de 23 letras (sin I, O, Q) para el verificador. */
 const ALFABETO_VERIFICADOR = "ABCDEFGHJKLMNPRSTUVWXYZ";
 
 /**
- * Letra verificadora del ID BLINK (Luhn mod 23, ISO/IEC 7064).
+ * Letra verificadora del ID Blink (Luhn mod 23, ISO/IEC 7064).
  * Toma el ASCII de la letra de tarifa (A=65, E=69, G=71) seguido de los
  * 8 dígitos, duplica las posiciones pares contadas desde la derecha y
  * busca el residuo módulo 23. G00001001 → N.
@@ -105,7 +128,7 @@ const ALFABETO_VERIFICADOR = "ABCDEFGHJKLMNPRSTUVWXYZ";
 export function letraLuhn(base: string): string {
   const limpio = base.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!/^[AGE][0-9]{8}$/.test(limpio)) {
-    throw new Error("La base del ID BLINK debe ser A/G/E + 8 dígitos.");
+    throw new Error("La base del ID Blink debe ser A/G/E + 8 dígitos.");
   }
 
   const numeros = String(limpio.charCodeAt(0)).padStart(2, "0") + limpio.slice(1);
@@ -157,31 +180,15 @@ export function saldoParaPasajes(saldo: number, tarifa: number, pasajes: number)
 
 /** Errores por campo del reporte de recarga, listos para pintar bajo cada input. */
 export function erroresRecarga(
-  borrador: BorradorRecarga,
-  ajustes: Pick<Ajustes, "topeRecarga" | "tarifario">,
-  tarifa: number
+  borrador: BorradorRecarga
 ): ErroresRecarga {
   const errores: ErroresRecarga = {};
-  const parametros: ParametrosTarifarios = { ...ajustes.tarifario, base: tarifa };
 
   const pasajes = Number(borrador.pasajes);
   if (borrador.pasajes.trim() === "") {
     errores.pasajes = "Elige cuántos pasajes quieres recargar.";
   } else if (!Number.isInteger(pasajes) || pasajes < 1) {
     errores.pasajes = "Escribe una cantidad entera de pasajes (1 o más).";
-  } else {
-    const { total } = cotizarRecarga(pasajes, parametros);
-    if (total > ajustes.topeRecarga) {
-      const mayor = maximoPasajes(ajustes.topeRecarga, parametros);
-      errores.pasajes =
-        mayor > 0
-          ? `El tope por operación es ${new Intl.NumberFormat("es-VE").format(
-              ajustes.topeRecarga
-            )} Bs. Puedes comprar hasta ${mayor} ${mayor === 1 ? "pasaje" : "pasajes"}.`
-          : `El tope por operación es ${new Intl.NumberFormat("es-VE").format(
-              ajustes.topeRecarga
-            )} Bs, insuficiente para un pasaje.`;
-    }
   }
 
   if (!/^0\d{10}$/.test(soloDigitos(borrador.telefono))) {

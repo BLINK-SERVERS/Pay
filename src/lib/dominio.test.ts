@@ -16,10 +16,6 @@ import {
   type BorradorRecarga,
 } from "./dominio";
 import type { Movimiento } from "./tipos";
-import { TARIFARIO_POR_DEFECTO } from "./tarifa";
-
-const AJUSTES = { topeRecarga: 20000, tarifario: TARIFARIO_POR_DEFECTO };
-const TARIFA = 500;
 
 const BUENO: BorradorRecarga = {
   pasajes: "1",
@@ -118,40 +114,29 @@ describe("datos del registro", () => {
 
 describe("erroresRecarga", () => {
   it("no marca nada con un reporte completo", () => {
-    expect(erroresRecarga(BUENO, AJUSTES, TARIFA)).toEqual({});
+    expect(erroresRecarga(BUENO)).toEqual({});
   });
 
   it("valida pasajes, teléfono, banco y referencia por separado", () => {
-    const errores = erroresRecarga(
-      { pasajes: "", telefono: "0414", banco: "", referencia: "12" },
-      AJUSTES,
-      TARIFA
-    );
+    const errores = erroresRecarga({ pasajes: "", telefono: "0414", banco: "", referencia: "12" });
     expect(errores.pasajes).toBeTruthy();
     expect(errores.telefono).toBeTruthy();
     expect(errores.banco).toBeTruthy();
     expect(errores.referencia).toBeTruthy();
   });
 
-  it("respeta el tope por operación e indica cuántos caben", () => {
-    const errores = erroresRecarga({ ...BUENO, pasajes: "40" }, AJUSTES, TARIFA);
-    expect(errores.pasajes).toMatch(/tope/);
-    expect(errores.pasajes).toMatch(/37 pasajes/);
+  it("admite cualquier cantidad de pasajes: la recarga no tiene tope", () => {
+    expect(erroresRecarga({ ...BUENO, pasajes: "40" }).pasajes).toBeUndefined();
+    expect(erroresRecarga({ ...BUENO, pasajes: "100000" }).pasajes).toBeUndefined();
   });
 
   it("solo admite cantidades enteras", () => {
-    expect(erroresRecarga({ ...BUENO, pasajes: "1.5" }, AJUSTES, TARIFA).pasajes).toMatch(
-      /entera/
-    );
-    expect(erroresRecarga({ ...BUENO, pasajes: "0" }, AJUSTES, TARIFA).pasajes).toMatch(
-      /entera/
-    );
+    expect(erroresRecarga({ ...BUENO, pasajes: "1.5" }).pasajes).toMatch(/entera/);
+    expect(erroresRecarga({ ...BUENO, pasajes: "0" }).pasajes).toMatch(/entera/);
   });
 
   it("exige teléfono venezolano de 11 dígitos", () => {
-    expect(
-      erroresRecarga({ ...BUENO, telefono: "4141234567" }, AJUSTES, TARIFA).telefono
-    ).toBeTruthy();
+    expect(erroresRecarga({ ...BUENO, telefono: "4141234567" }).telefono).toBeTruthy();
   });
 });
 
@@ -209,7 +194,7 @@ describe("perfilTarifa", () => {
   });
 });
 
-describe("serial BLINK", () => {
+describe("serial Blink", () => {
   it("calcula la letra verificadora mod 23 de los 9 caracteres base", () => {
     expect(letraLuhn("G00001001")).toBe("N");
     expect(letraLuhn("G00001002")).toBe("R");

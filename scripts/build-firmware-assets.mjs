@@ -43,16 +43,26 @@ async function rasterizar(svg, w, h, fondo) {
   );
 }
 
-function rgb565(rgba) {
-  const n = rgba.length / 4;
-  const out = new Array(n);
-  for (let i = 0; i < n; i++) {
-    const r = rgba[i * 4] >> 3;
-    const g = rgba[i * 4 + 1] >> 2;
-    const b = rgba[i * 4 + 2] >> 3;
-    out[i] = (r << 11) | (g << 5) | b;
+// Rasteriza un SVG (o imagen) sobre negro y devuelve la cobertura de cada
+// pixel empaquetada en nibbles: 2 px por byte y cada fila padreada a byte
+// completo (paso = (ancho + 1) / 2). El arte de marca es siempre un color
+// plano sobre el fondo de la escena, así que basta el canal rojo:
+// 15 = primer plano, 0 = fondo. El validador pinta el fondo con fillScreen y
+// mezcla con una tabla de 16 colores, de modo que el mismo archivo sirve para
+// el negro del reposo y el azul del splash. En RGB565 estos tres lienzos
+// ocupaban 228 KB de flash; en cobertura ocupan 57 KB.
+function cobertura(rgba, w, h) {
+  const paso = (w + 1) >> 1;
+  const out = new Uint8Array(paso * h);
+  for (let i = 0; i < w * h; i++) {
+    const a = Math.min(15, Math.round((rgba[i * 4] * 15) / 255));
+    const fila = Math.floor(i / w);
+    const col = i % w;
+    const k = fila * paso + (col >> 1);
+    if ((col & 1) === 0) out[k] = a << 4;
+    else out[k] |= a;
   }
-  return out;
+  return { paso, bytes: Array.from(out) };
 }
 
 function guardarPreview(nombre, png) {
@@ -158,7 +168,7 @@ const svgSinContacto = `<?xml version="1.0" encoding="UTF-8"?>
     ${grupoTrazado}
   </g>
   <g inkscape:groupmode="layer" inkscape:label="Ondas de marca" id="capa-ondas">
-    <g id="ondas" transform="translate(48 33) scale(0.42) translate(-887.73 0)" fill="none" stroke="#007AFF" stroke-width="24.4" stroke-linecap="round">
+    <g id="ondas" transform="translate(48 33) scale(0.42) translate(-887.73 0)" fill="none" stroke="#FFFEFB" stroke-width="24.4" stroke-linecap="round">
       <path id="nfc-1" d="M 960.93 166.9 A 61 61 0 0 0 899.93 105.9"/>
       <path id="nfc-2" d="M 1008.03 166.9 A 108.1 108.1 0 0 0 899.93 58.8"/>
       <path id="nfc-3" d="M 1054.63 166.9 A 154.7 154.7 0 0 0 899.93 12.2"/>
@@ -168,14 +178,16 @@ const svgSinContacto = `<?xml version="1.0" encoding="UTF-8"?>
 `;
 fs.writeFileSync(path.join(MARCA, "blink-pay-sin-contacto.svg"), svgSinContacto);
 
-// --- Assets RGB565 ----------------------------------------------------------
-const sinContacto = await rasterizar(svgSinContacto, 200, 120, "#000000");
-guardarPreview("sin-contacto", sinContacto.png);
+// --- Assets de cobertura ----------------------------------------------------
+const rSinContacto = await rasterizar(svgSinContacto, 200, 120, "#000000");
+guardarPreview("sin-contacto", rSinContacto.png);
+const sinContacto = cobertura(rSinContacto.rgba, 200, 120);
 
 const isotipoSvg = fs.readFileSync(path.join(MARCA, "blink-isotipo.svg"), "utf8")
   .replaceAll("currentColor", "#FFFEFB");
-const isotipo = await rasterizar(isotipoSvg, 132, 104, "#000000");
-guardarPreview("isotipo", isotipo.png);
+const rIsotipo = await rasterizar(isotipoSvg, 132, 104, "#000000");
+guardarPreview("isotipo", rIsotipo.png);
+const isotipo = cobertura(rIsotipo.rgba, 132, 104);
 
 // Splash: lockup maestro sin la capa de ondas + ondas parciales por etapa.
 const maestro = fs.readFileSync(path.join(MARCA, "blink-pay-blanco.svg"), "utf8");
@@ -185,7 +197,7 @@ const base = maestro.slice(0, inicioOndas) + maestro.slice(finOndas);
 const finRaiz = base.indexOf(">", base.indexOf("<svg"));
 const conFondo =
   base.slice(0, finRaiz + 1) +
-  `<rect x="0" y="0" width="1121" height="321" fill="#007AFF"/>` +
+  `<rect x="0" y="0" width="1121" height="321" fill="#000000"/>` +
   base.slice(finRaiz + 1);
 
 function ondasParciales(etapa) {
@@ -207,18 +219,77 @@ function ondasParciales(etapa) {
 const etapas = [];
 for (let e = 0; e <= 4; e++) {
   const svg = conFondo.replace("</svg>", ondasParciales(e) + "</svg>");
-  const r = await rasterizar(svg, 232, 66, "#007AFF");
-  etapas.push(rgb565(r.rgba));
+  const r = await rasterizar(svg, 232, 66, "#000000");
+  etapas.push(cobertura(r.rgba, 232, 66));
   if (e === 4) guardarPreview("splash", r.png);
 }
 
+// --- Iconos de la barra de estado -------------------------------------------
+// Geometría propia imitando los glifos de estado de un teléfono (señal Wi-Fi
+// de tres arcos + punto, batería con cápsula y borne, rayo de carga). No son
+// SF Symbols: Apple no licencia esos archivos (R-26 / L-16), así que se dibujan
+// desde cero con el mismo lenguaje visual. Se entregan como cobertura, igual
+// que el arte de marca, para que el panel los vea alisados.
+function arco(cx, cy, r, desde, hasta) {
+  const p = (a) => [
+    (cx + r * Math.cos((a * Math.PI) / 180)).toFixed(2),
+    (cy + r * Math.sin((a * Math.PI) / 180)).toFixed(2),
+  ];
+  const [x0, y0] = p(desde);
+  const [x1, y1] = p(hasta);
+  return `M ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1}`;
+}
+
+// El abanico mide 84° (270° ± 42°): con el radio 9,5 y 130° que usamos antes,
+// el extremo del arco caía en x = -0,6 y el glifo se cortaba contra el lienzo.
+// El trazo de 1,5 y los radios espaciados 3 px dejan separaciones de 1,5 px
+// entre arcos, que es lo mínimo para que los tres se lean redondos en 16 px.
+function svgWifi(nivel) {
+  const radios = [3, 6, 9];
+  const trazos = `<g fill="none" stroke="#FFFEFB" stroke-width="1.5" stroke-linecap="round">` +
+    radios
+      .slice(0, Math.max(0, nivel))
+      .map((r) => `<path d="${arco(8, 10.8, r, 228, 312)}"/>`)
+      .join("") +
+    `</g><circle cx="8" cy="10.8" r="1.1" fill="#FFFEFB"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" viewBox="0 0 16 12">${trazos}</svg>`;
+}
+
+// Sólo la cápsula y el borne: el nivel se pinta en el validador con un rect
+// interior, así que una sola imagen sirve para cualquier porcentaje.
+const svgBateria = `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="12" viewBox="0 0 25 12">
+  <rect x="0.9" y="0.9" width="19.6" height="10.2" rx="2.9" fill="none" stroke="#FFFEFB" stroke-width="1.8"/>
+  <rect x="22" y="4.2" width="1.6" height="3.6" rx="0.8" fill="#FFFEFB"/>
+</svg>`;
+
+const svgRayo = `<svg xmlns="http://www.w3.org/2000/svg" width="9" height="13" viewBox="0 0 9 13">
+  <path d="M 5.6 0.5 L 1.4 7.4 L 3.9 7.4 L 3.1 12.5 L 7.6 5.2 L 5 5.2 Z" fill="#FFFEFB"/>
+</svg>`;
+
+const iconos = [];
+for (let n = 0; n <= 3; n++) {
+  const r = await rasterizar(svgWifi(n), 16, 12, "#000000");
+  iconos.push(cobertura(r.rgba, 16, 12));
+  if (n === 3) guardarPreview("wifi", r.png);
+}
+const rBateria = await rasterizar(svgBateria, 25, 12, "#000000");
+guardarPreview("bateria", rBateria.png);
+const bateria = cobertura(rBateria.rgba, 25, 12);
+const rRayo = await rasterizar(svgRayo, 9, 13, "#000000");
+guardarPreview("rayo", rRayo.png);
+const rayo = cobertura(rRayo.rgba, 9, 13);
+
 // --- Cabecera C -------------------------------------------------------------
-function arreglo(nombre, valores) {
-  let s = `const uint16_t ${nombre}[${valores.length}] PROGMEM = {\n`;
-  for (let i = 0; i < valores.length; i += 12) {
-    s += "  " + valores.slice(i, i + 12).map((v) => "0x" + v.toString(16).padStart(4, "0")).join(", ") + ",\n";
+function arregloCrudo(valores) {
+  let s = "";
+  for (let i = 0; i < valores.length; i += 16) {
+    s += "  " + valores.slice(i, i + 16).map((v) => "0x" + v.toString(16).padStart(2, "0")).join(", ") + ",\n";
   }
-  return s + "};\n";
+  return s;
+}
+
+function arreglo(nombre, valores) {
+  return `const uint8_t ${nombre}[${valores.length}] PROGMEM = {\n${arregloCrudo(valores)}};\n`;
 }
 
 let h = `#pragma once
@@ -226,28 +297,56 @@ let h = `#pragma once
 
 // Generado por Pay/scripts/build-firmware-assets.mjs desde los maestros SVG
 // de marca/. No editar a mano: regenerar tras cualquier cambio de marca.
-// RGB565 listo para memcpy al lienzo de pantalla.
+//
+// Cobertura de 4 bits por pixel (2 px por byte, filas padreadas a byte):
+// 0 = el fondo de la escena, 15 = el blanco de marca. Cada escena pinta su
+// fondo con fillScreen y mezcla con una tabla de 16 colores, así que un solo
+// archivo sirve sobre negro (reposo, saldo) y sobre azul (splash).
+// En RGB565 estos tres lienzos ocupaban 228 576 B; en cobertura ocupan 57 144.
 
 constexpr int16_t SIN_CONTACTO_W = 200;
 constexpr int16_t SIN_CONTACTO_H = 120;
+constexpr int16_t SIN_CONTACTO_PASO = 100;
 constexpr int16_t ISOTIPO_W = 132;
 constexpr int16_t ISOTIPO_H = 104;
+constexpr int16_t ISOTIPO_PASO = 66;
 constexpr int16_t SPLASH_W = 232;
 constexpr int16_t SPLASH_H = 66;
+constexpr int16_t SPLASH_PASO = 116;
 constexpr uint8_t SPLASH_ETAPAS = 5;
 
 `;
-h += arreglo("SIN_CONTACTO", rgb565(sinContacto.rgba)) + "\n";
-h += arreglo("ISOTIPO", rgb565(isotipo.rgba)) + "\n";
-h += `const uint16_t SPLASH[SPLASH_ETAPAS][SPLASH_W * SPLASH_H] PROGMEM = {\n`;
+h += arreglo("SIN_CONTACTO", sinContacto.bytes) + "\n";
+h += arreglo("ISOTIPO", isotipo.bytes) + "\n";
+h += `const uint8_t SPLASH[SPLASH_ETAPAS][SPLASH_H * SPLASH_PASO] PROGMEM = {\n`;
 for (const e of etapas) {
   h += "  {\n";
-  for (let i = 0; i < e.length; i += 12) {
-    h += "    " + e.slice(i, i + 12).map((v) => "0x" + v.toString(16).padStart(4, "0")).join(", ") + ",\n";
+  for (let i = 0; i < e.bytes.length; i += 16) {
+    h += "    " + e.bytes.slice(i, i + 16).map((v) => "0x" + v.toString(16).padStart(2, "0")).join(", ") + ",\n";
   }
   h += "  },\n";
 }
 h += "};\n";
+h += "\n// Iconos de la barra de estado: señal Wi-Fi por niveles, batería y rayo de carga.\n";
+h += `constexpr int16_t WIFI_W = 16;
+constexpr int16_t WIFI_H = 12;
+constexpr int16_t WIFI_PASO = 8;
+constexpr uint8_t WIFI_NIVELES = 4;
+constexpr uint16_t WIFI_B = ${iconos[0].bytes.length};
+const uint8_t WIFI[WIFI_NIVELES * WIFI_B] PROGMEM = {
+`;
+h += arregloCrudo(iconos.flatMap((e) => e.bytes));
+h += "};\n";
+h += `constexpr int16_t BATERIA_W = 25;
+constexpr int16_t BATERIA_H = 12;
+constexpr int16_t BATERIA_PASO = 13;
+`;
+h += arreglo("BATERIA", bateria.bytes) + "\n";
+h += `constexpr int16_t RAYO_W = 9;
+constexpr int16_t RAYO_H = 13;
+constexpr int16_t RAYO_PASO = 5;
+`;
+h += arreglo("RAYO", rayo.bytes) + "\n";
 fs.writeFileSync(SALIDA, h);
 console.log("assets.h:", SALIDA, fs.statSync(SALIDA).size, "bytes");
 

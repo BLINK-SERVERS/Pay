@@ -2,6 +2,7 @@ import type {
   Ajustes,
   Cuenta,
   CuentaNueva,
+  CuentaPago,
   DatosPago,
   EstadoMovimiento,
   Movimiento,
@@ -14,11 +15,11 @@ import type {
   Transferencia,
   TransferenciaNueva,
 } from "./tipos";
-import { AJUSTES_POR_DEFECTO } from "./tipos";
+import { AJUSTES_POR_DEFECTO, MAXIMO_CUENTAS_PAGO } from "./tipos";
 import { hashPin, verificarPin } from "./pin";
 import { idAleatorio, secretoAleatorio } from "./azar";
 import { formatearCedula, formatearEntero, formatearSerial, formatearTelefono, soloDigitos } from "./formato";
-import { erroresDatosPago, validarPin, validarSerial } from "./dominio";
+import { erroresCuentaPago, erroresDatosPago, validarPin, validarSerial } from "./dominio";
 
 export type CodigoError =
   | "credenciales"
@@ -56,7 +57,10 @@ export interface Repositorio {
   reportarRecarga(token: string, serial: string, recarga: RecargaNueva): Promise<Movimiento>;
   transferir(token: string, transferencia: TransferenciaNueva): Promise<ResultadoTransferencia>;
   cambiarPin(token: string, actual: string, nuevo: string): Promise<void>;
-  actualizarPago(token: string, datosPago: DatosPago): Promise<Cuenta>;
+  altaCuentaPago(token: string, datos: DatosPago): Promise<Cuenta>;
+  editarCuentaPago(token: string, id: string, datos: DatosPago): Promise<Cuenta>;
+  borrarCuentaPago(token: string, id: string): Promise<Cuenta>;
+  usarCuentaPago(token: string, id: string): Promise<Cuenta>;
   /** Crea la llave de este dispositivo para el acceso con huella. */
   crearEnlace(token: string): Promise<string>;
   /** Reabre una sesión con la huella de un dispositivo ya vinculado. */
@@ -96,7 +100,7 @@ interface TransferenciaLocal extends Transferencia {
 }
 
 interface BaseLocal {
-  version: 7;
+  version: 8;
   cuentas: CuentaLocal[];
   tarjetas: TarjetaLocal[];
   movimientos: Movimiento[];
@@ -107,11 +111,13 @@ interface BaseLocal {
   enlaces: Record<string, string>;
 }
 
-type BaseLocalV4 = Omit<BaseLocal, "version" | "transferencias" | "enlaces"> & { version: 4 };
-type BaseLocalV5 = Omit<BaseLocal, "version" | "enlaces"> & { version: 5 };
-type BaseLocalV6 = Omit<BaseLocal, "version"> & { version: 6 };
+/**
+ * Antes de las varias cuentas, el Pago Móvil vivo en un solo objeto plano. Las
+ * bases 4 a 7 se leen con esta forma y se convierten al abrir.
+ */
+type CuentaLocalPlana = Omit<CuentaLocal, "cuentasPago"> & { datosPago?: DatosPago };
 
-const TARIFA = 500;
+const TARIFA = AJUSTES_POR_DEFECTO.tarifario.base;
 
 function isoDiasAtras(dias: number, hora: number, minuto: number): string {
   const fecha = new Date();
@@ -124,6 +130,10 @@ function datosPagoPropio(telefono: string, cedula: string): DatosPago {
   return { propio: true, banco: "", telefono, cedula };
 }
 
+function cuentaDemo(id: string, principal: boolean, datos: DatosPago): CuentaPago {
+  return { id, principal, ...datos };
+}
+
 function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
   const cuentas: CuentaLocal[] = [
     {
@@ -132,12 +142,21 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
       cedula: "12345678",
       telefono: "04141234567",
       correo: "maria.fernandez@example.com",
-      datosPago: {
-        propio: true,
-        banco: "Banesco Banco Universal",
-        telefono: "04141234567",
-        cedula: "12345678",
-      },
+      cuentasPago: [
+        cuentaDemo("demo-maria-banesco", true, {
+          propio: true,
+          banco: "Banesco Banco Universal",
+          telefono: "04141234567",
+          cedula: "12345678",
+        }),
+        // El Pago Móvil de su hijo, con el que también fondea la billetera.
+        cuentaDemo("demo-maria-venezuela", false, {
+          propio: false,
+          banco: "Banco de Venezuela, S.A.",
+          telefono: "04168765432",
+          cedula: "30445566",
+        }),
+      ],
       pinHash: pin1,
     },
     {
@@ -146,12 +165,14 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
       cedula: "87654321",
       telefono: "04248765432",
       correo: "carlos.rondon@example.com",
-      datosPago: {
-        propio: false,
-        banco: "Banco Mercantil",
-        telefono: "04129876543",
-        cedula: "81234567",
-      },
+      cuentasPago: [
+        cuentaDemo("demo-carlos-mercantil", true, {
+          propio: false,
+          banco: "Banco Mercantil",
+          telefono: "04129876543",
+          cedula: "81234567",
+        }),
+      ],
       pinHash: pin2,
     },
     {
@@ -160,12 +181,14 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
       cedula: "11223344",
       telefono: "04125556677",
       correo: "luis.perez@example.com",
-      datosPago: {
-        propio: true,
-        banco: "BBVA Provincial",
-        telefono: "04125556677",
-        cedula: "11223344",
-      },
+      cuentasPago: [
+        cuentaDemo("demo-luis-provincial", true, {
+          propio: true,
+          banco: "BBVA Provincial",
+          telefono: "04125556677",
+          cedula: "11223344",
+        }),
+      ],
       pinHash: pin3,
     },
   ];
@@ -351,7 +374,7 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
   };
 
   return {
-    version: 7,
+    version: 8,
     cuentas,
     tarjetas,
     movimientos: [pendiente, ...serie1, ...serie4, viaje2].sort(
@@ -364,55 +387,70 @@ function semilla(pin1: string, pin2: string, pin3: string): BaseLocal {
   };
 }
 
-/** La cédula se guarda solo con dígitos; normaliza lo que venga de una base vieja. */
-function normalizarCedulas<
-  T extends Pick<BaseLocal, "cuentas" | "tarjetas" | "sesiones">
->(datos: T): T {
+/**
+ * Forma con la que pueden venir las bases 4 a 7: el libro de transferencias y
+ * los enlaces biométricos se añadieron por el camino, y el Pago Móvil vivía en
+ * `datosPago`. Todo opcional para que la migración no tenga que adivinar.
+ */
+type RegistroViejo = {
+  cuentas: CuentaLocalPlana[];
+  tarjetas: TarjetaLocal[];
+  movimientos: Movimiento[];
+  transferencias?: TransferenciaLocal[];
+  sesiones: BaseLocal["sesiones"];
+  intentos: BaseLocal["intentos"];
+  enlaces?: Record<string, string>;
+};
+
+/**
+ * Las bases locales anteriores guardaban UN solo Pago Móvil en `datosPago`. Al
+ * abrir una de esas, esa fila pasa a la lista como cuenta principal. De paso se
+ * normalizan las cédulas a dígitos y se rellena lo que aún no existía.
+ */
+function aBaseV8(vieja: RegistroViejo): BaseLocal {
+  const cuentas = vieja.cuentas.map((cuenta) => {
+    const { datosPago, ...identidad } = cuenta;
+    const plana: DatosPago = datosPago ?? datosPagoPropio(identidad.telefono, identidad.cedula);
+    return {
+      ...identidad,
+      cedula: soloDigitos(identidad.cedula),
+      cuentasPago: [
+        cuentaDemo(`legada-${soloDigitos(identidad.cedula)}`, true, {
+          ...plana,
+          cedula: soloDigitos(plana.cedula),
+        }),
+      ],
+    };
+  });
+
   return {
-    ...datos,
-    cuentas: datos.cuentas.map((cuenta) => ({
-      ...cuenta,
-      cedula: soloDigitos(cuenta.cedula),
-      datosPago: { ...cuenta.datosPago, cedula: soloDigitos(cuenta.datosPago.cedula) },
-    })),
-    tarjetas: datos.tarjetas.map((tarjeta) => ({
+    version: 8,
+    cuentas,
+    tarjetas: vieja.tarjetas.map((tarjeta) => ({
       ...tarjeta,
       titular: { ...tarjeta.titular, cedula: soloDigitos(tarjeta.titular.cedula) },
     })),
+    movimientos: vieja.movimientos,
+    transferencias: vieja.transferencias ?? [],
     sesiones: Object.fromEntries(
-      Object.entries(datos.sesiones).map(([token, sesion]) => [
+      Object.entries(vieja.sesiones).map(([token, sesion]) => [
         token,
         { ...sesion, cedula: soloDigitos(sesion.cedula) },
       ])
     ),
-  } as T;
+    intentos: vieja.intentos,
+    enlaces: vieja.enlaces ?? {},
+  };
 }
 
 function leer(): BaseLocal | null {
   try {
     const crudo = localStorage.getItem(CLAVE);
     if (!crudo) return null;
-    const datos = JSON.parse(crudo) as BaseLocal | BaseLocalV6 | BaseLocalV5 | BaseLocalV4;
-    if (datos.version === 7) return datos;
-    if (datos.version === 6) {
-      const migrada: BaseLocal = { ...normalizarCedulas(datos), version: 7, enlaces: {} };
-      guardar(migrada);
-      return migrada;
-    }
-    if (datos.version === 5) {
-      const migrada: BaseLocal = { ...normalizarCedulas(datos), version: 7, enlaces: {} };
-      guardar(migrada);
-      return migrada;
-    }
-    if (datos.version === 4) {
-      // La base demo anterior no tenía transferencias; se conserva la
-      // billetera y se le añade el libro vacío.
-      const migrada: BaseLocal = {
-        ...normalizarCedulas(datos),
-        version: 7,
-        transferencias: [],
-        enlaces: {},
-      };
+    const datos = JSON.parse(crudo) as BaseLocal | RegistroViejo & { version: number };
+    if (datos.version === 8) return datos as BaseLocal;
+    if (datos.version >= 4 && datos.version <= 7) {
+      const migrada = aBaseV8(datos);
       guardar(migrada);
       return migrada;
     }
@@ -451,7 +489,50 @@ function aTarjeta({ cuenta: _cuenta, ...tarjeta }: TarjetaLocal): Tarjeta {
 }
 
 function aCuenta({ pinHash: _pinHash, ...cuenta }: CuentaLocal): Cuenta {
-  return { ...cuenta, datosPago: { ...cuenta.datosPago } };
+  return { ...cuenta, cuentasPago: cuenta.cuentasPago.map((pago) => ({ ...pago })) };
+}
+
+/**
+ * El mismo criterio de `bt_pago_normalizado`: cuando la cuenta es la del
+ * titular, el teléfono y la cédula son los del registro, no los del formulario.
+ */
+function pagoNormalizado(cuenta: CuentaLocal, datos: DatosPago): DatosPago {
+  const banco = datos.banco.trim();
+  return datos.propio
+    ? { propio: true, banco, telefono: cuenta.telefono, cedula: cuenta.cedula }
+    : {
+        propio: false,
+        banco,
+        telefono: soloDigitos(datos.telefono),
+        cedula: formatearCedula(datos.cedula),
+      };
+}
+
+function exigirPagoValido(datos: DatosPago) {
+  const primero = Object.values(erroresCuentaPago(datos))[0];
+  if (primero) throw new ErrorBlink("datos", primero);
+}
+
+function esMismaCuentaPago(pago: CuentaPago, datos: DatosPago): boolean {
+  return (
+    pago.propio === datos.propio &&
+    pago.banco === datos.banco &&
+    pago.telefono === datos.telefono &&
+    pago.cedula === datos.cedula
+  );
+}
+
+function buscarPago(cuenta: CuentaLocal, id: string): CuentaPago {
+  const pago = cuenta.cuentasPago.find((item) => item.id === id);
+  if (!pago) {
+    throw new ErrorBlink("datos", "Esa cuenta de Pago Móvil no está en tu lista.");
+  }
+  return pago;
+}
+
+/** La principal va siempre delante: es la que Recargar trae por defecto. */
+function ordenarCuentasPago(cuenta: CuentaLocal) {
+  cuenta.cuentasPago.sort((a, b) => Number(b.principal) - Number(a.principal));
 }
 
 function buscarCuenta(datos: BaseLocal, cedula: string): CuentaLocal | undefined {
@@ -602,10 +683,10 @@ export const repositorioLocal: Repositorio = {
     if (problemaPin) throw new ErrorBlink("pin-invalido", problemaPin);
 
     const telefono = soloDigitos(datosCuenta.telefono);
-    const datosPago: DatosPago = datosCuenta.datosPago.propio
+    const primerPago: DatosPago = datosCuenta.datosPago.propio
       ? datosPagoPropio(telefono, cedula)
       : { ...datosCuenta.datosPago };
-    const problemas = erroresDatosPago(datosPago);
+    const problemas = erroresDatosPago(primerPago);
     const primerProblema = Object.values(problemas)[0];
     if (primerProblema) throw new ErrorBlink("datos", primerProblema);
 
@@ -615,7 +696,7 @@ export const repositorioLocal: Repositorio = {
       cedula,
       telefono,
       correo: datosCuenta.correo.trim().toLowerCase(),
-      datosPago,
+      cuentasPago: [{ id: crypto.randomUUID(), principal: true, ...primerPago }],
       pinHash: await hashPin(datosCuenta.pin),
     };
 
@@ -867,14 +948,74 @@ export const repositorioLocal: Repositorio = {
     guardar(datos);
   },
 
-  async actualizarPago(token, datosPago) {
-    const datos = await base();
-    const cuenta = porToken(datos, token);
-    const problemas = erroresDatosPago(datosPago);
-    const primerProblema = Object.values(problemas)[0];
-    if (primerProblema) throw new ErrorBlink("datos", primerProblema);
-    cuenta.datosPago = { ...datosPago };
-    guardar(datos);
+  async altaCuentaPago(token, datos) {
+    const datosLocales = await base();
+    const cuenta = porToken(datosLocales, token);
+    const pago = pagoNormalizado(cuenta, datos);
+    exigirPagoValido(pago);
+
+    if (cuenta.cuentasPago.length >= MAXIMO_CUENTAS_PAGO) {
+      throw new ErrorBlink(
+        "datos",
+        `Ya tienes ${MAXIMO_CUENTAS_PAGO} cuentas de Pago Móvil. Borra una antes de añadir otra.`
+      );
+    }
+    if (cuenta.cuentasPago.some((item) => esMismaCuentaPago(item, pago))) {
+      throw new ErrorBlink("datos", "Esa cuenta de Pago Móvil ya está en tu lista.");
+    }
+
+    // La primera cuenta de la lista nace principal, como en la base.
+    cuenta.cuentasPago.push({
+      id: crypto.randomUUID(),
+      principal: cuenta.cuentasPago.length === 0,
+      ...pago,
+    });
+    ordenarCuentasPago(cuenta);
+    guardar(datosLocales);
+    return aCuenta(cuenta);
+  },
+
+  async editarCuentaPago(token, id, datos) {
+    const datosLocales = await base();
+    const cuenta = porToken(datosLocales, token);
+    const pago = buscarPago(cuenta, id);
+    const nuevo = pagoNormalizado(cuenta, datos);
+    exigirPagoValido(nuevo);
+
+    if (cuenta.cuentasPago.some((item) => item.id !== pago.id && esMismaCuentaPago(item, nuevo))) {
+      throw new ErrorBlink("datos", "Esa cuenta de Pago Móvil ya está en tu lista.");
+    }
+
+    Object.assign(pago, nuevo);
+    guardar(datosLocales);
+    return aCuenta(cuenta);
+  },
+
+  async borrarCuentaPago(token, id) {
+    const datosLocales = await base();
+    const cuenta = porToken(datosLocales, token);
+    if (cuenta.cuentasPago.length <= 1) {
+      throw new ErrorBlink("datos", "Necesitas al menos una cuenta de Pago Móvil.");
+    }
+    const pago = buscarPago(cuenta, id);
+    const eraPrincipal = pago.principal;
+    cuenta.cuentasPago = cuenta.cuentasPago.filter((item) => item.id !== pago.id);
+
+    // Al borrar la principal se promueve la más antigua, que después del
+    // orden previo es la primera de la lista.
+    if (eraPrincipal) cuenta.cuentasPago[0].principal = true;
+
+    guardar(datosLocales);
+    return aCuenta(cuenta);
+  },
+
+  async usarCuentaPago(token, id) {
+    const datosLocales = await base();
+    const cuenta = porToken(datosLocales, token);
+    const pago = buscarPago(cuenta, id);
+    cuenta.cuentasPago.forEach((item) => (item.principal = item.id === pago.id));
+    ordenarCuentasPago(cuenta);
+    guardar(datosLocales);
     return aCuenta(cuenta);
   },
 

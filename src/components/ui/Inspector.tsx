@@ -1,6 +1,6 @@
 import { BlinkSymbol, type NombreSimbolo } from "./BlinkSymbol";
 import { formatearBs, formatearMovimiento } from "../../lib/formato";
-import { pasajesEquivalentes } from "../../lib/dominio";
+import { cuentaPrincipal, pasajesEquivalentes } from "../../lib/dominio";
 import type { Cuenta, Movimiento, Tarjeta } from "../../lib/tipos";
 
 const ICONOS: Record<Movimiento["tipo"], NombreSimbolo> = {
@@ -30,6 +30,7 @@ export function Inspector({
   alVerMovimientos,
 }: Props) {
   const pasajes = tarjeta ? pasajesEquivalentes(tarjeta.saldo, tarjeta.tarifa) : 0;
+  const pago = cuentaPrincipal(cuenta.cuentasPago);
 
   return (
     <aside className="inspector" aria-label="Inspector">
@@ -137,11 +138,18 @@ export function Inspector({
             <dl className="inspector__filas">
               <div>
                 <dt>Banco</dt>
-                <dd>{cuenta.datosPago.banco || "Por definir"}</dd>
+                <dd>{pago?.banco || "Por definir"}</dd>
               </div>
               <div>
                 <dt>Teléfono</dt>
-                <dd className="mono">{cuenta.datosPago.telefono || "Por definir"}</dd>
+                <dd className="mono">{pago?.telefono || "Por definir"}</dd>
+              </div>
+              <div>
+                <dt>Guardadas</dt>
+                <dd>
+                  {cuenta.cuentasPago.length}
+                  {cuenta.cuentasPago.length > 1 ? " — cambias al recargar" : ""}
+                </dd>
               </div>
             </dl>
           </section>

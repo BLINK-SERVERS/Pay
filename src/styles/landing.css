@@ -1360,7 +1360,12 @@
   width: 1.2em;
   height: 1.2em;
   vertical-align: -0.28em;
-  color: var(--lp-acento);
+  /* Las ondas NO llevan azul de marca: `ondas-nfc.svg` pinta con
+     `currentColor`, así que quedan del color del texto que las rodea.
+     Hereda en los dos temas de sección: `--lp-texto`/`--lp-texto-2`
+     (#1d1d1f y #424242 sobre #f2f2f7 en clara; #ffffff y #ebebf5 sobre
+     #000000 en oscura), ambos por encima de 8:1. */
+  color: inherit;
 }
 
 .lp-ondas--vivas {
@@ -1600,6 +1605,9 @@
 .lp-pie__atencion {
   display: inline-flex;
   align-items: center;
+  /* El correo va en un `<a class="lp-enlace">` hijo: en un contenedor
+     flex el espacio del texto se ignora, así que el aire se da con gap. */
+  gap: 0.3rem;
   min-height: 44px;
   font-size: var(--lp-fs-nota);
   font-variant-numeric: tabular-nums;

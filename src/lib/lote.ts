@@ -44,7 +44,7 @@ function entero(valor: unknown, nombre: string): number {
 export function serialDesdeBase(base: string): string {
   const limpio = base.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!/^[AGE][0-9]{8}$/.test(limpio)) {
-    throw new Error("La base del ID BLINK debe ser A/G/E + 8 dígitos.");
+    throw new Error("La base del ID Blink debe ser A/G/E + 8 dígitos.");
   }
   return `${limpio.slice(0, 1)}-${limpio.slice(1, 6)}-${limpio.slice(6)}-${letraLuhn(limpio)}`;
 }

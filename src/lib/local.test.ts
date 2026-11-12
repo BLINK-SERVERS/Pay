@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { hashPin, verificarPin } from "./pin";
+import { cuentaPrincipal } from "./dominio";
 import { ErrorBlink, repositorioLocal } from "./local";
 
 // localStorage mínimo para probar el modo sin backend en Node.
@@ -153,8 +154,9 @@ describe("repositorio local", () => {
       datosPago: { propio: true, banco: "", telefono: "", cedula: "" },
     });
     expect(sesion.cuenta.correo).toBe("ana@example.com");
-    expect(sesion.cuenta.datosPago).toMatchObject({
+    expect(cuentaPrincipal(sesion.cuenta.cuentasPago)).toMatchObject({
       propio: true,
+      principal: true,
       telefono: "04167778899",
       cedula: "80123456",
     });
@@ -195,21 +197,132 @@ describe("repositorio local", () => {
     });
   });
 
-  it("actualiza la fuente de pago alternativa", async () => {
+  it("añade una cuenta de pago sin mover la principal", async () => {
     const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
-    const cuenta = await repositorioLocal.actualizarPago(token, {
+    const cuenta = await repositorioLocal.altaCuentaPago(token, {
       propio: false,
-      banco: "Banco Mercantil",
-      telefono: "04129876543",
-      cedula: "81234567",
+      banco: "Bancaribe",
+      telefono: "04261112233",
+      cedula: "25112233",
     });
-    expect(cuenta.datosPago.banco).toBe("Banco Mercantil");
+    expect(cuenta.cuentasPago).toHaveLength(3);
+    expect(cuenta.cuentasPago[0]).toMatchObject({ banco: "Banesco Banco Universal", principal: true });
+    expect(cuenta.cuentasPago[2]).toMatchObject({
+      banco: "Bancaribe",
+      telefono: "04261112233",
+      cedula: "25112233",
+      principal: false,
+    });
+
+    // La misma cuenta, escrita con otro formato, no se repite.
     await expect(
-      repositorioLocal.actualizarPago(token, {
+      repositorioLocal.altaCuentaPago(token, {
+        propio: false,
+        banco: "Bancaribe",
+        telefono: "0426-1112233",
+        cedula: "25.112.233",
+      })
+    ).rejects.toMatchObject({ codigo: "datos" });
+  });
+
+  it("rechaza una cuenta sin banco o con un banco que no existe", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    await expect(
+      repositorioLocal.altaCuentaPago(token, {
+        propio: false,
+        banco: "",
+        telefono: "04261112233",
+        cedula: "V-25112233",
+      })
+    ).rejects.toMatchObject({ codigo: "datos" });
+    await expect(
+      repositorioLocal.altaCuentaPago(token, {
         propio: false,
         banco: "Banco Inventado",
-        telefono: "04129876543",
-        cedula: "81234567",
+        telefono: "04261112233",
+        cedula: "25112233",
+      })
+    ).rejects.toMatchObject({ codigo: "datos" });
+  });
+
+  it("los datos propios toman el teléfono y la cédula del registro", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    const cuenta = await repositorioLocal.altaCuentaPago(token, {
+      propio: true,
+      banco: "Banco Plaza",
+      telefono: "03000000000",
+      cedula: "00000000",
+    });
+    const añadida = cuenta.cuentasPago[cuenta.cuentasPago.length - 1];
+    expect(añadida).toMatchObject({
+      propio: true,
+      banco: "Banco Plaza",
+      telefono: "04141234567",
+      cedula: "12345678",
+    });
+  });
+
+  it("«usar esta» cambia la fuente que trae la recarga", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    const otra = (await repositorioLocal.sesion(token)).cuenta.cuentasPago[1];
+    const cuenta = await repositorioLocal.usarCuentaPago(token, otra.id);
+    expect(cuenta.cuentasPago[0].id).toBe(otra.id);
+    expect(cuenta.cuentasPago.filter((pago) => pago.principal)).toHaveLength(1);
+    expect(cuentaPrincipal(cuenta.cuentasPago)?.id).toBe(otra.id);
+
+    await expect(repositorioLocal.usarCuentaPago(token, "no-existe")).rejects.toMatchObject({
+      codigo: "datos",
+    });
+  });
+
+  it("editar una cuenta conserva su puesto y su marca de principal", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    const principal = (await repositorioLocal.sesion(token)).cuenta.cuentasPago[0];
+    const cuenta = await repositorioLocal.editarCuentaPago(token, principal.id, {
+      propio: true,
+      banco: "Banco Mercantil",
+      telefono: "",
+      cedula: "",
+    });
+    expect(cuenta.cuentasPago[0]).toMatchObject({
+      id: principal.id,
+      banco: "Banco Mercantil",
+      principal: true,
+      telefono: "04141234567",
+    });
+  });
+
+  it("borrar la principal promueve a la más antigua y la última no se borra", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    const iniciales = (await repositorioLocal.sesion(token)).cuenta.cuentasPago;
+    const quitada = await repositorioLocal.borrarCuentaPago(token, iniciales[0].id);
+    expect(quitada.cuentasPago).toHaveLength(1);
+    expect(quitada.cuentasPago[0]).toMatchObject({ id: iniciales[1].id, principal: true });
+
+    await expect(
+      repositorioLocal.borrarCuentaPago(token, iniciales[1].id)
+    ).rejects.toMatchObject({ codigo: "datos" });
+  });
+
+  it("no deja guardar más de diez cuentas", async () => {
+    const { token } = await repositorioLocal.entrar("11223344", DEMO.pin);
+    const bancos = ["Bancaribe", "Banco Exterior", "Banco Caroní", "Banco Sofitasa", "Banco Plaza", "Bangente", "Banco Activo", "DelSur Banco Universal", "N58 Banco Digital"];
+    for (const banco of bancos) {
+      await repositorioLocal.altaCuentaPago(token, {
+        propio: false,
+        banco,
+        telefono: "04140000000",
+        cedula: "20000001",
+      });
+    }
+    const cuenta = await repositorioLocal.sesion(token);
+    expect(cuenta.cuenta.cuentasPago).toHaveLength(10);
+    await expect(
+      repositorioLocal.altaCuentaPago(token, {
+        propio: false,
+        banco: "Bancamiga Banco Universal",
+        telefono: "04140000000",
+        cedula: "20000001",
       })
     ).rejects.toMatchObject({ codigo: "datos" });
   });
@@ -230,6 +343,33 @@ describe("repositorio local", () => {
     await expect(
       repositorioLocal.reanudar("87654321", llave)
     ).rejects.toMatchObject({ codigo: "credenciales" });
+  });
+
+  it("migra la base antigua: el Pago Móvil plano pasa a ser la principal", async () => {
+    const { token } = await repositorioLocal.entrar(DEMO.cedula, DEMO.pin);
+    const guardado = JSON.parse(memoria.get("blink.tarjeta.v3") as string) as {
+      version: number;
+      cuentas: { datosPago?: unknown; cuentasPago?: unknown }[];
+    };
+    expect(guardado.version).toBe(8);
+
+    // Se reescribe la base como era antes de la lista de cuentas.
+    guardado.version = 7;
+    guardado.cuentas = guardado.cuentas.map((cuenta) => ({
+      ...cuenta,
+      cuentasPago: undefined,
+      datosPago: { propio: false, banco: "Banco Plaza", telefono: "04120000000", cedula: "10000000" },
+    }));
+    memoria.set("blink.tarjeta.v3", JSON.stringify(guardado));
+
+    const cuenta = await repositorioLocal.sesion(token);
+    expect(cuenta.cuenta.cuentasPago).toHaveLength(1);
+    expect(cuenta.cuenta.cuentasPago[0]).toMatchObject({
+      banco: "Banco Plaza",
+      principal: true,
+      telefono: "04120000000",
+    });
+    expect((JSON.parse(memoria.get("blink.tarjeta.v3") as string)).version).toBe(8);
   });
 
   it("cierra la sesión e invalida el token", async () => {

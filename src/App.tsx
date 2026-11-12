@@ -24,9 +24,9 @@ import {
   type RegistroBiometria,
 } from "./lib/biometria";
 import { ErrorBlink, repositorio } from "./lib/repo";
-import { aplicarTema, leerTema, useConsultaMedio, useCopiar, type ModoTema } from "./lib/hooks";
+import { useConsultaMedio } from "./lib/hooks";
 import { olvidarCopia } from "./lib/offline";
-import { formatearBs, formatearSerial } from "./lib/formato";
+import { formatearSerial } from "./lib/formato";
 import type {
   Ajustes,
   Cuenta,
@@ -149,12 +149,9 @@ export function App() {
   const [errorMovimientos, setErrorMovimientos] = useState("");
   const [ajustes, setAjustes] = useState<Ajustes>(ajustesPorDefecto());
   const [pestana, setPestana] = useState<Pestana>("inicio");
-  const [tema, setTema] = useState<ModoTema>(leerTema);
   const [restaurando, setRestaurando] = useState(true);
-  const [pagoMovilAbierto, setPagoMovilAbierto] = useState(false);
   const [vinculoAbierto, setVinculoAbierto] = useState(false);
   const [movimientoActivo, setMovimientoActivo] = useState<string | null>(null);
-  const [copiado, copiar] = useCopiar();
   const escritorio = useConsultaMedio("(min-width: 1080px)");
   const [bloqueo, setBloqueo] = useState<RegistroBiometria | null>(null);
   const [biometria, setBiometria] = useState<RegistroBiometria | null>(
@@ -599,10 +596,30 @@ export function App() {
     await repositorio.cambiarPin(token, actual, nuevo);
   }
 
-  async function actualizarPago(datosPago: DatosPago): Promise<Cuenta> {
-    if (!token) throw new Error("Sin sesión activa.");
-    const cuenta = await repositorio.actualizarPago(token, datosPago);
+  function fijarCuenta(cuenta: Cuenta) {
     setSesion((previa) => (previa ? { ...previa, cuenta } : previa));
+  }
+
+  async function guardarCuentaPago(id: string | null, datos: DatosPago): Promise<Cuenta> {
+    if (!token) throw new Error("Sin sesión activa.");
+    const cuenta = id
+      ? await repositorio.editarCuentaPago(token, id, datos)
+      : await repositorio.altaCuentaPago(token, datos);
+    fijarCuenta(cuenta);
+    return cuenta;
+  }
+
+  async function borrarCuentaPago(id: string): Promise<Cuenta> {
+    if (!token) throw new Error("Sin sesión activa.");
+    const cuenta = await repositorio.borrarCuentaPago(token, id);
+    fijarCuenta(cuenta);
+    return cuenta;
+  }
+
+  async function usarCuentaPago(id: string): Promise<Cuenta> {
+    if (!token) throw new Error("Sin sesión activa.");
+    const cuenta = await repositorio.usarCuentaPago(token, id);
+    fijarCuenta(cuenta);
     return cuenta;
   }
 
@@ -632,11 +649,6 @@ export function App() {
   const irAMovimientos = useCallback(() => cambiarPestana("movimientos"), [cambiarPestana]);
   const irARecargar = useCallback(() => cambiarPestana("recargar"), [cambiarPestana]);
   const irAPerfil = useCallback(() => cambiarPestana("perfil"), [cambiarPestana]);
-
-  function cambiarTema(nuevo: ModoTema) {
-    setTema(nuevo);
-    aplicarTema(nuevo);
-  }
 
   if (restaurando) {
     return (
@@ -766,7 +778,7 @@ export function App() {
         {tarjeta && pestana === "recargar" && (
           <Recargar
             tarjeta={tarjeta}
-            datosPago={sesion.cuenta.datosPago}
+            cuentasPago={sesion.cuenta.cuentasPago}
             ajustes={ajustes}
             movimientos={movimientos}
             alReportar={reportarRecarga}
@@ -791,10 +803,10 @@ export function App() {
             cuenta={sesion.cuenta}
             tarjetaActiva={tarjeta}
             ajustes={ajustes}
-            tema={tema}
-            alCambiarTema={cambiarTema}
             alCambiarPin={cambiarPin}
-            alActualizarPago={actualizarPago}
+            alGuardarCuenta={guardarCuentaPago}
+            alBorrarCuenta={borrarCuentaPago}
+            alUsarCuenta={usarCuentaPago}
             alVincular={abrirVinculo}
             biometriaSoportada={soportaBiometria}
             biometriaActiva={Boolean(biometria)}
@@ -822,56 +834,6 @@ export function App() {
 
       <BarraTabs activa={pestana} alCambiar={cambiarPestana} />
 
-      <Hoja
-        abierta={pagoMovilAbierto}
-        alCerrar={() => setPagoMovilAbierto(false)}
-        titulo="Pago Móvil de BLINK"
-        descripcion="Transfiere desde tu banco y reporta la referencia en Recargar."
-      >
-        <dl className="datos datos--copiar">
-          {[
-            ["Banco", ajustes.pagoMovil.banco, "pm-banco"],
-            ["RIF", ajustes.pagoMovil.rif, "pm-rif"],
-            ["Teléfono", ajustes.pagoMovil.telefono, "pm-telefono"],
-            ["Titular", ajustes.pagoMovil.titular, "pm-titular"],
-          ].map(([etiqueta, valor, clave]) => (
-            <div key={clave}>
-              <dt>{etiqueta}</dt>
-              <dd>
-                <span className="mono">{valor}</span>
-                <button
-                  type="button"
-                  className="boton-copiar"
-                  onClick={() => void copiar(valor, clave)}
-                  aria-label={`Copiar ${etiqueta.toLowerCase()}`}
-                >
-                  <Icon name={copiado === clave ? "check" : "copiar"} />
-                </button>
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <ol className="pasos">
-          <li>Abre tu banco y elige Pago Móvil.</li>
-          <li>
-            Paga {formatearBs((tarjeta?.tarifa ?? 15) * 10)} o el monto que quieras a los datos
-            de arriba.
-          </li>
-          <li>Vuelve aquí, toca Recargar y reporta la referencia.</li>
-        </ol>
-        <button
-          type="button"
-          className="boton boton--primario"
-          onClick={() => {
-            setPagoMovilAbierto(false);
-            irARecargar();
-          }}
-        >
-          <Icon name="recargar" />
-          Reportar una recarga
-        </button>
-      </Hoja>
-
       <HojaVincular
         abierta={vinculoAbierto}
         alCerrar={cerrarVinculo}
@@ -885,7 +847,7 @@ export function App() {
         descripcion={
           altaBiometriaLista
             ? undefined
-            : "Usa la huella o el rostro de este teléfono para entrar a tu cuenta sin escribir el PIN."
+            : "Usa la huella de este teléfono para entrar a tu cuenta sin escribir el PIN."
         }
         pie={
           altaBiometriaLista ? (
@@ -927,7 +889,7 @@ export function App() {
               <Icon name="check" />
             </span>
             <p>
-              La próxima vez podrás entrar con tu huella o rostro. El PIN sigue siendo la llave
+              La próxima vez podrás entrar con tu huella. El PIN sigue siendo la llave
               de respaldo.
             </p>
           </div>
@@ -937,8 +899,8 @@ export function App() {
               <Icon name="huella" />
             </span>
             <ul className="pasos">
-              <li>Confirma la huella o el rostro que usa tu teléfono para desbloquearse.</li>
-              <li>BLINK no recibe ni guarda esos datos: quedan en el autenticador del equipo.</li>
+              <li>Confirma la huella que usa tu teléfono para desbloquearse.</li>
+              <li>Blink no recibe ni guarda esos datos: quedan en el autenticador del equipo.</li>
               <li>Queda activa en este teléfono hasta que la desactives; el PIN sigue siendo la llave de respaldo.</li>
             </ul>
             {errorAltaBiometria && (

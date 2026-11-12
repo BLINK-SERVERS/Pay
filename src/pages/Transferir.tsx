@@ -245,7 +245,7 @@ export function Transferir({
       <header className="cabecera cabecera--titulo">
         <h1 className="cabecera__titulo cabecera__titulo--grande">Transferir saldo</h1>
         <p className="cabecera__sub">
-          Mueve saldo entre plásticos BLINK al instante, sin comisión.
+          Mueve saldo entre plásticos Blink al instante, sin comisión.
         </p>
       </header>
 
@@ -255,7 +255,7 @@ export function Transferir({
             <Icon name="reloj" />
             <p>
               Transferencias en preparación: hoy solo tienes una tarjeta vinculada. En cuanto
-              exista una segunda tarjeta BLINK, podrás enviarle saldo desde aquí.
+              exista una segunda tarjeta Blink, podrás enviarle saldo desde aquí.
             </p>
           </div>
         )}

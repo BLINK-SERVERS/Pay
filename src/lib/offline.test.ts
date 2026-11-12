@@ -24,7 +24,9 @@ const CUENTA = {
   cedula: "12345678",
   telefono: "04141234567",
   correo: "maria@ejemplo.com",
-  datosPago: { propio: true, banco: "Banesco", telefono: "04141234567", cedula: "12345678" },
+  cuentasPago: [
+    { id: "c-1", propio: true, banco: "Banesco", telefono: "04141234567", cedula: "12345678", principal: true },
+  ],
 };
 
 const TARJETA = {

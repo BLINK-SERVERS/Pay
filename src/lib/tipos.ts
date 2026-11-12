@@ -175,7 +175,21 @@ export interface DatosPago {
   cedula: string;
 }
 
-/** Cuenta matriz del pasajero: identidad y fuente de pago. */
+/**
+ * Cuenta de Pago Móvil guardada: los mismos datos más un id estable y la
+ * marca de cuál es la que trae la recarga.
+ */
+export interface CuentaPago extends DatosPago {
+  /** Identificador devuelto por la base; en el modo local se genera al crearla. */
+  id: string;
+  /** Solo una por pasajero; Recargar la trae por defecto. */
+  principal: boolean;
+}
+
+/** Tope de cuentas guardables: no es una billetera infinita de terceros. */
+export const MAXIMO_CUENTAS_PAGO = 10;
+
+/** Cuenta matriz del pasajero: identidad y fuentes de pago. */
 export interface Cuenta {
   nombres: string;
   apellidos: string;
@@ -184,7 +198,8 @@ export interface Cuenta {
   /** 11 dígitos sin guiones. */
   telefono: string;
   correo: string;
-  datosPago: DatosPago;
+  /** Ordenadas con la principal delante; la que usa la recarga es la primera. */
+  cuentasPago: CuentaPago[];
 }
 
 export interface CuentaNueva {
@@ -204,38 +219,37 @@ export interface Sesion {
   tarjetas: Tarjeta[];
 }
 
-/** Datos de Pago Móvil que el Admin configura para recibir recargas. */
+/**
+ * Datos de Pago Móvil que el Admin configura para recibir recargas. Van sin
+ * titular: el pasajero transfiere a un banco, un teléfono y un documento.
+ */
 export interface DatosPagoMovil {
   banco: string;
+  /** C.I. o RIF afiliado al Pago Móvil, tal cual lo pide el banco emisor. */
   rif: string;
   telefono: string;
-  titular: string;
 }
 
 export interface Ajustes {
   pagoMovil: DatosPagoMovil;
-  /** Tope de recarga por operación, en Bs (monto bruto transferido). */
-  topeRecarga: number;
   /** Tope de saldo por transferencia entre tarjetas, en Bs. */
   topeTransferencia: number;
   /** Tope de saldo transferido por cuenta en 24 h, en Bs. */
   topeTransferenciaDiario: number;
   /** Parámetros del motor tarifario (BLINK-DOC-19). */
   tarifario: ParametrosTarifarios;
-  /** Teléfono de atención al cliente. */
+  /** Canal de atención al cliente. */
   atencion: string;
 }
 
 export const AJUSTES_POR_DEFECTO: Ajustes = {
   pagoMovil: {
-    banco: "Banesco",
-    rif: "J-00000000-0",
-    telefono: "0414-0000000",
-    titular: "BLINK PASAJES, C.A.",
+    banco: "Banco Nacional de Crédito",
+    rif: "34201580",
+    telefono: "0424-6603660",
   },
-  topeRecarga: 20000,
   topeTransferencia: 5000,
   topeTransferenciaDiario: 20000,
   tarifario: TARIFARIO_POR_DEFECTO,
-  atencion: "0800-BLINK-00",
+  atencion: "support@blink.com.ve",
 };

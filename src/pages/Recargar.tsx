@@ -1,17 +1,26 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Icon } from "../components/Icon";
 import { ErrorBlink } from "../lib/repo";
-import { CAMPOS_RECARGA, buscarRecargaDuplicada, erroresRecarga, pasajesEquivalentes } from "../lib/dominio";
+import { CAMPOS_RECARGA, buscarRecargaDuplicada, cuentaPrincipal, erroresRecarga, etiquetaCuentaPago, pasajesEquivalentes } from "../lib/dominio";
 import type { BorradorRecarga, CampoRecarga, ErroresRecarga } from "../lib/dominio";
-import { formatearBs, formatearMovimiento, formatearTelefono, soloDigitos } from "../lib/formato";
+import {
+  formatearBs,
+  formatearCedula,
+  formatearMovimiento,
+  formatearTelefono,
+  soloDigitos,
+} from "../lib/formato";
 import { useCopiar } from "../lib/hooks";
-import { cotizarRecarga, maximoPasajes, type Cotizacion } from "../lib/tarifa";
+import { cotizarRecarga, type Cotizacion } from "../lib/tarifa";
 import { BANCOS } from "../lib/tipos";
-import type { Ajustes, DatosPago, Movimiento, RecargaNueva, Tarjeta } from "../lib/tipos";
+import type { Ajustes, CuentaPago, Movimiento, RecargaNueva, Tarjeta } from "../lib/tipos";
 
 type Paso = "pasajes" | "pago" | "revision" | "listo";
 
-const BLOQUES = [1, 2, 3, 5, 10];
+// Bloques de compra: siempre de dos en dos, como se venden los pasajes en la
+// unidad. Después del bloque libre no hay tope: se pueden comprar los que se
+// quieran.
+const BLOQUES = [2, 4, 6, 8, 10];
 const PASOS: { id: Paso; etiqueta: string }[] = [
   { id: "pasajes", etiqueta: "Pasajes" },
   { id: "pago", etiqueta: "Pago" },
@@ -20,7 +29,7 @@ const PASOS: { id: Paso; etiqueta: string }[] = [
 
 interface Props {
   tarjeta: Tarjeta;
-  datosPago: DatosPago;
+  cuentasPago: CuentaPago[];
   ajustes: Ajustes;
   movimientos: Movimiento[];
   alReportar: (recarga: RecargaNueva) => Promise<Movimiento>;
@@ -31,7 +40,7 @@ interface Props {
 
 export function Recargar({
   tarjeta,
-  datosPago,
+  cuentasPago,
   ajustes,
   movimientos,
   alReportar,
@@ -39,11 +48,14 @@ export function Recargar({
   alVerMovimientos,
   alEditarPago,
 }: Props) {
+  const principal = cuentaPrincipal(cuentasPago);
   const [paso, setPaso] = useState<Paso>("pasajes");
+  const [pagoElegido, setPagoElegido] = useState<string>(principal?.id ?? "");
+  const activa = cuentasPago.find((cuenta) => cuenta.id === pagoElegido) ?? principal;
   const [borrador, setBorrador] = useState<BorradorRecarga>(() => ({
     pasajes: "",
-    telefono: formatearTelefono(datosPago.telefono),
-    banco: datosPago.banco,
+    telefono: formatearTelefono(principal?.telefono ?? ""),
+    banco: principal?.banco ?? "",
     referencia: "",
   }));
   const [errores, setErrores] = useState<ErroresRecarga>({});
@@ -57,8 +69,6 @@ export function Recargar({
     () => ({ ...ajustes.tarifario, base: tarjeta.tarifa }),
     [ajustes.tarifario, tarjeta.tarifa]
   );
-  const tope = ajustes.topeRecarga;
-  const maximo = useMemo(() => maximoPasajes(tope, parametros), [tope, parametros]);
 
   const cantidad = Number(borrador.pasajes);
   const valida = Number.isInteger(cantidad) && cantidad >= 1;
@@ -99,11 +109,12 @@ export function Recargar({
   }
 
   function validarPasajes() {
-    const problemas = erroresRecarga(
-      { ...borrador, telefono: "04140000000", banco: "Otro", referencia: "0000" },
-      ajustes,
-      tarjeta.tarifa
-    );
+    const problemas = erroresRecarga({
+      ...borrador,
+      telefono: "04140000000",
+      banco: "Otro",
+      referencia: "0000",
+    });
     if (problemas.pasajes) {
       setErrores({ pasajes: problemas.pasajes });
       enfocar("pasajes");
@@ -120,7 +131,7 @@ export function Recargar({
 
   function continuarPago(evento: FormEvent) {
     evento.preventDefault();
-    const problemas = erroresRecarga(borrador, ajustes, tarjeta.tarifa);
+    const problemas = erroresRecarga(borrador);
     const primerCampo = CAMPOS_RECARGA.find((campo) => problemas[campo]);
     if (primerCampo) {
       setErrores(problemas);
@@ -174,11 +185,28 @@ export function Recargar({
     }
   }
 
+  function elegirCuentaPago(id: string) {
+    const elegida = cuentasPago.find((cuenta) => cuenta.id === id);
+    if (!elegida) return;
+    setPagoElegido(id);
+    setBorrador((actual) => ({
+      ...actual,
+      banco: elegida.banco,
+      telefono: formatearTelefono(elegida.telefono),
+    }));
+    setErrores((actual) => {
+      const siguiente = { ...actual };
+      delete siguiente.banco;
+      delete siguiente.telefono;
+      return siguiente;
+    });
+  }
+
   function otraRecarga() {
     setBorrador({
       pasajes: "",
-      telefono: formatearTelefono(datosPago.telefono),
-      banco: datosPago.banco,
+      telefono: formatearTelefono(activa?.telefono ?? ""),
+      banco: activa?.banco ?? "",
       referencia: "",
     });
     setReportada(null);
@@ -190,10 +218,11 @@ export function Recargar({
     if (!reportada || !cotizacion) return "";
     return [
       "Blink Pay — reporte de recarga",
+      `Tarjeta: ${tarjeta.serial}`,
       `Titular: ${tarjeta.titular.nombre}`,
       `Pasajes: ${cotizacion.pasajes}`,
       `Tarifa por pasaje: ${formatearBs(cotizacion.tarifaBase)}`,
-      `Pasaje urbano: ${formatearBs(cotizacion.acreditado)}`,
+      `Pasajes acreditados: ${formatearBs(cotizacion.acreditado)}`,
       `Tasa administrativa: ${formatearBs(cotizacion.total - cotizacion.acreditado)}`,
       `Transferido: ${formatearBs(cotizacion.total)}`,
       `A acreditar: ${formatearBs(cotizacion.acreditado)}`,
@@ -300,32 +329,22 @@ export function Recargar({
 
       {paso === "pasajes" && (
         <form className="tarjeta-panel" onSubmit={continuarPasajes} noValidate>
-          <p className="recarga__tarifa">
-            <Icon name="autobus" />
-            Pasaje a {formatearBs(tarjeta.tarifa)}. El monto a transferir incluye la tasa
-            administrativa por el servicio digital.
-          </p>
-
           <div className="chips chips--pasajes" role="group" aria-label="Cantidades frecuentes">
-            {BLOQUES.map((valor) => {
-              const disponible = valor <= maximo;
-              return (
-                <button
-                  key={valor}
-                  type="button"
-                  className={`chip${borrador.pasajes === String(valor) ? " chip--activo" : ""}`}
-                  aria-pressed={borrador.pasajes === String(valor)}
-                  disabled={!disponible}
-                  onClick={() => {
-                    cambiar("pasajes", String(valor));
-                    setErrores({});
-                  }}
-                >
-                  {valor}
-                  <span>{valor === 1 ? "pasaje" : "pasajes"}</span>
-                </button>
-              );
-            })}
+            {BLOQUES.map((valor) => (
+              <button
+                key={valor}
+                type="button"
+                className={`chip${borrador.pasajes === String(valor) ? " chip--activo" : ""}`}
+                aria-pressed={borrador.pasajes === String(valor)}
+                onClick={() => {
+                  cambiar("pasajes", String(valor));
+                  setErrores({});
+                }}
+              >
+                {valor}
+                <span>pasajes</span>
+              </button>
+            ))}
           </div>
 
           <div className="campo">
@@ -337,7 +356,6 @@ export function Recargar({
               className="entrada entrada--cifra"
               type="number"
               min="1"
-              max={maximo || undefined}
               step="1"
               inputMode="numeric"
               placeholder="0"
@@ -347,11 +365,7 @@ export function Recargar({
               aria-describedby={errores.pasajes ? "rc-pasajes-error" : "rc-pasajes-ayuda"}
             />
             <span className="campo__ayuda" id="rc-pasajes-ayuda">
-              {maximo > 0
-                ? `Hasta ${maximo} ${maximo === 1 ? "pasaje" : "pasajes"} por operación (tope ${formatearBs(
-                    tope
-                  )}).`
-                : "La tarifa supera el tope por operación configurado."}
+              Sin tope: puedes recargar los pasajes que quieras, de uno en uno.
             </span>
             {errores.pasajes && (
               <p className="campo__error" id="rc-pasajes-error">
@@ -368,7 +382,7 @@ export function Recargar({
               </div>
               <div className="recibo__detalle">
                 <div>
-                  <span>Pasaje urbano</span>
+                  <span>Pasajes</span>
                   <strong>
                     {cotizacion.pasajes} × {formatearBs(cotizacion.tarifaBase)} ·{" "}
                     {formatearBs(cotizacion.acreditado)}
@@ -397,8 +411,7 @@ export function Recargar({
               </div>
               <p className="proyeccion__pasajes">
                 <Icon name="autobus" />
-                Te quedarían {pasajesNuevos} {pasajesNuevos === 1 ? "pasaje" : "pasajes"} a{" "}
-                {formatearBs(tarjeta.tarifa)}.
+                Te quedarían {pasajesNuevos} {pasajesNuevos === 1 ? "pasaje" : "pasajes"}.
               </p>
             </>
           )}
@@ -418,16 +431,16 @@ export function Recargar({
                 <Icon name="banco" />
               </span>
               <div>
-                <strong>Paga a BLINK</strong>
+                <strong>Paga a Blink</strong>
                 <p>Desde tu banco, con Pago Móvil.</p>
               </div>
             </header>
             <dl className="datos datos--copiar">
               {[
                 ["Banco", pagoMovil.banco, "banco"],
-                ["RIF", pagoMovil.rif, "rif"],
+                ["C.I. / RIF", pagoMovil.rif, "rif"],
                 ["Teléfono", pagoMovil.telefono, "telefono-pm"],
-                ["Titular", pagoMovil.titular, "titular"],
+                ["Monto", formatearBs(cotizacion.total), "monto"],
               ].map(([etiqueta, valor, clave]) => (
                 <div key={clave}>
                   <dt>{etiqueta}</dt>
@@ -454,21 +467,13 @@ export function Recargar({
                   acreditan {formatearBs(cotizacion.acreditado)}
                 </small>
               </div>
-              <button
-                type="button"
-                className="boton boton--secundario boton--compacto"
-                onClick={() => void copiar(String(cotizacion.total), "monto")}
-              >
-                <Icon name={copiado === "monto" ? "check" : "copiar"} />
-                {copiado === "monto" ? "Monto copiado" : "Copiar monto"}
-              </button>
             </div>
             <button
               type="button"
               className="boton boton--secundario boton--compacto"
               onClick={() =>
                 void copiar(
-                  `${pagoMovil.banco}\n${pagoMovil.rif}\n${pagoMovil.telefono}\n${pagoMovil.titular}\n${formatearBs(
+                  `${pagoMovil.banco}\n${pagoMovil.rif}\n${pagoMovil.telefono}\n${formatearBs(
                     cotizacion.total
                   )}`,
                   "todo"
@@ -476,12 +481,36 @@ export function Recargar({
               }
             >
               <Icon name={copiado === "todo" ? "check" : "copiar"} />
-              {copiado === "todo" ? "Datos copiados" : "Copiar datos y monto"}
+              {copiado === "todo" ? "Todo copiado" : "Copiar todo"}
             </button>
           </section>
 
           <form className="tarjeta-panel" onSubmit={continuarPago} noValidate>
             <p className="form-titulo">Ahora reporta el pago</p>
+
+            {cuentasPago.length > 1 && (
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="rc-cuenta">
+                  Cuenta con la que pagaste
+                </label>
+                <select
+                  id="rc-cuenta"
+                  className="entrada"
+                  value={pagoElegido}
+                  onChange={(evento) => elegirCuentaPago(evento.target.value)}
+                >
+                  {cuentasPago.map((cuenta) => (
+                    <option key={cuenta.id} value={cuenta.id}>
+                      {etiquetaCuentaPago(cuenta)}
+                    </option>
+                  ))}
+                </select>
+                <span className="campo__ayuda">
+                  Elige la del familiar si él hizo el Pago Móvil: el banco y el teléfono se llenan
+                  solos.
+                </span>
+              </div>
+            )}
 
             <div className="fuente-pago">
               <span className="fuente-pago__icono">
@@ -489,10 +518,11 @@ export function Recargar({
               </span>
               <div className="fuente-pago__texto">
                 <strong>
-                  {datosPago.banco ? `Pagas desde ${datosPago.banco}` : "Elige tu banco emisor"}
+                  {activa?.banco ? `Pagas desde ${activa.banco}` : "Elige tu banco emisor"}
                 </strong>
                 <span className="mono">
-                  {formatearTelefono(datosPago.telefono)} · {datosPago.cedula}
+                  {formatearTelefono(activa?.telefono ?? "")} ·{" "}
+                  {formatearCedula(activa?.cedula ?? "")}
                 </span>
               </div>
               <button type="button" className="seccion__enlace" onClick={alEditarPago}>

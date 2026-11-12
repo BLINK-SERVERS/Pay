@@ -1,9 +1,9 @@
 import type { Sesion } from "./tipos";
 import { soloDigitos } from "./formato";
 
-// Acceso con la huella o el rostro del teléfono mediante WebAuthn. La
-// credencial la crea y la guarda el autenticador de plataforma (Face ID,
-// Touch ID, huella en Android, Windows Hello); la app conserva su
+// Acceso con la huella del teléfono mediante WebAuthn. La
+// credencial la crea y la guarda el autenticador de plataforma (Touch ID,
+// huella en Android, Windows Hello); la app conserva su
 // identificador y una llave de este dispositivo con la que el servidor
 // reabre la sesión. Ambos viven en el almacenamiento local y no caducan:
 // la biometría sigue activa hasta que el pasajero la desactive.
@@ -56,7 +56,7 @@ export class ErrorBiometria extends Error {
 
 export function mensajeBiometria(error: unknown): string {
   if (error instanceof ErrorBiometria) return error.message;
-  return "No pudimos verificar tu huella o rostro. Inténtalo otra vez o entra con tu PIN.";
+  return "No pudimos verificar tu huella. Inténtalo otra vez o entra con tu PIN.";
 }
 
 function almacen(valor?: Storage): Storage | null {
@@ -255,7 +255,7 @@ export async function activarBiometria(
   if (!(await biometriaSoportada())) {
     throw new ErrorBiometria(
       "no-soportado",
-      "Este dispositivo no tiene un lector de huella o rostro disponible para la web."
+      "Este dispositivo no tiene un lector de huella disponible para la web."
     );
   }
   if (!BASE64URL.test(llave)) {

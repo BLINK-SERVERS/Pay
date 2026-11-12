@@ -29,14 +29,14 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
     >
       <div className="legal">
         <p className="legal__aviso">
-          BLINK no presta el servicio de transporte ni fija la tarifa del pasaje. La
+          Blink no presta el servicio de transporte ni fija la tarifa del pasaje. La
           tarifa se acredita al transportista y la tasa administrativa es independiente.
         </p>
 
         <section>
           <h3>1. Naturaleza del servicio</h3>
           <p>
-            BLINK es una plataforma tecnológica de intermediación de pagos y gestión de
+            Blink es una plataforma tecnológica de intermediación de pagos y gestión de
             billeteras digitales. El servicio de traslado lo presta el transportista y la
             tarifa del pasaje la homologa la autoridad municipal competente, conforme al
             artículo 178, numeral 2, de la Constitución.
@@ -44,7 +44,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
           <p>
             La tarifa aplicada en esta operación es de <strong>{formatearBs(tarifa)}</strong>{" "}
             por pasaje. Ese valor se acredita íntegramente al saldo del pasajero y se
-            liquida al transportista; BLINK no retiene parte de él.
+            liquida al transportista; Blink no retiene parte de él.
           </p>
         </section>
 
@@ -52,7 +52,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
           <h3>2. Tasa administrativa</h3>
           <p>
             Por usar los canales digitales, la pasarela de pago y la infraestructura sin
-            conexión, BLINK cobra una <strong>Tasa Administrativa por Servicio Digital de
+            conexión, Blink cobra una <strong>Tasa Administrativa por Servicio Digital de
             Recarga y Mantenimiento de Billetera</strong>. Es independiente del pasaje y
             retribuye el procesamiento electrónico, la disponibilidad de la plataforma y
             los costos operativos de pasarela.
@@ -67,7 +67,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
           <h3>3. Desglose de cada recarga</h3>
           <ul>
             <li>
-              <strong>Pasaje urbano:</strong> cantidad comprada × {formatearBs(tarifa)}; se
+              <strong>Pasaje:</strong> cantidad comprada × {formatearBs(tarifa)}; se
               acredita al transportista.
             </li>
             <li>
@@ -82,7 +82,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
         </section>
 
         <section>
-          <h3>4. Tu tarjeta BLINK</h3>
+          <h3>4. Tu tarjeta Blink</h3>
           <p>
             La tarjeta es un soporte físico de almacenamiento local que permite el acceso
             rápido por proximidad. El saldo representa fondos del usuario para pagar
@@ -111,7 +111,7 @@ export function HojaLegal({ abierta, alCerrar, tarifa }: Props) {
           </p>
           <p className="legal__nota">
             La Gaceta Oficial N.º 43.335 fija una referencia nacional de Bs 100,00 para el
-            pasaje urbano, Bs 80,00 para metro y ferrocarril y entre Bs 100,00 y Bs 145,00
+            pasaje, Bs 80,00 para metro y ferrocarril y entre Bs 100,00 y Bs 145,00
             para el suburbano según la distancia, y exhorta a las alcaldías a armonizar sus
             tarifas. La tarifa aplicable en cada ruta es la que homologa la autoridad
             municipal correspondiente.

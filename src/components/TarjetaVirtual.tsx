@@ -9,8 +9,17 @@ interface Props {
   tarjeta: Tarjeta;
 }
 
+type NivelPasajes = "ok" | "bajo" | "sin-saldo";
+
+function nivelPasajes(pasajes: number): NivelPasajes {
+  if (pasajes === 0) return "sin-saldo";
+  return pasajes <= 2 ? "bajo" : "ok";
+}
+
 function textoPasajes(pasajes: number): string {
-  return `${pasajes} ${pasajes === 1 ? "pasaje" : "pasajes"}`;
+  if (pasajes === 0) return "Sin pasajes — Recarga ahora";
+  if (pasajes === 1) return "Te queda 1 pasaje";
+  return `Te quedan ${pasajes} pasajes`;
 }
 
 export const TarjetaVirtual = memo(function TarjetaVirtual({ tarjeta }: Props) {
@@ -38,7 +47,9 @@ export const TarjetaVirtual = memo(function TarjetaVirtual({ tarjeta }: Props) {
               {entero}
               {decimal ? <span className="tarjeta__decimalos">,{decimal}</span> : null}
             </p>
-            <p className="tarjeta__pasajes">{textoPasajes(pasajes)}</p>
+            <p className={`tarjeta__pasajes tarjeta__pasajes--${nivelPasajes(pasajes)}`}>
+              {textoPasajes(pasajes)}
+            </p>
             <p className="tarjeta__titular">{tarjeta.titular.nombre}</p>
           </div>
           <div className="tarjeta__cara tarjeta__cara--reverso" inert={!girado} aria-hidden={!girado}>

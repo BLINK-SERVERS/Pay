@@ -1,7 +1,7 @@
 {
   "name": "blink-pay",
   "private": true,
-  "version": "2.4.1",
+  "version": "2.5.0",
   "type": "module",
   "description": "Blink Pay — portal del pasajero para consultar y recargar la tarjeta de transporte.",
   "scripts": {
