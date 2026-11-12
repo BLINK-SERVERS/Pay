@@ -3,7 +3,8 @@ import { EsqueletoMovimientos } from "../components/EsqueletoMovimientos";
 import { Icon } from "../components/Icon";
 import { MovimientoFila } from "../components/MovimientoFila";
 import { TarjetaVirtual } from "../components/TarjetaVirtual";
-import { formatearBs } from "../lib/formato";
+import { formatearBs, nombreTarjeta } from "../lib/formato";
+import { useConsultaMedio } from "../lib/hooks";
 import type { Cuenta, Movimiento, Tarjeta } from "../lib/tipos";
 
 interface Props {
@@ -45,6 +46,9 @@ export function Inicio({
 
   const carrusel = useRef<HTMLDivElement>(null);
   const [indice, setIndice] = useState(0);
+  const reducido = useConsultaMedio("(prefers-reduced-motion: reduce)");
+  // Al deslizar, la única señal de qué tarjeta quedó activa era visual.
+  const activa = tarjetas[indice] ?? tarjeta;
 
   const indiceActivo = useMemo(
     () => tarjetas.findIndex((t) => t.serial === tarjeta?.serial),
@@ -56,7 +60,10 @@ export function Inicio({
     setIndice(indiceActivo);
     const el = carrusel.current;
     if (el && el.clientWidth > 0) {
-      el.scrollTo({ left: indiceActivo * el.clientWidth, behavior: "smooth" });
+      el.scrollTo({
+        left: indiceActivo * el.clientWidth,
+        behavior: reducido ? "auto" : "smooth",
+      });
     }
     // indice queda fuera a propósito: solo se reacciona al cambio de tarjeta.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,7 +87,7 @@ export function Inicio({
     const el = carrusel.current;
     if (!el) return;
     setIndice(posicion);
-    el.scrollTo({ left: posicion * el.clientWidth, behavior: "smooth" });
+    el.scrollTo({ left: posicion * el.clientWidth, behavior: reducido ? "auto" : "smooth" });
     const elegida = tarjetas[posicion];
     if (elegida) alSeleccionar(elegida.serial);
   }
@@ -170,6 +177,13 @@ export function Inicio({
               Vincular tarjeta
             </button>
           </div>
+
+          {activa && tarjetas.length > 1 && (
+            <span className="visualmente-oculto" role="status">
+              Tarjeta {indice + 1} de {tarjetas.length}: {nombreTarjeta(activa.titular.nombre)} ·{" "}
+              {formatearBs(activa.saldo)}
+            </span>
+          )}
         </section>
       )}
 

@@ -22,6 +22,24 @@ body {
   background: var(--color-bg-primary);
 }
 
+/* Enlace de salto: invisible hasta que el teclado lo enfoca, para no saltarse
+   la barra lateral ni las pestañas al llegar al contenido. */
+.salto {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.85rem 1.25rem;
+  border-radius: 0 0 var(--radius-md) 0;
+  background: var(--color-bg-primary);
+  color: var(--color-accent-text);
+  font-weight: 600;
+}
+
+.salto:focus {
+  left: 0;
+}
+
 .pay-loader {
   display: flex;
   align-items: center;
@@ -1676,6 +1694,28 @@ body {
   gap: 0.4rem;
   margin-top: -0.45rem;
   font-size: var(--fs-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Resumen previo al único paso que debita saldo. */
+.revision {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 16px;
+  background: var(--color-bg-subtle);
+}
+
+.revision__titulo {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 650;
+}
+
+.revision__aviso {
+  margin: 0;
+  font-size: var(--fs-sm);
   color: var(--color-text-secondary);
 }
 

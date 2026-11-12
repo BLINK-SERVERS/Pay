@@ -292,6 +292,16 @@ export function Recargar({
             <button type="button" className="enlace-sutil" onClick={alInicio}>
               Volver al inicio
             </button>
+            <a
+              className="enlace-sutil"
+              href={`mailto:${ajustes.atencion}?subject=${encodeURIComponent(
+                `Rectificar recarga ${reportada.referencia}`
+              )}&body=${encodeURIComponent(
+                `Referencia: ${reportada.referencia}\nTarjeta: ${tarjeta.serial}\nBanco emisor: ${reportada.banco}\n¿Qué pasó? `
+              )}`}
+            >
+              ¿Error en la referencia? Pide que se revise
+            </a>
           </div>
         </section>
       </div>

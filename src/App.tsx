@@ -2,7 +2,8 @@ import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState
 import { AvisoActualizacion } from "./components/AvisoActualizacion";
 import { AvisoInstalacion } from "./components/AvisoInstalacion";
 import { AvisoDemo } from "./components/AvisoDemo";
-import { BarraTabs, type Pestana } from "./components/BarraTabs";
+import { BarraTabs, PESTANAS, type Pestana } from "./components/BarraTabs";
+import { AvisoRed } from "./components/AvisoRed";
 import { Desbloqueo } from "./components/Desbloqueo";
 import { Hoja } from "./components/Hoja";
 import { HojaVincular } from "./components/HojaVincular";
@@ -24,7 +25,7 @@ import {
   type RegistroBiometria,
 } from "./lib/biometria";
 import { ErrorBlink, repositorio } from "./lib/repo";
-import { useConsultaMedio } from "./lib/hooks";
+import { useConsultaMedio, useEnLinea } from "./lib/hooks";
 import { olvidarCopia } from "./lib/offline";
 import { formatearSerial } from "./lib/formato";
 import type {
@@ -153,6 +154,7 @@ export function App() {
   const [vinculoAbierto, setVinculoAbierto] = useState(false);
   const [movimientoActivo, setMovimientoActivo] = useState<string | null>(null);
   const escritorio = useConsultaMedio("(min-width: 1080px)");
+  const enLinea = useEnLinea();
   const [bloqueo, setBloqueo] = useState<RegistroBiometria | null>(null);
   const [biometria, setBiometria] = useState<RegistroBiometria | null>(
     leerRegistroBiometria
@@ -245,6 +247,21 @@ export function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }, [pestana]);
+
+  // El título del documento cambia con la vista: es lo que se lee en el
+  // historial del navegador y al abrir la app con lector de pantalla.
+  useEffect(() => {
+    const etiqueta = PESTANAS.find((item) => item.id === pestana)?.etiqueta ?? "Inicio";
+    document.title = sesion
+      ? `Blink Pay — ${etiqueta}`
+      : bloqueo
+        ? "Blink Pay — Desbloquear"
+        : vistaPublica === "acceso"
+          ? modoAcceso === "registro"
+            ? "Blink Pay — Crear cuenta"
+            : "Blink Pay — Entrar"
+          : "Blink Pay — Recargar la tarjeta de transporte";
+  }, [sesion, pestana, bloqueo, vistaPublica, modoAcceso]);
 
   useEffect(() => {
     if (!token || !serialActiva) {
@@ -719,11 +736,15 @@ export function App() {
 
   return (
     <div className={`app app--${pestana}`}>
+      <a className="salto" href="#contenido">
+        Saltar al contenido
+      </a>
       <BarraLateral pestana={pestana} alCambiar={cambiarPestana} />
 
       <div className="app__cuerpo">
         <main className="app__main" id="contenido">
           <AvisoDemo />
+          <AvisoRed enLinea={enLinea} />
           <AvisoInstalacion visible={pestana === "inicio"} />
         <Suspense fallback={<VistaCargando />}>
         {pestana === "inicio" && (

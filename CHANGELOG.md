@@ -202,6 +202,106 @@ machine-checked para que no vuelva a pasar:
   `color` del SVG) —; la anterior solo exigía tres `.lp-onda`, y pasaba con el
   glifo incompleto.
 
+### Corregido (2.5.1, auditoría de heurísticas y accesibilidad del 2026-11-12)
+
+Revisión estática de solo lectura sobre este repo (Nielsen 10 + WCAG 2.1 AA).
+Diez hallazgos, los cuatro primeros con peso de bloqueo o mayor; todos
+verificados en Chromium después de arreglarlos:
+
+- **H1 · El estado de red estaba invisible** (`src/components/AvisoRed.tsx`,
+  nuevo; `App.tsx`, `src/styles/app.css`). *Landing* promete que la tarjeta se
+  puede consultar sin internet, y era cierto —`offline.ts` sirve la copia—,
+  pero nada lo decía: con el teléfono en avión se veía el saldo anterior como
+  si fuera el actual, y *Recargar* y *Transferir* fallaban tarde y mal. Ahora,
+  en cuanto `navigator.onLine` cae, el *shell* muestra un aviso `role="status"`
+  con la hora exacta de la última copia (`«Mostramos el último saldo conocido a
+  las 14:32…»`) y recuerda que escribir necesita red. Desaparece solo al
+  volver la conexión.
+- **H2 · *Transferir* no tenía confirmación** (`src/pages/Transferir.tsx`). Un
+  `click` en «Transferir Bs N» debitaba: irreversible, con saldo ajeno y sin
+  resumen. Se partió en dos pasos —`validar()` (solo local, abre el resumen) y
+  `ejecutar()` (única ruta que toca la red)— con `paso: "datos" | "revisar"`.
+  El resumen («Revisa antes de mover el saldo», con *Sale de / Entra a / Monto
+  / Autorización* y el saldo resultante de cada lado) avisa que la operación no
+  se puede deshacer desde la app, y «Modificar» devuelve a los campos sin
+  perder lo escrito. El botón cambia de texto: «Revisar transferencia» →
+  «Confirmar Bs N».
+- **H3 · Una recarga «En revisión» no tenía salida** (`src/pages/Recargar.tsx`).
+  La pantalla que queda cuando se reporta una referencia ofrecía «Reportar otra
+  recarga», «Ver mis movimientos» y «Volver al inicio», pero ningún canal para
+  rectificar la referencia mal escrita; el estado se quedaba en espera sin
+  acción posible. Se añadió el enlace *¿Error en la referencia? Pide que se
+  revise*, un `mailto:` a `ajustes.atencion` con `Rectificar recarga
+  <referencia>` y el cuerpo ya rellenado con referencia, serial, banco y la
+  pregunta abierta.
+- **H4 · Las pestañas de *Acceso* no eran pestañas** (`src/pages/Entrar` →
+  `src/pages/Acceso.tsx`). Eran dos `button` sueltos: sin `role`, sin flechas,
+  sin relación con el panel (WCAG 4.1.2 / 2.1.1). Ahora `tablist` +
+  `role="tabpanel"` con `aria-controls`/`aria-labelledby`, foco rotativo
+  (`tabIndex` 0/-1) y `ArrowLeft`/`ArrowRight` que mueven selección **y** foco.
+- **H5 · Fuentes de Pago Móvil: radio sin comportamiento de radio**
+  (`src/pages/Perfil.tsx`). `role="radiogroup"` con dos botones que no
+  respondían al teclado y campos de teléfono y cédula etiquetados solo con
+  `aria-label` (WCAG 1.3.1 / 4.1.2 / 2.5.3). Pasaron a `role="radio"` con
+  flechas, `aria-checked` y foco rotativo, y `<label htmlFor>` real sobre
+  `#perfil-telefono` y `#perfil-cedula`; el error se enlaza con
+  `aria-describedby`. Al arreglarlo salió un bug propio: la flecha movía la
+  selección pero el foco se quedaba atrás, porque el `id` del foco estaba
+  invertido en el ternario.
+- **H6 · El scroll del carrusel ignoraba `prefers-reduced-motion`**
+  (`src/pages/Inicio.tsx`). `app.css` ya anulaba animaciones y
+  `scroll-behavior` bajo esa preferencia, pero las dos llamadas de JS
+  (`behavior: "smooth"` al sincronizar el índice con la tarjeta activa y en
+  `irATarjeta`) la pisaban. Ahora ambas leen `useConsultaMedio("(prefers-reduced-motion:
+  reduce)")` y pasan a `"auto"`; el número animado del saldo ya respetaba la
+  preferencia, así que el carrusel era el único que no.
+- **H7 · Nada de saltar la navegación** (WCAG 2.4.1). El *shell* pone ahora un
+  `a.salto` «Saltar al contenido» como primer foco, invisible hasta recibir
+  foco, sobre `<main id="contenido">`.
+- **H8 · Un solo título para cinco vistas** (WCAG 2.4.2). `document.title`
+  seguía siendo «Blink Pay» pase lo que se abra, incluidos los diálogos de
+  acceso. Se fija por vista (`Blink Pay — Inicio`, `— Transferir`, …) usando las
+  etiquetas de `PESTANAS`, que `BarraTabs.tsx` exporta para no duplicar textos.
+- **H9 · Los errores no se asociaban al campo** (`Transferir.tsx`,
+  `Perfil.tsx`). El aviso se pintaba aparte, sin decir a qué campo belong y sin
+  `role="group"` en el bloque del PIN. Se añadió `errorCampo`
+  (`"destino" | "monto" | "pin"`), `aria-describedby` condicional hacia el aviso
+  con `id` estable, y el PIN como grupo etiquetado.
+- **H10 · Cambiar de tarjeta no se anunciaba** (`src/pages/Inicio.tsx`). El
+  grupo del carrusel iba cambiando su propio `aria-label`
+  (`Tarjeta {i} de {n}`) conforme al índice, sin región viva: quien no ve la
+  pantalla nunca se enteraba de qué plástico quedó activo, y el saldo que se
+  lee es el de la tarjeta activa. Debajo de los controles se pintó un
+  `role="status"` solo con `tarjetas.length > 1` —`«Tarjeta 1 de 2: MARÍA
+  FERNÁNDEZ · Bs 1.500»`—, anclado al índice y no al extracto, para que el
+  refresco de movimientos no lo vuelva a anunciar.
+
+Hallazgos que se revisaron y **resultaron falsos** en este repo, para que no se
+vuelvan a denunciar: los puntos del carrusel y los botones de icono ya medían
+44 px con `--ios-touch-target`; `Hoja.tsx` sí trampa el foco con `inert`; los
+dos `<h1>` de *Recargar* y *Transferir* están en ramas mutuamente excluyentes.
+
+### Pruebas de la 2.5.1
+
+- **Versión 2.5.1** (`package.json`) y **caché `v14`** (`public/sw.js`): el
+  armazón cambia (salto al contenido, aviso de red, estilos del resumen), así
+  que la caché vieja se borra al activar la nueva.
+- `npx tsc --noEmit` limpio; `npm test` **130/130**; `npm run build` sin
+  errores (el chunk `Transferir` queda en 10 196 B con el resumen nuevo).
+- `npm run verificar:hig`: en verde en 393×852 y 1440×900, claro y oscuro
+  (**230 ✓**), sin desbordamiento ni saltos de maqueta.
+- Verificación nueva de los diez arreglos en Chromium sobre la cuenta demo
+  (María `12345678`): **27 comprobaciones en verde** — aviso de red que aparece
+  y se quita con `context.setOffline`, primer `Tab` cayendo en el salto, los
+  cinco títulos por pestaña, el resumen de transferencia con sus cuatro filas,
+  «Modificar» sin perder la ruta, el recálculo al cambiar el monto, el `mailto`
+  de rectificación del módulo de *Recargar* (comprobado sobre el módulo
+  cargado, no en pantalla: esa rama solo aparece tras reportar una referencia
+  real), flechas en las pestañas de *Acceso*
+  y en los radios de *Perfil*, `label[for]` en teléfono y cédula y el anuncio
+  «Tarjeta 1 de 2» con `prefers-reduced-motion`. **Ninguna prueba debita
+  saldo**: la transferencia se deja siempre en el paso de revisión.
+
 ### Pruebas de la 2.5.0
 
 - `npm test`: **130 pruebas en 11 archivos**, todas en verde. Se suman alta,

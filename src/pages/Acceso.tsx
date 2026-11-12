@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
 import { Hoja } from "../components/Hoja";
@@ -82,6 +82,15 @@ export function Acceso({
     setPin("");
     setPaso("datos");
     setPagoPropio(null);
+  }
+
+  /** Las pestañas se recorren con ←/→: el foco pasa a la otra pestana. */
+  function moverPestana(evento: KeyboardEvent<HTMLButtonElement>) {
+    if (evento.key !== "ArrowRight" && evento.key !== "ArrowLeft") return;
+    evento.preventDefault();
+    const otra: Modo = modo === "entrar" ? "registro" : "entrar";
+    cambiarModo(otra);
+    document.getElementById(`pestanilla-${otra}`)?.focus();
   }
 
   async function enviarLogin(evento?: FormEvent, pinActual = pin) {
@@ -227,25 +236,41 @@ export function Acceso({
           <button
             type="button"
             role="tab"
+            id="pestanilla-entrar"
+            aria-controls="panel-entrar"
+            tabIndex={modo === "entrar" ? 0 : -1}
             aria-selected={modo === "entrar"}
             className={`segmentado__opcion${modo === "entrar" ? " segmentado__opcion--activa" : ""}`}
             onClick={() => cambiarModo("entrar")}
+            onKeyDown={moverPestana}
           >
             Entrar
           </button>
           <button
             type="button"
             role="tab"
+            id="pestanilla-registro"
+            aria-controls="panel-registro"
+            tabIndex={modo === "registro" ? 0 : -1}
             aria-selected={modo === "registro"}
             className={`segmentado__opcion${modo === "registro" ? " segmentado__opcion--activa" : ""}`}
             onClick={() => cambiarModo("registro")}
+            onKeyDown={moverPestana}
           >
             Crear cuenta
           </button>
         </div>
 
         {modo === "entrar" ? (
-          <form className="acceso__form" onSubmit={enviarLogin} noValidate>
+          <form
+            className="acceso__form"
+            role="tabpanel"
+            id="panel-entrar"
+            aria-labelledby="pestanilla-entrar"
+            tabIndex={-1}
+            onSubmit={enviarLogin}
+            noValidate
+          >
             {biometria && alEntrarConBiometria && (
               <button
                 type="button"
@@ -327,7 +352,13 @@ export function Acceso({
             </button>
           </form>
         ) : (
-          <div className="acceso__form">
+          <div
+            className="acceso__form"
+            role="tabpanel"
+            id="panel-registro"
+            aria-labelledby="pestanilla-registro"
+            tabIndex={-1}
+          >
             <ol className="registro__pasos" aria-label={`Paso ${paso === "datos" ? 1 : 2} de 2`}>
               <li className={`registro__paso${paso === "datos" ? " registro__paso--actual" : " registro__paso--hecho"}`}>
                 <span>1</span> Tus datos

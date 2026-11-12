@@ -49,6 +49,11 @@ export function Transferir({
   const [monto, setMonto] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // El error vive en un aviso aparte; el campo culpable se marca para que el
+  // lector lo lea junto a la caja que hay que corregir.
+  const [errorCampo, setErrorCampo] = useState<"destino" | "monto" | "pin" | null>(null);
+  // Mover saldo es irreversible: nada se envía sin revisar antes el resumen.
+  const [paso, setPaso] = useState<"datos" | "revisar">("datos");
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoTransferencia | null>(null);
   const [clave, setClave] = useState(() => idAleatorio());
@@ -72,38 +77,47 @@ export function Transferir({
   function elegirDestino(serial: string) {
     setDestino(serial);
     setError(null);
+    setErrorCampo(null);
+    setPaso("datos");
     reiniciarClave();
   }
 
   function cambiarMonto(valor: string) {
     setMonto(soloDigitos(valor).slice(0, 6));
     setError(null);
+    setErrorCampo(null);
+    setPaso("datos");
     reiniciarClave();
   }
 
-  async function confirmar(evento: FormEvent) {
-    evento.preventDefault();
-    if (enviando) return;
+  function fallar(campo: "destino" | "monto" | "pin", mensaje: string) {
+    setErrorCampo(campo);
+    setError(mensaje);
+    setPaso("datos");
+  }
 
+  /** Paso 1: valida sin tocar la red y deja el resumen a la vista. */
+  function validar() {
     const problemaSerial = destinoSerial ? validarSerial(destinoSerial) : null;
     if (!destinoSerial) {
-      setError("Escribe el serial de la tarjeta que recibe el saldo.");
+      fallar("destino", "Escribe el serial de la tarjeta que recibe el saldo.");
       return;
     }
     if (problemaSerial) {
-      setError(problemaSerial);
+      fallar("destino", problemaSerial);
       return;
     }
     if (destinoSerial === tarjeta.serial) {
-      setError("Elige una tarjeta distinta a la de origen.");
+      fallar("destino", "Elige una tarjeta distinta a la de origen.");
       return;
     }
     if (!montoValido) {
-      setError("Escribe un monto mayor que cero.");
+      fallar("monto", "Escribe un monto mayor que cero.");
       return;
     }
     if (montoNumero > ajustes.topeTransferencia) {
-      setError(
+      fallar(
+        "monto",
         `El tope por transferencia es ${formatearBs(
           ajustes.topeTransferencia
         )}. Divide el monto en varias operaciones.`
@@ -111,14 +125,25 @@ export function Transferir({
       return;
     }
     if (montoNumero > tarjeta.saldo) {
-      setError(`Solo puedes transferir ${formatearBs(tarjeta.saldo)} de esta tarjeta.`);
+      fallar(
+        "monto",
+        `Solo puedes transferir ${formatearBs(tarjeta.saldo)} de esta tarjeta.`
+      );
       return;
     }
     if (pin.length !== 6) {
-      setError("Escribe tu PIN de 6 dígitos para confirmar.");
+      fallar("pin", "Escribe tu PIN de 6 dígitos para confirmar.");
       return;
     }
 
+    setError(null);
+    setErrorCampo(null);
+    setPaso("revisar");
+  }
+
+  /** Paso 2: única ruta que debita saldo, y solo tras revisar el resumen. */
+  async function ejecutar() {
+    if (enviando) return;
     setEnviando(true);
     setError(null);
     try {
@@ -131,8 +156,10 @@ export function Transferir({
       });
       setResultado(respuesta);
       setPin("");
+      setPaso("datos");
     } catch (fallo) {
-      setError(
+      fallar(
+        "pin",
         fallo instanceof ErrorBlink
           ? fallo.message
           : "No pudimos completar la transferencia. Inténtalo otra vez."
@@ -145,12 +172,24 @@ export function Transferir({
     }
   }
 
-  function otra() {
+  function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    if (enviando) return;
+    if (paso === "datos") {
+      validar();
+      return;
+    }
+    void ejecutar();
+  }
+
+  function reiniciar() {
     setResultado(null);
     setDestino("");
     setMonto("");
     setPin("");
     setError(null);
+    setErrorCampo(null);
+    setPaso("datos");
     reiniciarClave();
   }
 
@@ -225,7 +264,7 @@ export function Transferir({
               <Icon name={copiado === "comprobante" ? "check" : "copiar"} />
               {copiado === "comprobante" ? "Comprobante copiado" : "Copiar comprobante"}
             </button>
-            <button type="button" className="boton boton--secundario" onClick={otra}>
+            <button type="button" className="boton boton--secundario" onClick={reiniciar}>
               Hacer otra transferencia
             </button>
             <button type="button" className="enlace-sutil" onClick={alVerMovimientos}>
@@ -249,7 +288,7 @@ export function Transferir({
         </p>
       </header>
 
-      <form className="tarjeta-panel" onSubmit={confirmar} noValidate>
+      <form className="tarjeta-panel" onSubmit={enviar} noValidate>
         {tarjetas.length < 2 && (
           <div className="aviso aviso--info" role="status">
             <Icon name="reloj" />
@@ -260,6 +299,38 @@ export function Transferir({
           </div>
         )}
 
+        {paso === "revisar" ? (
+          <section className="revision">
+            <h2 className="revision__titulo">Revisa antes de mover el saldo</h2>
+            <p className="revision__aviso">
+              La transferencia es inmediata y no se puede deshacer desde la app.
+            </p>
+            <dl className="datos">
+              <div>
+                <dt>Sale de</dt>
+                <dd className="mono">
+                  {tarjeta.serial} · queda {formatearBs(tarjeta.saldo - montoNumero)}
+                </dd>
+              </div>
+              <div>
+                <dt>Entra a</dt>
+                <dd className="mono">
+                  {destinoSerial}
+                  {destinoElegido ? ` · queda ${formatearBs(destinoElegido.saldo + montoNumero)}` : ""}
+                </dd>
+              </div>
+              <div>
+                <dt>Monto</dt>
+                <dd>{formatearBs(montoNumero)}</dd>
+              </div>
+              <div>
+                <dt>Autorización</dt>
+                <dd>PIN verificado al enviar</dd>
+              </div>
+            </dl>
+          </section>
+        ) : (
+          <>
         {tarjetas.length > 1 && (
           <div className="campo">
             <span className="campo__etiqueta">Sale de</span>
@@ -276,6 +347,8 @@ export function Transferir({
                     onClick={() => {
                       alSeleccionarOrigen(opcion.serial);
                       setError(null);
+                      setErrorCampo(null);
+                      setPaso("datos");
                       reiniciarClave();
                     }}
                   >
@@ -301,13 +374,17 @@ export function Transferir({
             placeholder="G-00001-001-N"
             maxLength={15}
             value={destino}
+            aria-describedby={
+              errorCampo === "destino" ? "tr-error" : "tr-destino-ayuda"
+            }
             onChange={(evento) => {
               setDestino(formatearSerial(evento.target.value));
               setError(null);
+              setErrorCampo(null);
               reiniciarClave();
             }}
           />
-          <span className="campo__ayuda">
+          <span className="campo__ayuda" id="tr-destino-ayuda">
             Está impreso al reverso del plástico. Puedes escribirlo con o sin guiones.
           </span>
           {otras.length > 0 && (
@@ -363,9 +440,10 @@ export function Transferir({
             inputMode="numeric"
             placeholder="0"
             value={monto}
+            aria-describedby={errorCampo === "monto" ? "tr-error" : "tr-monto-ayuda"}
             onChange={(evento) => cambiarMonto(evento.target.value)}
           />
-          <span className="campo__ayuda">
+          <span className="campo__ayuda" id="tr-monto-ayuda">
             Hasta {formatearBs(disponible)} disponibles en esta tarjeta, en bolívares
             enteros
             {tarjeta.saldo > ajustes.topeTransferencia
@@ -391,13 +469,19 @@ export function Transferir({
           </div>
         )}
 
-        <div className="campo">
+        <div
+          className="campo"
+          role="group"
+          aria-label="PIN de tu cuenta"
+          aria-describedby={errorCampo === "pin" ? "tr-error" : undefined}
+        >
           <span className="campo__etiqueta">PIN de tu cuenta</span>
           <PinEntrada
             valor={pin}
             alCambiar={(valor) => {
               setPin(valor);
               setError(null);
+              setErrorCampo(null);
             }}
             etiqueta="PIN de 6 dígitos para transferir"
           />
@@ -405,26 +489,44 @@ export function Transferir({
             Confirma la operación con el PIN con el que entras a Blink Pay.
           </span>
         </div>
+          </>
+        )}
 
         {error && (
-          <div className="aviso aviso--peligro" role="alert">
+          <div className="aviso aviso--peligro" role="alert" id="tr-error">
             <Icon name="alerta" />
             <p>{error}</p>
           </div>
         )}
 
-        <div className="aviso aviso--info">
-          <Icon name="escudo" />
-          <p>La transferencia es inmediata y sin comisión.</p>
-        </div>
+        {paso === "datos" && (
+          <div className="aviso aviso--info">
+            <Icon name="escudo" />
+            <p>La transferencia es inmediata y sin comisión.</p>
+          </div>
+        )}
+
+        {paso === "revisar" && (
+          <button
+            type="button"
+            className="boton boton--fantasma"
+            onClick={() => setPaso("datos")}
+            disabled={enviando}
+          >
+            <Icon name="atras" tamano="sm" />
+            Modificar
+          </button>
+        )}
 
         <button type="submit" className="boton boton--primario" disabled={enviando}>
           {enviando ? (
             <span className="girador" aria-label="Transfiriendo" />
           ) : (
             <>
-              <Icon name="transferir" />
-              Transferir {montoValido ? formatearBs(montoNumero) : "saldo"}
+              <Icon name={paso === "revisar" ? "check" : "transferir"} />
+              {paso === "revisar"
+                ? `Confirmar ${formatearBs(montoNumero)}`
+                : "Revisar transferencia"}
             </>
           )}
         </button>

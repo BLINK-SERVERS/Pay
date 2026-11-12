@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Hoja } from "../components/Hoja";
 import { HojaLegal } from "../components/HojaLegal";
 import { Icon } from "../components/Icon";
@@ -198,6 +198,23 @@ export function Perfil({
     return fallo instanceof ErrorBlink
       ? fallo.message
       : "No pudimos actualizar tus cuentas de pago. Inténtalo otra vez.";
+  }
+
+  function elegirPago(propio: boolean) {
+    setPagoPropio(propio);
+    if (propio) {
+      setPagoTelefono(cuenta.telefono);
+      setPagoCedula(cuenta.cedula);
+    }
+  }
+
+  /** En un grupo de radio las flechas mueven la selección y el foco juntos. */
+  function moverPago(evento: KeyboardEvent<HTMLButtonElement>, propio: boolean) {
+    if (evento.key !== "ArrowRight" && evento.key !== "ArrowLeft") return;
+    evento.preventDefault();
+    const siguiente = !propio;
+    elegirPago(siguiente);
+    document.getElementById(siguiente ? "pago-propia" : "pago-ajena")?.focus();
   }
 
   return (
@@ -444,22 +461,24 @@ export function Perfil({
             <button
               type="button"
               role="radio"
+              id="pago-propia"
               aria-checked={pagoPropio}
+              tabIndex={pagoPropio ? 0 : -1}
               className={`segmentado__opcion${pagoPropio ? " segmentado__opcion--activa" : ""}`}
-              onClick={() => {
-                setPagoPropio(true);
-                setPagoTelefono(cuenta.telefono);
-                setPagoCedula(cuenta.cedula);
-              }}
+              onClick={() => elegirPago(true)}
+              onKeyDown={(evento) => moverPago(evento, true)}
             >
               Mis datos
             </button>
             <button
               type="button"
               role="radio"
+              id="pago-ajena"
               aria-checked={!pagoPropio}
+              tabIndex={pagoPropio ? -1 : 0}
               className={`segmentado__opcion${!pagoPropio ? " segmentado__opcion--activa" : ""}`}
-              onClick={() => setPagoPropio(false)}
+              onClick={() => elegirPago(false)}
+              onKeyDown={(evento) => moverPago(evento, false)}
             >
               Otra cuenta
             </button>
@@ -475,6 +494,7 @@ export function Perfil({
               value={pagoBanco}
               onChange={(evento) => setPagoBanco(evento.target.value)}
               aria-invalid={pagoError && !pagoBanco ? true : undefined}
+              aria-describedby={pagoError && !pagoBanco ? "pago-error" : undefined}
             >
               <option value="">Selecciona tu banco…</option>
               {BANCOS.map((banco) => (
@@ -486,35 +506,41 @@ export function Perfil({
           </div>
 
           <div className="campo">
-            <span className="campo__etiqueta">Teléfono del Pago Móvil</span>
+            <label className="campo__etiqueta" htmlFor="perfil-telefono">
+              Teléfono del Pago Móvil
+            </label>
             <input
+              id="perfil-telefono"
               className="entrada mono"
               type="tel"
               inputMode="tel"
               maxLength={12}
               value={formatearTelefono(pagoTelefono)}
               onChange={(evento) => setPagoTelefono(soloDigitos(evento.target.value))}
-              aria-label="Teléfono del Pago Móvil"
               disabled={pagoPropio}
+              aria-describedby={pagoError ? "pago-error" : undefined}
             />
           </div>
 
           <div className="campo">
-            <span className="campo__etiqueta">C.I. del titular</span>
+            <label className="campo__etiqueta" htmlFor="perfil-cedula">
+              C.I. del titular
+            </label>
             <input
+              id="perfil-cedula"
               className="entrada mono"
               inputMode="numeric"
               maxLength={8}
               placeholder="12345678"
               value={pagoCedula}
               onChange={(evento) => setPagoCedula(formatearCedula(evento.target.value))}
-              aria-label="Cédula del titular de la cuenta de pago"
               disabled={pagoPropio}
+              aria-describedby={pagoError ? "pago-error" : undefined}
             />
           </div>
 
           {pagoError && (
-            <div className="aviso aviso--peligro" role="alert">
+            <div className="aviso aviso--peligro" role="alert" id="pago-error">
               <Icon name="alerta" />
               <p>{pagoError}</p>
             </div>

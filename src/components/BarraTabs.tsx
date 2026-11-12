@@ -3,7 +3,7 @@ import { vibrar } from "../lib/hooks";
 
 export type Pestana = "inicio" | "movimientos" | "recargar" | "transferir" | "perfil";
 
-const PESTANAS: { id: Pestana; etiqueta: string; icono: IconName }[] = [
+export const PESTANAS: { id: Pestana; etiqueta: string; icono: IconName }[] = [
   { id: "inicio", etiqueta: "Inicio", icono: "inicio" },
   { id: "movimientos", etiqueta: "Movimientos", icono: "movimientos" },
   { id: "recargar", etiqueta: "Recargar", icono: "recargar" },
