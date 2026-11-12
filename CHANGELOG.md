@@ -7,6 +7,27 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+### Estado de publicación (2026-11-12)
+
+Lo de abajo sigue en `## [No publicado]` porque todavía no se le dio su propio
+encabezado de versión, pero **sí está en producción**:
+
+- **La 2.5.0 y la 2.5.1 están desplegadas** en `pay.blink.com.ve` desde el push
+  `971aebe`. El armazón sirve `index-BwUPw3Ax.js` (antes `index-Bai3XZOX.js`) y
+  el `sw.js` vivo anuncia la caché `v14`. Verificado sobre los archivos
+  servidos, no sobre el repo: «Saltar al contenido» aparece en el chunk
+  principal y «Revisa antes de mover el saldo» en `Transferir-DNiRZmJk.js`.
+  Ojo: `__APP_VERSION__` se define en `vite.config.ts` pero ningún archivo de
+  `src/` lo consume, así que la versión no viaja en el bundle — la evidencia de
+  qué está publicado son el hash del asset y esas dos cadenas.
+- **El canal OTA queda al día con el firmware 17**: `public/firmware/manifest.json`
+  apunta al binario flasheado y verificado por hash en la unidad real —
+  `1 380 672 B`, SHA-256
+  `aa670145ff57aa2038b841eb3fac440a44e5271b3bfee5895e90e02f41aee417`— y la
+  unidad arrancó `READY,BLINK,17,0,0` con la NVS intacta (`placa=A12BC3D`,
+  `SYNC,ok=1`). Antes de publicar, el propio validador dejó probada la guardia
+  contra regresiones: `OTA,sin-novedad,actual=17,remota=15`.
+
 ### Base de datos
 
 - **`0032_ajustes_blink.sql`** (en TARJETA se numeró `0030`), **pendiente de
