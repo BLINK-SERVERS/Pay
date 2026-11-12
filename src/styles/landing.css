@@ -1355,33 +1355,33 @@
   text-wrap: balance;
 }
 
-.lp-ondas {
+svg.lp-ondas {
   display: inline-block;
-  width: 1.2em;
-  height: 1.2em;
-  vertical-align: -0.28em;
-  /* Las ondas NO llevan azul de marca: `ondas-nfc.svg` pinta con
-     `currentColor`, así que quedan del color del texto que las rodea.
+  width: 2em;
+  height: auto;
+  vertical-align: -0.42em;
+  /* El símbolo NO lleva azul de marca: `SimboloSinContacto` pinta con
+     `currentColor`, así que sale del color del texto que lo rodea.
      Hereda en los dos temas de sección: `--lp-texto`/`--lp-texto-2`
      (#1d1d1f y #424242 sobre #f2f2f7 en clara; #ffffff y #ebebf5 sobre
      #000000 en oscura), ambos por encima de 8:1. */
   color: inherit;
 }
 
-.lp-ondas--vivas {
+svg.lp-ondas--vivas {
   display: block;
-  width: clamp(56px, 9vw, 84px);
+  width: clamp(84px, 13vw, 124px);
   height: auto;
 }
 
-/* La misma animación de ondas que el cargador de la app: tres arcos
-   que se encienden en secuencia. `both` es obligatorio (BLINK-EST-001 §8). */
-.lp-ondas--vivas .lp-onda {
+/* Las mismas tres ondas que el cargador de la app: se encienden en secuencia
+   sobre el símbolo completo. `both` es obligatorio (BLINK-EST-001 §8). */
+.lp-ondas--vivas .sin-contacto__onda {
   animation: onda-nfc 1.8s ease-in-out infinite both;
 }
 
-.lp-ondas--vivas .lp-onda--2 { animation-delay: 0.18s; }
-.lp-ondas--vivas .lp-onda--3 { animation-delay: 0.36s; }
+.lp-ondas--vivas .sin-contacto__onda--2 { animation-delay: 0.18s; }
+.lp-ondas--vivas .sin-contacto__onda--3 { animation-delay: 0.36s; }
 
 .lp-fila {
   display: grid;
@@ -1712,7 +1712,7 @@
     transform: none;
   }
 
-  .lp-ondas--vivas .lp-onda {
+  .lp-ondas--vivas .sin-contacto__onda {
     animation: none;
     opacity: 1;
   }

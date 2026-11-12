@@ -113,7 +113,13 @@ for (const ancho of [393, 1440]) {
         sf: iconos.filter((svg) => svg.hasAttribute("data-variante")).length,
         fuente: getComputedStyle(document.querySelector(".lp")).fontFamily,
         marca: Boolean(document.querySelector(".lp-hero__marca svg")),
-        ondas: document.querySelectorAll(".lp-onda").length,
+        ondas: document.querySelectorAll(".lp-ondas .sin-contacto__ondas path").length,
+        simbolos: document.querySelectorAll(".lp-ondas .sin-contacto__simbolo").length,
+        ondasDelTexto: [...document.querySelectorAll(".lp-ondas .sin-contacto__ondas path")].map(
+          (arco) =>
+            getComputedStyle(arco).stroke ===
+            getComputedStyle(arco.closest("svg.lp-ondas")).color
+        ),
         beneficios: document.querySelectorAll(".lp-beneficio").length,
         preguntas: document.querySelectorAll(".lp-acordeon__item").length,
         notas: document.querySelectorAll(".lp-notas__lista li").length,
@@ -136,7 +142,12 @@ for (const ancho of [393, 1440]) {
     );
     revisar("pila tipográfica SF Pro/Inter", datos.fuente, /SF Pro|Inter/.test(datos.fuente));
     revisar("lockup aprobado en el hero", datos.marca, datos.marca);
-    revisar("tres ondas de marca en el glifo inline", datos.ondas, datos.ondas >= 3);
+    revisar("icono NFC completo, no solo los arcos", `${datos.simbolos} símbolos · ${datos.ondas} arcos`, datos.simbolos >= 2 && datos.ondas >= 6);
+    revisar(
+      "las ondas salen del color del texto (nunca azules)",
+      `${datos.ondasDelTexto.filter(Boolean).length}/${datos.ondasDelTexto.length}`,
+      datos.ondasDelTexto.length > 0 && datos.ondasDelTexto.every(Boolean)
+    );
     revisar("cuatro beneficios como la referencia", datos.beneficios, datos.beneficios === 4);
     revisar("acordeón de preguntas presente", datos.preguntas, datos.preguntas >= 6);
     revisar("notas al pie numeradas", datos.notas, datos.notas === 5);

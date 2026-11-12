@@ -167,6 +167,41 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
   (`PaginaMovimientos`), `Inspector` y disposición de escritorio, `Landing`,
   reanudación de sesión con la llave del dispositivo y el tema claro/oscuro.
 
+### Corregido (2.5.0, revisión del 2026-11-12)
+
+Cuatro puntos pedidos el 2026-11-11 estaban resueltos en TARJETA y **no** en
+este repo, que es la línea canónica; se portan aquí y se deja el verificador
+machine-checked para que no vuelva a pasar:
+
+- **Símbolo NFC completo, no solo las ondas** (`src/components/SimboloSinContacto.tsx`,
+  copiado byte a byte del clon): la tarjeta del anverso (`TarjetaVirtual.tsx`,
+  `.tarjeta__contacto`) y los dos lugares de la landing (`Landing.tsx`,
+  `.lp-ondas`) dibujan ahora elipse + mano + tres ondas, con la geometría
+  aprobada de `marca/blink-pay-sin-contacto.svg`. Antes solo salían los arcos,
+  que es justo lo que el usuario pidió dejar de ver.
+- **Las ondas salen del color del texto**: `fill`/`stroke` son
+  `currentColor`, así que en la tarjeta quedan en `#FFFEFB` (blanco) y en la
+  landing heredan la fuente de la frase. Ya no hay azul de marca en ningún
+  contexto; se eliminó la importación `ondas-nfc.svg?raw` y sus clases `.lp-onda*`.
+- **Fuera «Monto a transferir»**: *Recargar* dice «Total a pagar» en el resumen
+  y *Transferir* etiqueta el campo como «Monto».
+- **Fuera «datos de tu registro»**: la pregunta de *Acceso* se reescribe para
+  que se entienda sin esa frase («¿Vas a hacer tus recargas (Pago Móvil) desde
+  la misma cuenta con la que te registraste?»).
+- **Hoja de privacidad veraz** (`HojaPrivacidad.tsx`): se quita la promesa de
+  que se conserva «la sesión iniciada, si ya descartaste el aviso de
+  instalación y la respuesta que diste en el aviso de cookies» — nada de eso se
+  guarda de esa manera.
+- **Código muerto fuera** (`src/lib/hooks.ts`): `ModoTema`, `aplicarTema` y
+  `leerTema` ya no tienen consumidor desde que el selector de apariencia se
+  fue; el tema lo sigue fijando el script de `index.html`.
+- **El verificador ya no es ciego a esto** (`scripts/verificar-hig.mjs`): dos
+  comprobaciones nuevas por viewport y tema — «icono NFC completo, no solo los
+  arcos» (cuenta las elipses-mano y los arcos) y «las ondas salen del color del
+  texto (nunca azules)» (compara el `stroke` calculado de cada arco con el
+  `color` del SVG) —; la anterior solo exigía tres `.lp-onda`, y pasaba con el
+  glifo incompleto.
+
 ### Pruebas de la 2.5.0
 
 - `npm test`: **130 pruebas en 11 archivos**, todas en verde. Se suman alta,
@@ -175,9 +210,10 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
   `v7 → v8`, además de la prueba propia de Pay «reabre la sesión con la llave
   del dispositivo».
 - `npx tsc --noEmit` limpio.
-- `npm run verificar:hig`: en verde en 393×852 y 1440×900, claro y oscuro
-  (SF Symbols, pila SF Pro/Inter, cifras tabulares, materiales translúcidos, sin
-  desbordamiento ni saltos de maqueta).
+- `npm run verificar:hig`: en verde en 393×852 y 1440×900, claro y oscuro —
+  **230 ✓** en la corrida del 2026-11-12, incluidas las dos comprobaciones
+  nuevas del glifo (SF Symbols, pila SF Pro/Inter, cifras tabulares, materiales
+  translúcidos, sin desbordamiento ni saltos de maqueta).
 - Verificación funcional en Chromium sobre el modo demo (María `12345678`):
   **32 comprobaciones** — texto y nivel de pasajes en la tarjeta, bloques
   2/4/6/8/10, 40 pasajes aceptados sin tope y sin error, BNC · `34201580` ·
@@ -208,6 +244,15 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
   gracias al espejo `datosPago`. Con `0032` pendiente, el portal vivo sigue
   mostrando el banco de prueba de `0001` (B-20). No se publica la 2.5.0 hasta
   aplicar las tres y verificarlas contra la nube (B-75).
+- **Nada de esta 2.5.0 está servida todavía** (B-77). `pay.blink.com.ve` sigue
+  publicando la 2.4.1 —verificado en vivo: su `index` conserva `Banesco` y
+  `rostro` y no contiene ninguna de las cadenas nuevas—, y en el validador el
+  manifiesto OTA publicado anuncia firmware 15 mientras el fuente está en
+  `VERSION_FW = 17` (`dist-ota/` guarda el 14), así que las ondas blancas, la
+  barra de estado tipo iPhone y la ruta de actualización aligerada no están
+  siquiera compiladas. El plan 52 de BLINK-DOC-09 separa los dos frentes:
+  hardware (compilar, flashear y verificar — tarea #66) y nube + sitio (plan 50
+  y publicación).
 - La numeración diverge entre los dos portales por diseño: la base local de Pay
   es `v8` (los enlaces biométricos se añadieron por el camino) y la de TARJETA
   `v6`; las migraciones de nube `0030`/`0031`/`0032` en Pay son

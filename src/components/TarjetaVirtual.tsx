@@ -1,5 +1,6 @@
 import { memo, useId, useState } from "react";
 import { Icon } from "./Icon";
+import { SimboloSinContacto } from "./SimboloSinContacto";
 import { partesBs } from "../lib/formato";
 import { pasajesEquivalentes } from "../lib/dominio";
 import { useNumeroAnimado, vibrar } from "../lib/hooks";
@@ -42,6 +43,7 @@ export const TarjetaVirtual = memo(function TarjetaVirtual({ tarjeta }: Props) {
               alt=""
               draggable={false}
             />
+            <SimboloSinContacto className="tarjeta__contacto" />
             <p className="tarjeta__saldo">
               <span className="tarjeta__moneda">Bs</span>
               {entero}

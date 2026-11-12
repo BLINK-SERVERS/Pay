@@ -33,25 +33,6 @@ export function useNumeroAnimado(valor: number, duracion = 720): number {
   return actual;
 }
 
-export type ModoTema = "auto" | "claro" | "oscuro";
-
-export function aplicarTema(modo: ModoTema) {
-  const html = document.documentElement;
-  html.style.colorScheme = modo === "auto" ? "light dark" : modo === "claro" ? "light" : "dark";
-  html.dataset.tema = modo;
-  const oscuro =
-    modo === "oscuro" || (modo === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
-  html.classList.toggle("dark", oscuro);
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", oscuro ? "#000000" : "#FFFEFB");
-  localStorage.setItem("blink-tema", modo);
-}
-
-export function leerTema(): ModoTema {
-  const guardado = localStorage.getItem("blink-tema");
-  return guardado === "claro" || guardado === "oscuro" ? guardado : "auto";
-}
-
 /** Estado de red del navegador; se actualiza con los eventos online/offline. */
 export function useEnLinea(): boolean {
   const [enLinea, setEnLinea] = useState(() => navigator.onLine);

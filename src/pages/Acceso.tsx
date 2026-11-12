@@ -472,12 +472,12 @@ export function Acceso({
                     <Icon name="banco" />
                   </span>
                   <h2 className="pregunta-pago__titulo">
-                    ¿Los datos desde donde harás tus recargas (Pago Móvil) son los mismos de tu
-                    registro?
+                    ¿Vas a hacer tus recargas (Pago Móvil) desde la misma cuenta con la que te
+                    registraste?
                   </h2>
                   <p className="pregunta-pago__texto">
                     Muchas familias pagan las recargas con el banco o el teléfono de un familiar.
-                    Puedes usar los datos de tu registro o configurar una cuenta alterna.
+                    Puedes usar los datos de tu cuenta o configurar una alterna.
                   </p>
 
                   {pagoPropio === null ? (

@@ -55,8 +55,8 @@ export function HojaPrivacidad({ abierta, alCerrar }: Props) {
           <p>
             pay.blink.com.ve no instala cookies publicitarias ni de seguimiento. En tu
             navegador solo queda información técnica que la app necesita para funcionar:
-            la sesión iniciada, el tema claro u oscuro que elijas, si ya descartaste el
-            aviso de instalación y la respuesta que diste en el aviso de cookies.
+            la sesión iniciada, si ya descartaste el aviso de instalación y la
+            respuesta que diste en el aviso de cookies.
           </p>
           <p>
             Puedes borrar todo eso cuando quieras desde los ajustes de tu navegador; la

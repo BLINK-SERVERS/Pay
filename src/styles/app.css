@@ -656,6 +656,17 @@ body {
   object-fit: contain;
 }
 
+/* El símbolo completo (elipse, mano y ondas), no solo los arcos. Hereda el
+   color del texto de la tarjeta (`#FFFEFB` en el anverso), así que en la
+   marca nunca queda azul. */
+.tarjeta__contacto {
+  position: absolute;
+  right: 5cqw;
+  top: 5.2cqw;
+  width: 11.5cqw;
+  height: auto;
+}
+
 .tarjeta__saldo {
   position: absolute;
   left: 5cqw;

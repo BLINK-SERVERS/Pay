@@ -645,7 +645,7 @@ export function Recargar({
               </dd>
             </div>
             <div>
-              <dt>Monto a transferir</dt>
+              <dt>Total a pagar</dt>
               <dd className="mono">{formatearBs(cotizacion.total)}</dd>
             </div>
             <div>

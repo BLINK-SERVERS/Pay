@@ -333,7 +333,7 @@ export function Transferir({
 
         <div className="campo">
           <label className="campo__etiqueta" htmlFor="tr-monto">
-            Monto a transferir
+            Monto
           </label>
           <div className="chips" role="group" aria-label="Montos frecuentes">
             {MONTOS.map((valor) => {

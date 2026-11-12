@@ -4,10 +4,10 @@ import { AvisoDemo } from "../components/AvisoDemo";
 import { HojaLegal } from "../components/HojaLegal";
 import { HojaPrivacidad } from "../components/HojaPrivacidad";
 import { Icon } from "../components/Icon";
+import { SimboloSinContacto } from "../components/SimboloSinContacto";
 import { useConsultaMedio } from "../lib/hooks";
 import marca from "../assets/marca-blink-pay.svg?raw";
 import isotipo from "../assets/marca-blink-isotipo.svg?raw";
-import ondas from "../assets/ondas-nfc.svg?raw";
 import sinContacto from "../../marca/blink-pay-sin-contacto.svg";
 import "../styles/landing.css";
 
@@ -25,8 +25,8 @@ import "../styles/landing.css";
  * `tokens.css`; los iconos son SF Symbols vía `Icon`. La geometría de marca
  * se reutiliza tal cual desde los SVG aprobados: aquí solo se quitan los
  * `id` al insertarlos en línea para no duplicarlos en el documento (la
- * landing muestra el lockup dos veces) y se reencuadran las ondas en su
- * propia caja de tinta. Ninguna path se modifica.
+ * landing muestra el lockup dos veces). Ninguna path se modifica; el símbolo
+ * sin contacto viene de `SimboloSinContacto`, que hereda el color del texto.
  *
  * Los mockups de teléfono y validador son composiciones CSS con la interfaz
  * real y las pantallas del firmware; no son fotografías. Sustituirlos por
@@ -38,10 +38,6 @@ const BASE = import.meta.env.BASE_URL;
 /** El lockup aprobado, sin `id` repetidos al insertarlo en línea. */
 const MARCA = marca.replace(/\sid="[^"]*"/g, "");
 const ISOTIPO = isotipo.replace(/\sid="[^"]*"/g, "");
-/** Las mismas tres ondas, con clase en vez de id para poder animarlas. */
-const ONDAS = ondas
-  .replace(/id="nfc-(\d)"/g, 'class="lp-onda lp-onda--$1"')
-  .replace(/\sid="[^"]*"/g, "");
 
 interface Props {
   /** «Configura tu tarjeta» → acceso en modo registro. */
@@ -79,18 +75,16 @@ function Isotipo({ className = "" }: { className?: string }) {
 }
 
 /**
- * El símbolo que se busca al pagar: las tres ondas de la marca. En la
- * referencia es el glifo NFC inline; aquí es la pieza aprobada del lockup,
- * que sí cabe en una línea de texto.
+ * El símbolo que se busca al pagar: el icono NFC completo (elipse, mano con
+ * tarjeta y las tres ondas de la marca), no solo los arcos. `currentColor`,
+ * así que sale del color del texto que lo rodea.
  */
 function Ondas({ titulo, animadas = false }: { titulo?: string; animadas?: boolean }) {
   return (
-    <span
+    <SimboloSinContacto
       className={`lp-ondas${animadas ? " lp-ondas--vivas" : ""}`}
-      role={titulo ? "img" : undefined}
-      aria-label={titulo}
-      aria-hidden={titulo ? undefined : true}
-      dangerouslySetInnerHTML={{ __html: ONDAS }}
+      titulo={titulo}
+      animadas={animadas}
     />
   );
 }
