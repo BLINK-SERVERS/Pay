@@ -7,6 +7,24 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+### Base de datos
+
+- **`0028_banco_propio.sql`**, aplicada en Supabase el 2026-11-11. El aviso del
+  día era «en la app Pay el banco no se guarda»: `bt_actualizar_pago()`
+  vaciaba `pago_banco` siempre que el Pago Móvil era de la propia cuenta
+  (`p_propio = true`), mientras *Mi cuenta* seguía ofreciendo el selector. El
+  pasajero elegía su banco, pulsaba Guardar y el valor desaparecía; *Recargar*
+  volvía a pedir el banco en cada recarga porque nunca quedaba titulado. Ahora
+  el banco se conserva y solo teléfono y cédula se toman de la cuenta; con
+  «Otra cuenta» la validación sigue exigiendo los tres campos. Verificado en
+  vivo: guardado, releído desde `bt_sesion` y restaurado.
+- **`0027_conciliacion_saldo.sql`**, aplicada en Supabase el 2026-11-11
+  (en el repo TARJETA se numeró 0026). `bt_conciliacion_saldos()` lista las
+  tarjetas cuyo `virtual_balance` no cuadra con la suma de sus movimientos
+  aprobados y `bt_conciliar_tarjeta()` lo repara sin inventar dinero; registra
+  el evento `CONCILIADA` en la bitácora. Hallazgo: A-00000-000-H mostraba 0 Bs
+  en la columna con 10 500 Bs en el libro, y el validador rechazaba el toque.
+
 ### Aviso de cookies
 
 - **pay.blink.com.ve** pregunta una sola vez con tres respuestas —«Aceptar
