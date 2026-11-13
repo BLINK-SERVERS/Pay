@@ -1,7 +1,7 @@
 {
   "name": "blink-pay",
   "private": true,
-  "version": "2.5.1",
+  "version": "2.5.2",
   "type": "module",
   "description": "Blink Pay — portal del pasajero para consultar y recargar la tarjeta de transporte.",
   "scripts": {
@@ -13,6 +13,7 @@
     "lote": "node scripts/lote.ts",
     "verificar:hig": "node scripts/verificar-hig.mjs",
     "verificar:movimiento": "node scripts/verificar-movimiento.mjs",
+    "verificar:pwa": "node scripts/verificar-pwa.mjs",
     "deploy": "npm run build && gh-pages -d dist -t"
   },
   "dependencies": {

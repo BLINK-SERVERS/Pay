@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  aplicarActualizacion,
   descartarActualizacion,
   suscribirActualizacion,
 } from "./actualizacion";
@@ -8,7 +9,7 @@ describe("aviso de actualización", () => {
   it("al suscribirse entrega el estado actual", () => {
     const oyente = vi.fn();
     const salir = suscribirActualizacion(oyente);
-    expect(oyente).toHaveBeenCalledWith(false);
+    expect(oyente).toHaveBeenCalledWith("ninguno");
     salir();
   });
 
@@ -25,7 +26,17 @@ describe("aviso de actualización", () => {
     expect(() => descartarActualizacion()).not.toThrow();
     const oyente = vi.fn();
     const salir = suscribirActualizacion(oyente);
-    expect(oyente).toHaveBeenLastCalledWith(false);
+    expect(oyente).toHaveBeenLastCalledWith("ninguno");
+    salir();
+  });
+
+  it("aplicar sin worker en espera no avisa nada pendiente", () => {
+    // Sin registro no hay versión que activar: el aviso vuelve a ocultarse y
+    // el intento de actualizar no deja la pestaña colgada.
+    const oyente = vi.fn();
+    const salir = suscribirActualizacion(oyente);
+    expect(() => aplicarActualizacion()).not.toThrow();
+    expect(oyente).toHaveBeenLastCalledWith("ninguno");
     salir();
   });
 });

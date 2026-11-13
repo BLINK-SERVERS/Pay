@@ -2,8 +2,16 @@
 // queda en espera: no toma el control ni recarga la app hasta que el
 // pasajero toca «Actualizar». Así una recarga o un cobro no se cortan a
 // mitad de camino y el cambio de versión se siente como en una app nativa.
+//
+// `skipWaiting` es global: cuando el pasajero actualiza una pestaña, las
+// demás también cambian de controlador. Recargarlas a todas era el fallo
+// (#157) —una segunda ventana a mitad de un Pago Móvil reportado perdía el
+// comprobante—. Solo se recarga la pestaña que lo pidió; las otras reciben
+// el aviso en estado `pendiente` y eligen su momento.
 
-type Oyente = (disponible: boolean) => void;
+export type EstadoActualizacion = "ninguno" | "disponible" | "pendiente";
+
+type Oyente = (estado: EstadoActualizacion) => void;
 
 const MIN_ENTRE_COMPROBACIONES = 60 * 1000;
 const CADA_CUANTO_MS = 30 * 60 * 1000;
@@ -11,19 +19,20 @@ const CADA_CUANTO_MS = 30 * 60 * 1000;
 const oyentes = new Set<Oyente>();
 let registro: ServiceWorkerRegistration | null = null;
 let conControl: boolean | null = null;
-let disponible = false;
+let estado: EstadoActualizacion = "ninguno";
 let recargando = false;
 let comprobando = false;
+let sePidioActivar = false;
 let ultimaComprobacion = 0;
 
-function avisar(valor: boolean): void {
-  disponible = valor;
+function avisar(valor: EstadoActualizacion): void {
+  estado = valor;
   for (const oyente of oyentes) oyente(valor);
 }
 
 export function suscribirActualizacion(oyente: Oyente): () => void {
   oyentes.add(oyente);
-  oyente(disponible);
+  oyente(estado);
   return () => {
     oyentes.delete(oyente);
   };
@@ -31,7 +40,7 @@ export function suscribirActualizacion(oyente: Oyente): () => void {
 
 /** Deja el aviso oculto; el worker nuevo sigue esperando para la próxima. */
 export function descartarActualizacion(): void {
-  avisar(false);
+  avisar("ninguno");
 }
 
 /**
@@ -41,11 +50,19 @@ export function descartarActualizacion(): void {
 export function aplicarActualizacion(): void {
   const espera = registro?.waiting;
   if (!espera) {
-    avisar(false);
+    avisar("ninguno");
     void comprobar(true);
     return;
   }
+  sePidioActivar = true;
   espera.postMessage({ tipo: "activar" });
+}
+
+/** Recarga solo esta pestaña: es la acción del estado `pendiente`. */
+export function recargarEstaPestana(): void {
+  if (recargando) return;
+  recargando = true;
+  window.location.reload();
 }
 
 async function comprobar(forzar = false): Promise<void> {
@@ -70,7 +87,7 @@ function vigilarInstalacion(): void {
   nuevo.addEventListener("statechange", () => {
     // `controller` distingue una actualización de la primera instalación:
     // en la primera visita no hay nada que avisar.
-    if (nuevo.state === "installed" && conControl) avisar(true);
+    if (nuevo.state === "installed" && conControl) avisar("disponible");
   });
 }
 
@@ -102,7 +119,7 @@ async function iniciar(): Promise<void> {
     cachearPrimeraVisita(actual);
 
     // Un worker pudo quedar esperando antes de esta carga.
-    if (actual.waiting && conControl) avisar(true);
+    if (actual.waiting && conControl) avisar("disponible");
   } catch {
     // Sin service worker la app sigue funcionando en línea.
   }
@@ -121,6 +138,13 @@ export function prepararActualizaciones(): void {
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (!conControl || recargando) return;
+    // El controlador cambió por culpa de OTRA pestaña que pulsó «Actualizar».
+    // Esta no se recarga: puede estar a mitad de un Pago Móvil reportado o de
+    // una transferencia revisada. Se avisa y el pasajero elige el momento.
+    if (!sePidioActivar) {
+      avisar("pendiente");
+      return;
+    }
     recargando = true;
     window.location.reload();
   });

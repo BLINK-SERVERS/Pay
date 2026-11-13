@@ -2,17 +2,21 @@ import { useEffect, useState } from "react";
 import {
   aplicarActualizacion,
   descartarActualizacion,
+  recargarEstaPestana,
   suscribirActualizacion,
+  type EstadoActualizacion,
 } from "../lib/actualizacion";
 import { Icon } from "./Icon";
 
 /** Aviso flotante de versión nueva, al estilo de una app instalada. */
 export function AvisoActualizacion() {
-  const [disponible, setDisponible] = useState(false);
+  const [estado, setEstado] = useState<EstadoActualizacion>("ninguno");
 
-  useEffect(() => suscribirActualizacion(setDisponible), []);
+  useEffect(() => suscribirActualizacion(setEstado), []);
 
-  if (!disponible) return null;
+  if (estado === "ninguno") return null;
+
+  const pendiente = estado === "pendiente";
 
   return (
     <div
@@ -26,8 +30,20 @@ export function AvisoActualizacion() {
           <Icon name="actualizar" />
         </span>
         <div className="actualizacion__texto">
-          <strong>Actualización disponible</strong>
-          <span>Hay una versión nueva de Blink Pay. Actualiza para recibir las mejoras.</span>
+          {pendiente ? (
+            <>
+              <strong>Ya hay una versión nueva activa</strong>
+              <span>
+                Otra pestaña actualizó Blink Pay. Esta sigue con la versión
+                anterior; recárgala cuando no estés a mitad de un trámite.
+              </span>
+            </>
+          ) : (
+            <>
+              <strong>Actualización disponible</strong>
+              <span>Hay una versión nueva de Blink Pay. Actualiza para recibir las mejoras.</span>
+            </>
+          )}
         </div>
       </div>
       <div className="actualizacion__acciones">
@@ -41,10 +57,10 @@ export function AvisoActualizacion() {
         <button
           type="button"
           className="boton boton--primario boton--compacto"
-          onClick={aplicarActualizacion}
+          onClick={pendiente ? recargarEstaPestana : aplicarActualizacion}
         >
           <Icon name="actualizar" />
-          Actualizar
+          {pendiente ? "Actualizar esta pestaña" : "Actualizar"}
         </button>
       </div>
     </div>

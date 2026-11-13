@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { ContencionError } from "./components/ContencionError";
 import { prepararActualizaciones } from "./lib/actualizacion";
 import { prepararInstalacion } from "./lib/instalacion";
 
@@ -18,7 +19,9 @@ prepararInstalacion();
 
 createRoot(el).render(
   <StrictMode>
-    <App />
+    <ContencionError>
+      <App />
+    </ContencionError>
   </StrictMode>
 );
 

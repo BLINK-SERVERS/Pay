@@ -427,6 +427,77 @@ pruebas SQL devolvieron código de salida 0: `0027`, `0027-multitap`, `0028`,
   #164: para ejercitarla hay que volver a aplicar `0031` sobre una base con
   cuentas degradadas, como se hizo a mano el 2026-11-12.
 
+### Corregido (2.5.2, cliente: actualizar y quedarse sin red)
+
+Dos hallazgos de la revisión de bugs del 2026-11-12, ambos en la capa de
+actualización de la PWA.
+
+- **#156 — «Actualizar» con la red cortada dejaba la app en blanco.** Eran dos
+  defectos juntos en `public/sw.js`:
+  - la instalación usaba `cache.addAll(ARMAZON)`, todo o nada: un solo 404 del
+    armazón (Pages a medio subir) abortaba la instalación, el worker nuevo no
+    quedaba en espera y el aviso de actualización no volvía hasta la próxima
+    apertura. Ahora cada archivo se guarda con `guardar()` y lo que falta se
+    pide al navegar.
+  - el armazón no trae los `chunks` con hash que genera Vite, y **tampoco los
+    enumera el `index.html`**: las pestañas de carga perezosa (`Recargar`,
+    `Perfil`, `Transferir`, `Landing`, `HojaLegal`…) y sus hojas y fuentes
+    compartidas viven como cadenas `assets/…` dentro del chunk de arranque. Al
+    activar la versión nueva se borraba la caché vieja, la caché nueva solo
+    traía 6 entradas y la importación fallaba: pantalla vacía. La instalación
+    ahora recorre ese grafo (hasta tres rondas, con tolerancia a la pieza que
+    falta) y la caché nueva se llena con **26 entradas antes de activarse**.
+- Se añade `src/components/ContencionError.tsx`, límite de error alrededor de
+  `<App />` en `src/main.tsx`: si aun así falla un chunk, el pasajero ve
+  «Blink Pay no pudo cargar esta parte de la app» con su botón *Volver a
+  intentarlo* en lugar de un lienzo en blanco.
+- **#157 — actualizar una pestaña recargaba las demás.** `skipWaiting()` cambia
+  el controlador de **todas** las pestañas del origen, y el oyente de
+  `controllerchange` recargaba sin mirar quién lo había pedido: una segunda
+  ventana a mitad de un Pago Móvil reportado perdía el comprobante.
+  `src/lib/actualizacion.ts` pasa a un estado `ninguno | disponible | pendiente`
+  (`EstadoActualizacion`); solo se recarga la pestaña que pidió el cambio
+  (`sePidioActivar`), y las demás muestran «Ya hay una versión nueva activa»
+  con su propia acción *Actualizar esta pestaña* (`recargarEstaPestana()`).
+
+### Verificación de la 2.5.2
+
+- Nuevo `npm run verificar:pwa` (`scripts/verificar-pwa.mjs`): Chromium real,
+  cinco pasos y **16 comprobaciones en verde**. El servidor estático es propio
+  del script, no `vite preview`, por dos motivos medidos: `vite preview` añade
+  `Vary: Origin` a los assets y falsea las consultas de caché, y
+  `context.setOffline()` **no corta el tráfico contra 127.0.0.1** (se
+  comprobó: con el avión puesto un `fetch` devolvió `200 basic`), así que la
+  caída se simula cerrando el servidor de verdad. El orden importa: la red se
+  corta **antes** de pulsar «Actualizar», que es el caso que fallaba.
+- **Control negativo sobre el código viejo**, mismo arnés: con la instalación
+  anterior (`cache.addAll`) caen 7 de las 16 — 6 entradas en la caché en vez
+  de 26, la pestaña actualizada no se dibuja sin red y la portada no es
+  legible. Con el `controllerchange` de antes (recargar a ciegas) cae «la otra
+  pestaña NO se recargó al actualizar ésta»; en esa corrida el recorrido
+  además se cortaba por timeout, y desde entonces las esperas de las pestañas
+  se registran como comprobación en lugar de abortar el script.
+- `npm test`: **136 pruebas en 12 archivos**, en verde dos corridas seguidas.
+  Se suman 5 pruebas del instalador en `src/lib/worker.test.ts` (404 tolerado,
+  grafo de `chunks`, no cachear RPC ni origen ajeno, instalación que termina
+  aunque la red falle en todo) y `actualizacion.test.ts` se ajusta al nuevo
+  contrato de estados.
+- `npx tsc --noEmit` y `npm run build`: sin errores.
+- Estabilidad de la batería: `local.test.ts` «cambia el PIN y obliga a usar el
+  nuevo» reventaba a los 5 s con los 12 archivos corriendo a la vez (PBKDF2 a
+  150 000 iteraciones ≈ 0,4 s por derivación). Se fija `test.testTimeout` en
+  25 s en `vite.config.ts`; no es un cambio de producto, es el ruido que hacía
+  rojo un verde.
+- `npm run verificar:hig` sigue en verde tras el cambio de `main.tsx` (la
+  frontera de error envuelve `<App />`). En la primera corrida del 2026-11-12
+  falló «la bandeja abierta tiene altura» en `landing 1440px · dark`: el
+  acordeón estaba abierto (`aria-expanded="true"`, un solo item) pero la lectura
+  caía justo dentro de los 320 ms de la transición `0fr → 1fr`. El sondeo ahora
+  espera hasta 3 s y registra el valor; con eso la corrida completa salió sin
+  una sola ✗. No era un fallo de la app —reproducido en limpio el panel mide
+  204 px en claro y en oscuro—, era la prisa del arnés.
+- Sigue **sin publicar**: nada de esto está servido en `pay.blink.com.ve`.
+
 ### Pruebas de la 2.5.0
 
 - `npm test`: **130 pruebas en 11 archivos**, todas en verde. Se suman alta,

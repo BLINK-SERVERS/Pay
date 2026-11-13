@@ -160,18 +160,38 @@ for (const ancho of [393, 1440]) {
     const primera = pagina.locator(".lp-acordeon__boton").first();
     await primera.scrollIntoViewIfNeeded();
     await primera.click();
-    await pagina.waitForTimeout(400);
-    const acordeon = await pagina.evaluate(() => {
-      const abiertos = [...document.querySelectorAll(".lp-acordeon__boton")].filter(
-        (boton) => boton.getAttribute("aria-expanded") === "true"
-      );
-      const bandeja = document.querySelector(".lp-acordeon__item--abierto .lp-acordeon__bandeja");
-      return {
-        abiertos: abiertos.length,
-        alto: Math.round(bandeja?.getBoundingClientRect().height ?? 0),
-        region: bandeja?.getAttribute("role"),
-      };
-    });
+    // La bandeja crece con una transición de 0,32 s; en máquinas cargadas
+    // esa lectura puede llegar tarde, así que se sondea hasta 3 s.
+    async function leerAcordeon() {
+      for (let intento = 0; intento < 12; intento += 1) {
+        const datos = await pagina.evaluate(() => {
+          const abiertos = [...document.querySelectorAll(".lp-acordeon__boton")].filter(
+            (boton) => boton.getAttribute("aria-expanded") === "true"
+          );
+          const bandeja = document.querySelector(
+            ".lp-acordeon__item--abierto .lp-acordeon__bandeja"
+          );
+          return {
+            abiertos: abiertos.length,
+            alto: Math.round(bandeja?.getBoundingClientRect().height ?? 0),
+            region: bandeja?.getAttribute("role") ?? null,
+          };
+        });
+        if (datos.alto > 40) return datos;
+        await pagina.waitForTimeout(250);
+      }
+      return pagina.evaluate(() => {
+        const bandeja = document.querySelector(".lp-acordeon__item--abierto .lp-acordeon__bandeja");
+        return {
+          abiertos: [...document.querySelectorAll(".lp-acordeon__boton")].filter(
+            (boton) => boton.getAttribute("aria-expanded") === "true"
+          ).length,
+          alto: Math.round(bandeja?.getBoundingClientRect().height ?? 0),
+          region: bandeja?.getAttribute("role") ?? null,
+        };
+      });
+    }
+    const acordeon = await leerAcordeon();
     revisar("el acordeón abre una sola pregunta", acordeon.abiertos, acordeon.abiertos === 1);
     revisar("la bandeja abierta tiene altura", acordeon.alto, acordeon.alto > 40);
     revisar("la bandeja es una región etiquetada", acordeon.region, acordeon.region === "region");
