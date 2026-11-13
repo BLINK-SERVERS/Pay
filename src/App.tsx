@@ -176,8 +176,10 @@ export function App() {
   const vistaPublicaRef = useRef<VistaPublica>(vistaPublica);
   const ocultoDesde = useRef<number | null>(null);
   // Un solo refresco en vuelo y una ventana de vigencia: cambiar de pestaña o
-  // volver a la app no dispara la misma lectura dos veces.
-  const refrescoEnCurso = useRef<Promise<void> | null>(null);
+  // volver a la app no dispara la misma lectura dos veces. Se guarda cuándo
+  // arrancó, porque «forzar» solo puede aprovechar una lectura que nació
+  // después de la escritura que quiere ver.
+  const refrescoEnCurso = useRef<{ tarea: Promise<void>; inicio: number } | null>(null);
   const ultimoRefresco = useRef(0);
   // Una respuesta que llega después de salir o bloquear no debe reabrir la
   // sesión ni repintar el extracto.
@@ -309,9 +311,23 @@ export function App() {
     async (forzar = false) => {
       if (!token || !serialActiva) return;
       if (!forzar && Date.now() - ultimoRefresco.current < VIGENCIA_REFRESCO) return;
-      if (refrescoEnCurso.current) return refrescoEnCurso.current;
+
+      // `forzar` llega después de mover dinero (recarga reportada,
+      // transferencia) y pide la cifra nueva. La lectura que esté en vuelo
+      // pudo arrancar antes de esa escritura, así que reutilizarla devolvía el
+      // saldo de siempre con el `await` del llamante ya resuelto —el hueco que
+      // dejó «Actualizar» en #159—. Se deja que termine y se vuelve a leer.
+      const desde = Date.now();
+      const enVuelo = refrescoEnCurso.current;
+      if (enVuelo) {
+        if (!forzar || enVuelo.inicio >= desde) return enVuelo.tarea;
+        await enVuelo.tarea;
+        const siguiente = refrescoEnCurso.current;
+        if (siguiente && siguiente.inicio >= desde) return siguiente.tarea;
+      }
 
       const marca = generacion.current;
+      const inicio = Date.now();
       const tarea = (async () => {
         try {
           // Sesión y extracto no dependen entre sí: viajan juntos.
@@ -335,11 +351,15 @@ export function App() {
               "No pudimos actualizar tus movimientos. Revisa la conexión e inténtalo de nuevo."
             );
           }
-        } finally {
-          refrescoEnCurso.current = null;
         }
       })();
-      refrescoEnCurso.current = tarea;
+      const entrada = { tarea, inicio };
+      refrescoEnCurso.current = entrada;
+      // Se suelta solo la tarea propia: una que terminó tarde no puede
+      // descolgar la que arranque después de un `salir` o de un bloqueo.
+      void tarea.finally(() => {
+        if (refrescoEnCurso.current === entrada) refrescoEnCurso.current = null;
+      });
       return tarea;
     },
     [token, serialActiva]

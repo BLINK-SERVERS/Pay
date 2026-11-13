@@ -512,6 +512,30 @@ Tercer hallazgo del mismo repaso, este en el saldo.
     validador aún no ha escrito en el plástico», y el aviso del campo añade
     «· Bs 3.000,00 se habilita cuando el validador lo escriba en el plástico».
 
+### Corregido (2.5.2, refresco forzado: leer después de escribir)
+
+Cuarto hallazgo del repaso, en `src/App.tsx`.
+
+- **#159 — después de transferir, la tarjeta seguía mostrando el saldo de
+  antes.** `refrescar(true)` llegaba de la pantalla de transferencia y de la
+  recarga reportada pidiendo la cifra nueva; lo que hacía era **devolver la
+  lectura que ya estaba en vuelo**. Esa lectura pudo arrancar antes de que el
+  dinero existiera, así que su respuesta es un fotograma caduco, y como el
+  `await` del llamante se daba por satisfecho con la promesa reutilizada, la
+  pantalla creía haberse actualizado. El hueco lo dejó «Actualizar» (#159 es su
+  regresión): con la vigencia de 10 s, cualquier lectura de fondo —cambiar de
+  pestaña, volver a la app— coincide con el cierre de una transferencia. No era
+  teórico: la carrera aparece en el primer minuto de uso.
+  - La entrada en vuelo ahora guarda **cuándo arrancó**
+    (`{ tarea, inicio }`), y `forzar` solo puede aprovechar una lectura que nació
+    **después** de la escritura: si la que viaja es anterior, se espera a que
+    termine y **se vuelve a leer**. Sin forzar se conserva el atajo de siempre,
+    así que cambiar de pestaña no duplica la lectura.
+  - El refresco se suelta por **identidad** (`tarea.finally`), no por posición:
+    una tarea que termina tarde no puede descolgar a la que arrancó después de
+    un `salir` o de un bloqueo, que es lo que pasaba con el `finally` de dentro
+    de la propia tarea.
+
 ### Verificación de la 2.5.2
 
 - Nuevo `npm run verificar:pwa` (`scripts/verificar-pwa.mjs`): Chromium real,
@@ -551,6 +575,26 @@ Tercer hallazgo del mismo repaso, este en el saldo.
     pedir los 4.000 de la segunda el servidor respondió con el rechazo de
     siempre. Con el arreglo, el portal promete 0 y no 4.000. Ese sondeo destapó
     el `.00` de la máscara, que ya va corregido y assertionado en la batería.
+- Nuevo `npm run verificar:refresco` (`scripts/verificar-refresco.mjs`) para
+  #159: Chromium real contra el portal en `--mode simulacion`. El arnés
+  intercepta `bt_sesion` y `bt_movimientos`, **reenvía la lectura al instante
+  pero retiene su respuesta**, de modo que lo que aterriza es el estado anterior
+  a la transferencia —la colisión fabricada a propósito, no simulada por
+  tiempos—. Comprueba cinco cosas: que tocar otra pestaña no dispara una segunda
+  lectura, que la escritura encontró una lectura ya en vuelo, que la retenida
+  salió antes de escribir y llegó después, que el portal **volvió a leer** después
+  de escribir sin tormenta de solicitudes, y que la tarjeta de Inicio quedó en
+  `origen − monto`. Dos corridas seguidas en verde, con 2 lecturas extra
+  (`bt_sesion` + `bt_movimientos`) y saldos `8.700 → 8.600` y `8.600 → 8.500`.
+- **Control negativo**: el mismo script contra el `src/App.tsx` de HEAD
+  (`git diff --stat -- src/App.tsx` vacío, para confirmar que no era el arreglo
+  el que pasaba) revienta exactamente en «el portal volvió a leer después de
+  escribir: 0» —es decir, se queda con el saldo viejo— y sale con código 1. La
+  primera versión del arnés era **falsa en verde**: chocaba con la lectura
+  inicial del extracto, que no pasa por `refrescoEnCurso`, y el código viejo la
+  pasaba; por eso la carrera se re-dirigió a un `refrescar()` disparado por un
+  clic de pestaña fuera de la vigencia.
+- Dejó una transferencia de prueba en la base (`simulacion/arrancar.sh` revierte).
 - `npx tsc --noEmit` y `npm run build`: sin errores.
 - Estabilidad de la batería: `local.test.ts` «cambia el PIN y obliga a usar el
   nuevo» reventaba a los 5 s con los 12 archivos corriendo a la vez (PBKDF2 a

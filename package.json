@@ -14,6 +14,7 @@
     "verificar:hig": "node scripts/verificar-hig.mjs",
     "verificar:movimiento": "node scripts/verificar-movimiento.mjs",
     "verificar:pwa": "node scripts/verificar-pwa.mjs",
+    "verificar:refresco": "node scripts/verificar-refresco.mjs",
     "deploy": "npm run build && gh-pages -d dist -t"
   },
   "dependencies": {
