@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buscarRecargaDuplicada,
+  disponibleTransferencia,
   erroresDatosPago,
   erroresRecarga,
   letraLuhn,
@@ -178,6 +179,29 @@ describe("pasajesEquivalentes", () => {
   it("sabe si el saldo alcanza para N pasajes", () => {
     expect(saldoParaPasajes(1500, 500, 3)).toBe(true);
     expect(saldoParaPasajes(1499, 500, 3)).toBe(false);
+  });
+});
+
+describe("disponibleTransferencia", () => {
+  // #158: el servidor cobra contra bt_disponible_transferencia, no contra el
+  // saldo en crudo. El portal tiene que prometer esa misma cifra.
+  it("promete lo que el servidor acepta, no el saldo completo", () => {
+    expect(
+      disponibleTransferencia({ saldo: 5000, disponible: 1200 }, 5000)
+    ).toBe(1200);
+  });
+
+  it("acota por el tope de la operación", () => {
+    expect(disponibleTransferencia({ saldo: 9000, disponible: 8000 }, 5000)).toBe(5000);
+  });
+
+  it("con la base vieja (sin el campo) usa el saldo de siempre", () => {
+    expect(disponibleTransferencia({ saldo: 3000 }, 5000)).toBe(3000);
+  });
+
+  it("no devuelve negativos", () => {
+    expect(disponibleTransferencia({ saldo: 0, disponible: 0 }, 5000)).toBe(0);
+    expect(disponibleTransferencia({ saldo: 100, disponible: -400 }, 5000)).toBe(0);
   });
 });
 

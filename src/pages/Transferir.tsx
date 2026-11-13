@@ -3,7 +3,7 @@ import { Icon } from "../components/Icon";
 import { PinEntrada } from "../components/PinEntrada";
 import { idAleatorio } from "../lib/azar";
 import { ErrorBlink } from "../lib/repo";
-import { validarSerial } from "../lib/dominio";
+import { disponibleTransferencia, validarSerial } from "../lib/dominio";
 import {
   formatearBs,
   formatearMovimiento,
@@ -60,7 +60,11 @@ export function Transferir({
   const [copiado, copiar] = useCopiar();
 
   const otras = tarjetas.filter((t) => t.serial !== tarjeta.serial);
-  const disponible = Math.max(0, Math.min(tarjeta.saldo, ajustes.topeTransferencia));
+  const disponible = disponibleTransferencia(tarjeta, ajustes.topeTransferencia);
+  // Saldo ya acreditado que el validador todavía no escribió en el plástico:
+  // es la diferencia entre lo que la tarjeta dice tener y lo que el servidor
+  // deja transferir hoy (0022/0034).
+  const enEspera = Math.max(0, tarjeta.saldo - (tarjeta.disponible ?? tarjeta.saldo));
   const destinoSerial = formatearSerial(destino);
   const montoNumero = Number(soloDigitos(monto));
   const montoValido = Number.isInteger(montoNumero) && montoNumero > 0;
@@ -124,10 +128,16 @@ export function Transferir({
       );
       return;
     }
-    if (montoNumero > tarjeta.saldo) {
+    if (montoNumero > disponible) {
       fallar(
         "monto",
-        `Solo puedes transferir ${formatearBs(tarjeta.saldo)} de esta tarjeta.`
+        enEspera > 0
+          ? `Puedes transferir ${formatearBs(
+              disponible
+            )} de esta tarjeta ahora mismo: ${formatearBs(
+              enEspera
+            )} es saldo que el validador aún no ha escrito en el plástico.`
+          : `Solo puedes transferir ${formatearBs(disponible)} de esta tarjeta.`
       );
       return;
     }
@@ -446,6 +456,9 @@ export function Transferir({
           <span className="campo__ayuda" id="tr-monto-ayuda">
             Hasta {formatearBs(disponible)} disponibles en esta tarjeta, en bolívares
             enteros
+            {enEspera > 0
+              ? ` · ${formatearBs(enEspera)} se habilita cuando el validador lo escriba en el plástico`
+              : ""}
             {tarjeta.saldo > ajustes.topeTransferencia
               ? ` · tope de ${formatearBs(ajustes.topeTransferencia)} por operación`
               : ""}

@@ -23,6 +23,12 @@ export interface Tarjeta {
   vence: string;
   /** Tarifa vigente del pasaje, en Bs. */
   tarifa: number;
+  /**
+   * Bs que `bt_transferir_saldo` acepta hoy de esta tarjeta: el saldo menos lo
+   * que aún no está escrito en el plástico (0022/0034). Viene en la sesión a
+   * partir de 0034; si la base todavía no la tiene, falta y se usa `saldo`.
+   */
+  disponible?: number;
 }
 
 export type TipoMovimiento =

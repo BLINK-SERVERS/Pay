@@ -35,6 +35,32 @@ encabezado de versión, pero **sí está en producción**:
 
 ### Base de datos
 
+- **`0034_sesion_disponible.sql`**, **pendiente de aplicar en Supabase**. Dos
+  cosas, las dos del hallazgo #158:
+  - La sesión pasa a traer el tope real. `bt_tarjeta_cuenta_json()` —la
+    proyección que arman `bt_entrar`, `bt_sesion`, `bt_registrar`, `bt_vincular`
+    y `bt_reanudar`— añade `disponible` con `bt_disponible_transferencia()`
+    (0022), que es exactamente la cifra con la que corta `bt_transferir_saldo`.
+    Antes el portal solo veía `saldo` (`virtual_balance` en crudo) y prometía
+    dinero que el validador todavía no había escrito en el plástico. Se manda
+    la cifra en vez de copiar la fórmula a TypeScript: el dominio vive en 0022 y
+    duplicarlo en el cliente lo condenaría a divergir. La función pasa a
+    `security definer` con `search_path` fijo porque `bt_disponible_transferencia`
+    está revocada a `anon`/`authenticated`; no abre datos nuevos —la fila
+    `cards` ya entraba como argumento— y sigue `stable`.
+  - El texto del rechazo, corregido. `to_char(0, 'FM999999999.00')` devuelve
+    `'.00'`: con `FM` y puros nueves, el cero de la izquierda se suprime. Y el
+    `disponible` en cero es justo el caso que esta migración deja a la vista (la
+    tarjeta que recibió una transferencia todavía no escrita en su plástico),
+    así que el mensaje se leía «Solo puedes transferir .00 Bs». Lo mismo en el
+    tope diario, que imprime `v_usado_dia` y vale 0 en la primera transferencia
+    del día. La máscara correcta fija un dígito en la unidad:
+    `FM999999990.00`. Los masks enteros no se tocan, a 0 ya le sale `0`. Es
+    `bt_transferir_saldo` de 0023:358 copiada tal cual con esos dos masks —se
+    reescribe entera porque una migración aplicada no se edita— más su `grant`.
+  Prueba: `simulacion/prueba-0034.sql` (9 pasos, dos corridas en verde).
+  Control negativo: sin 0034 ninguna de las dos tarjetas de la billetera trae la
+  clave, y con la función vieja el rechazo dice `.00 Bs`.
 - **`0033_toques_resilientes.sql`**, **pendiente de aplicar en Supabase**.
   Re-crea `bt_validador_sincronizar()` con `create or replace` y la misma
   firma, así que los permisos y las llamadas del validador siguen valiendo;
@@ -460,6 +486,32 @@ actualización de la PWA.
   (`sePidioActivar`), y las demás muestran «Ya hay una versión nueva activa»
   con su propia acción *Actualizar esta pestaña* (`recargarEstaPestana()`).
 
+### Corregido (2.5.2, transferencia: la cifra que se promete)
+
+Tercer hallazgo del mismo repaso, este en el saldo.
+
+- **#158 — Transferir prometía un saldo que el servidor rechaza.** El tope de
+  la pantalla era `min(tarjeta.saldo, topeTransferencia)`, y `saldo` es
+  `virtual_balance` en crudo; pero `bt_transferir_saldo` corta por
+  `bt_disponible_transferencia`, que además baja al espejo del chip menos los
+  débitos pendientes. Con una recarga aprobada esperando en la bandeja, el
+  pasajero leía «Hasta Bs 7.000 disponibles», escribía 7.000 y el RPC le
+  contestaba «Solo puedes transferir 4.000 Bs». La promesa y el rechazo están
+  en la misma pantalla, separados por un clic, y el PIN ya se gastó en el
+  intento (0021 cuenta los fallos).
+  - `disponible` llega ahora en la sesión (0034, arriba).
+  - `disponibleTransferencia(tarjeta, tope)` en `src/lib/dominio.ts` pasa a ser
+    el único sitio donde se calcula el techo de la pantalla: `min(disponible,
+    tope)`, con `?? saldo` para que una base sin 0034 —o el modo local— mantenga
+    la conducta de siempre. `Transferir.tsx` usa esa cifra en el `max` del
+    campo, en el aviso «Hasta … disponibles», en la comprobación del monto y en
+    el botón de revisión; la línea «queda Bs …» del resumen sigue usando el
+    saldo, que es lo que de verdad baja.
+  - Cuando hay dinero atrapado en el camino se dice por qué: «Puedes transferir
+    Bs 4.000,00 de esta tarjeta ahora mismo: Bs 3.000,00 es saldo que el
+    validador aún no ha escrito en el plástico», y el aviso del campo añade
+    «· Bs 3.000,00 se habilita cuando el validador lo escriba en el plástico».
+
 ### Verificación de la 2.5.2
 
 - Nuevo `npm run verificar:pwa` (`scripts/verificar-pwa.mjs`): Chromium real,
@@ -477,11 +529,28 @@ actualización de la PWA.
   pestaña NO se recargó al actualizar ésta»; en esa corrida el recorrido
   además se cortaba por timeout, y desde entonces las esperas de las pestañas
   se registran como comprobación en lugar de abortar el script.
-- `npm test`: **136 pruebas en 12 archivos**, en verde dos corridas seguidas.
+- `npm test`: **140 pruebas en 12 archivos**, en verde dos corridas seguidas.
   Se suman 5 pruebas del instalador en `src/lib/worker.test.ts` (404 tolerado,
   grafo de `chunks`, no cachear RPC ni origen ajeno, instalación que termina
   aunque la red falle en todo) y `actualizacion.test.ts` se ajusta al nuevo
-  contrato de estados.
+  contrato de estados. Las 4 de #158 están en `dominio.test.ts`
+  (`disponibleTransferencia`: manda la cifra del servidor, acota al tope,
+  vuelve al saldo si la base no trae `disponible`, nunca da negativos).
+- #158 también se midió contra la simulación de verdad, no solo en unitarias:
+  - `simulacion/prueba-0034.sql`, dos corridas en verde y repetibles (se fabrica
+    pasajero y plásticos, y se borra antes de empezar). Deja el ciclo cerrado:
+    los dos acuses del validador —la recarga y los `card_adjustments` de la
+    transferencia— bajan al plástico, así que ningún `pendientes` queda suelto
+    y `node flujo.mjs` sigue verde después de correrla. Ojo con el orden:
+    `prueba-0027.sql` y `prueba-0027-multitap.sql` trabajan sobre la tarjeta
+    sembrada del flujo (`G-00001-001-N`), por eso se corren después de
+    `flujo.mjs`, no sobre la base recién migrada.
+  - Un sondeo por HTTP contra PostgREST —el mismo camino que recorre
+    `src/lib/nube.ts`— con el escenario que deja la batería: la sesión devolvió
+    `{saldo: 3000, disponible: 3000}` y `{saldo: 4000, disponible: 0}`, y al
+    pedir los 4.000 de la segunda el servidor respondió con el rechazo de
+    siempre. Con el arreglo, el portal promete 0 y no 4.000. Ese sondeo destapó
+    el `.00` de la máscara, que ya va corregido y assertionado en la batería.
 - `npx tsc --noEmit` y `npm run build`: sin errores.
 - Estabilidad de la batería: `local.test.ts` «cambia el PIN y obliga a usar el
   nuevo» reventaba a los 5 s con los 12 archivos corriendo a la vez (PBKDF2 a

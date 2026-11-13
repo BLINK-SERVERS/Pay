@@ -1,4 +1,4 @@
-import type { CuentaPago, DatosPago, Movimiento } from "./tipos";
+import type { CuentaPago, DatosPago, Movimiento, Tarjeta } from "./tipos";
 import { bancoPorNombre } from "./tipos.ts";
 import { formatearTelefono, soloDigitos } from "./formato.ts";
 
@@ -176,6 +176,19 @@ export function perfilTarifa(serial: string): PerfilTarifa {
 /** Bs que aún alcanzan para N pasajes (para el bloque "te alcanza para"). */
 export function saldoParaPasajes(saldo: number, tarifa: number, pasajes: number): boolean {
   return saldo >= tarifa * pasajes;
+}
+
+/**
+ * Bs que se pueden mover ahora mismo por una transferencia: lo que el servidor
+ * acepta (`disponible`, que descuenta lo que aún no está escrito en el
+ * plástico) acotado por el tope por operación. Las bases sin la migración 0034
+ * no traen `disponible` y se usa el saldo, la conducta de siempre.
+ */
+export function disponibleTransferencia(
+  tarjeta: Pick<Tarjeta, "saldo" | "disponible">,
+  tope: number
+): number {
+  return Math.max(0, Math.min(tarjeta.disponible ?? tarjeta.saldo, tope));
 }
 
 /** Errores por campo del reporte de recarga, listos para pintar bajo cada input. */
