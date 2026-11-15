@@ -7,31 +7,35 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
-### Estado de publicación (2026-11-12)
+### Estado de publicación (2026-11-15)
 
 Lo de abajo sigue en `## [No publicado]` porque todavía no se le dio su propio
 encabezado de versión, pero **sí está en producción**:
 
-- **La 2.5.0 y la 2.5.1 están desplegadas** en `pay.blink.com.ve` desde el push
-  `971aebe`. El armazón sirve `index-BwUPw3Ax.js` (antes `index-Bai3XZOX.js`) y
-  el `sw.js` vivo anuncia la caché `v14`. Verificado sobre los archivos
-  servidos, no sobre el repo: «Saltar al contenido» aparece en el chunk
-  principal y «Revisa antes de mover el saldo» en `Transferir-DNiRZmJk.js`.
-  Ojo: `__APP_VERSION__` se define en `vite.config.ts` pero ningún archivo de
-  `src/` lo consume, así que la versión no viaja en el bundle — la evidencia de
-  qué está publicado son el hash del asset y esas dos cadenas.
-- **El canal OTA queda al día con el firmware 17**: `public/firmware/manifest.json`
-  apunta al binario flasheado y verificado por hash en la unidad real —
-  `1 380 672 B`, SHA-256
-  `aa670145ff57aa2038b841eb3fac440a44e5271b3bfee5895e90e02f41aee417`— y la
-  unidad arrancó `READY,BLINK,17,0,0` con la NVS intacta (`placa=A12BC3D`,
-  `SYNC,ok=1`). Comprobado en los tres extremos: el manifiesto vivo anuncia
-  `{"version":17,…}`, el `.bin` descargado de producción pesa y hashea igual, y
-  el validador —que antes de publicar había rechazado la 15 más nueva que su
-  versión con `OTA,sin-novedad,actual=17,remota=15`— ahora reporta
-  `OTA,sin-novedad,actual=17,remota=17`. La descarga e instalación por aire
-  (`OTA,disponible` → ranura pasiva → reinicio) sigue sin ejercerse con esta
-  versión: la placa ya estaba en la 17 por USB.
+- **La 2.5.2 está desplegada** en `pay.blink.com.ve` desde el push `b54e3c9`
+  (run `43675594724` de *Publicar en Pages*, verde). El armazón sirve
+  `index-B5l0nyNA.js` y `index-DscmR-0W.css` —antes `index-BwUPw3Ax.js`— y el
+  `sw.js` vivo anuncia la caché `v16` (antes `v14`). Verificado sobre los
+  archivos servidos, no sobre el repo: «Blink Pay no pudo cargar esta parte de
+  la app» y «Actualizar esta pestaña» están en el chunk principal (#156 y #157)
+  y `Transferir-CaL7pc_4.js` trae `disponible` (#158). El #159 es lógica de
+  `App.tsx` y no deja cadena nueva que lo delate; su evidencia es el diff de
+  `255cd3a`. Ojo: `__APP_VERSION__` se define en `vite.config.ts` pero ningún
+  archivo de `src/` lo consume, así que la versión no viaja en el bundle — la
+  evidencia de qué está publicado son el hash del asset y esas cadenas.
+- **El canal OTA sigue en el firmware 17**, y desde hoy eso ya no es estar al
+  día: `public/firmware/manifest.json` apunta al binario de `1 380 672 B`,
+  SHA-256
+  `aa670145ff57aa2038b841eb3fac440a44e5271b3bfee5895e90e02f41aee417`, que la
+  unidad arrancó como `READY,BLINK,17,0,0` con la NVS intacta (`placa=A12BC3D`,
+  `SYNC,ok=1`). El push de la 2.5.2 tocó `public/sw.js` pero no
+  `public/firmware/`, así que el manifiesto vivo sigue anunciando
+  `{"version":17,…}`. En el banco hay una unidad con la **21** flasheada por
+  USB —`1 409 471 B`, SHA-256
+  `b4858322da495a120116daa939380b5ae01a9998855779b43aed391687fc2dbc`—: las
+  versiones 18 a 21 no tienen camino por aire todavía, y la descarga e
+  instalación por aire (`OTA,disponible` → ranura pasiva → reinicio) no se ha
+  ejercitado con ninguna de ellas.
 
 ### Base de datos
 
@@ -95,9 +99,12 @@ encabezado de versión, pero **sí está en producción**:
   duplicado y una clave que no es UUID rechazada sin abortar el resto).
   Control negativo hecho sobre la versión vieja: el mismo lote devolvía `22P02`
   y no guardaba nada.
-- **`0031_cuentas_de_pago.sql`**, **aún sin aplicar en Supabase**, corregida en
-  sitio (no estaba aplicada, así que no hace falta una migración nueva) con tres
-  arreglos de la misma revisión:
+- **`0031_cuentas_de_pago.sql`**, **aplicada en Supabase el 2026-11-12** y
+  corregida en sitio antes de eso (no estaba aplicada, así que no hizo falta una
+  migración nueva) con tres arreglos de la misma revisión. Se comprueba el
+  2026-11-14 leyendo `public.pago_cuentas` como `anon`: `200 []`, la tabla
+  existe. Las cuatro RPC no aparecen en el catálogo anónimo porque `0031` las
+  revoca, así que su ausencia no prueba nada:
   - **#163 — «Usar esta» reventaba contra su propio índice único.**
     `bt_usar_cuenta_pago()` ponía `principal = (id = p_id)` para todas las
     filas de un solo `UPDATE`; con dos cuentas, el orden físico decidía y el
@@ -125,8 +132,12 @@ encabezado de versión, pero **sí está en producción**:
     vuelven a filtrar la fila; ahora un `exception when unique_violation`
     responde el mensaje amable «Esa cédula o ese correo ya tienen una cuenta.
     Entra con tu PIN.» sin datos.
-- **`0032_ajustes_blink.sql`** (en TARJETA se numeró `0030`), **pendiente de
-  aplicar en Supabase**. La fila `settings.publico` seguía trayendo el sembrado
+- **`0032_ajustes_blink.sql`** (en TARJETA se numeró `0030`), **aplicada en
+  Supabase el 2026-11-12**. Leída en vivo el 2026-11-14: `POST
+  /rest/v1/rpc/bt_ajustes` como `anon`, con `Content-Profile: public`, devuelve
+  Banco Nacional de Crédito · `34201580` · `0424-6603660` ·
+  `support@blink.com.ve`. La lectura no distingue si lo escribió la migración o
+  una carga manual. La fila `settings.publico` seguía trayendo el sembrado
   de `0001`, que es dato de prueba: Banesco, RIF `J-00000000-0`, teléfono
   `0414-0000000`, titular «BLINK PASAJES, C.A.» y atención `0800-BLINK-00`. No
   era un detalle cosmético —`src/lib/nube.ts` mezcla `bt_ajustes()` **sobre**
@@ -144,10 +155,10 @@ encabezado de versión, pero **sí está en producción**:
   viejas, claves conservadas, fila degradada y rehecha por la propia migración,
   segunda aplicación sin residuos y ausencia de fila cayendo al respaldo).
   Brecha **B-20** en BLINK-DOC-09.
-- **`0031_cuentas_de_pago.sql`** (en TARJETA se numeró `0029`), **pendiente de
-  aplicar en Supabase** —con sus tres correcciones del 2026-11-12 (#163, #164
-  y #166, arriba) ya incorporadas en el archivo—. Una cuenta puede tener varias
-  fuentes de Pago Móvil:
+- **`0031_cuentas_de_pago.sql`** (en TARJETA se numeró `0029`), **aplicada en
+  Supabase el 2026-11-12** —con sus tres correcciones de ese mismo día (#163,
+  #164 y #166, arriba) ya incorporadas en el archivo—. Una cuenta puede tener
+  varias fuentes de Pago Móvil:
   tabla `public.pago_cuentas` (hasta 10 por pasajero, una sola `principal`,
   `unique (account_id, propia, banco, telefono, cedula)`, RLS) con
   `bt_pago_normalizado()` como único criterio de validación y las RPC
@@ -163,8 +174,11 @@ encabezado de versión, pero **sí está en producción**:
   destapó #163). Espejo de `tarjeta/simulacion/prueba-0029.sql` con su propio
   pasajero (`30111631`) para que ambas baterías corran sobre la misma base;
   aplicada de nuevo sobre la simulación el 2026-11-12 y en verde.
-- **`0030_sin_tope_recarga.sql`** (en TARJETA se numeró `0028`), **pendiente de
-  aplicar en Supabase**. `bt_recargar_pasajes()` frenaba cualquier recarga cuyo
+- **`0030_sin_tope_recarga.sql`** (en TARJETA se numeró `0028`), **aplicada en
+  Supabase el 2026-11-12 según el registro del despliegue, y esa es la
+  afirmación más débil del bloque**: su única superficie son funciones revocadas
+  a `anon`, así que no hay lectura anónima que la compruebe.
+  `bt_recargar_pasajes()` frenaba cualquier recarga cuyo
   total superara `bt_tope_recarga()` (Bs 20.000 desde `0019`), de modo que el
   pasajero que escribía 50 pasajes recibía «El tope por recarga es 20.000 Bs».
   Se quita únicamente el techo por importe; siguen los seis reportes por tarjeta
@@ -609,7 +623,17 @@ Cuarto hallazgo del repaso, en `src/App.tsx`.
   espera hasta 3 s y registra el valor; con eso la corrida completa salió sin
   una sola ✗. No era un fallo de la app —reproducido en limpio el panel mide
   204 px en claro y en oscuro—, era la prisa del arnés.
-- Sigue **sin publicar**: nada de esto está servido en `pay.blink.com.ve`.
+- **Publicado el 2026-11-15** con el push `b54e3c9`: `npm run typecheck` limpio,
+  `npm test` en 140 pruebas sobre 12 archivos y `npm run build` en verde antes de
+  empujar; el run `43675594724` de *Publicar en Pages* terminó en `success` y el
+  armazón sirve `index-B5l0nyNA.js` con la caché `v16` (arriba, §Estado de
+  publicación).
+- `scripts/verificar-pwa.mjs`, **otra vez en verde sobre el `dist` de esta
+  versión** (18 comprobaciones, 0 errores de consola inesperados): la caché nueva
+  se llena entera aún con el worker en espera —26 entradas, incluido el chunk de
+  carga perezosa—, con el servidor apagado de verdad la pestaña que pulsa
+  «Actualizar» se dibuja y las demás se quedan «pendiente» hasta que cada una lo
+  pide, y si falta un chunk el límite de error ofrece «Volver a intentarlo».
 
 ### Pruebas de la 2.5.0
 
@@ -646,18 +670,18 @@ Cuarto hallazgo del repaso, en `src/App.tsx`.
 
 ### Conocido de la 2.5.0
 
-- **`0030`, `0031`, `0032` y ahora `0033` siguen sin aplicarse en Supabase.**
-  No es una puerta para publicar —la 2.5.0 y la 2.5.1 ya están servidas—, es
-  deuda viva: `src/lib/nube.ts` llama a `bt_alta_cuenta_pago`,
-  `bt_editar_cuenta_pago`, `bt_borrar_cuenta_pago` y `bt_usar_cuenta_pago`
-  (líneas 358, 368, 379 y 386), y mientras `0031` no esté aplicada *añadir otra
-  cuenta* fallará en producción con «Blink no está disponible en este momento»;
-  leer y recargar con la cuenta principal sí funciona gracias al espejo
-  `datosPago`. Con `0032` pendiente, el portal vivo sigue mostrando el banco de
-  prueba de `0001` (B-20). Con `0033` pendiente, el validador sigue expuesto a
-  #162: un solo toque mal formado aborta el lote completo y la cola offline del
-  autobús se atasca hasta que alguien meta SQL a mano. Hay que aplicar las
-  cuatro en orden y verificarlas contra la nube (B-75).
+- **De las cuatro migraciones de este bloque, tres están aplicadas y una sigue
+  pendiente.** Releídas contra la nube el 2026-11-14: `0031` está (la tabla
+  `pago_cuentas` responde `200 []` como `anon`), `0032` está (`bt_ajustes`
+  devuelve Banco Nacional de Crédito · `34201580` · `0424-6603660` ·
+  `support@blink.com.ve`, y con eso se cierra B-20) y `0030` solo se afirma por
+  el registro del despliegue —sus funciones están revocadas a `anon` y no deja
+  ninguna superficie legible—. Lo que falta es `0033`: mientras no esté, el
+  validador sigue expuesto a #162, un solo toque mal formado aborta el lote
+  completo y la cola offline del autobús se atasca hasta que alguien meta SQL a
+  mano. Falta también `0034` (arriba), así que *Transferir* sigue leyendo `saldo`
+  en vez de `disponible` y se sostiene con el `??` de `src/lib/dominio.ts`. La
+  deuda viva son dos migraciones, no cuatro (B-75 y B-77 en BLINK-DOC-09).
 - **El clon retirado de TARJETA trae el mismo `#163` sin corregir.** En
   `tarjeta/supabase/migrations/0029_cuentas_de_pago.sql:329` sigue el
   `set principal = (id = p_id)` de una sola sentencia que revienta contra el
