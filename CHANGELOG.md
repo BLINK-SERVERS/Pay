@@ -7,6 +7,18 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
+### Notas de migraciones corregidas (2026-11-14)
+
+`0031` y `0032` decían «Pendiente de aplicar en Supabase» y sí estaban aplicadas.
+Verificado leyendo la producción con la clave de servicio, no desde el repo:
+`public.pago_cuentas` existe con filas (0031) y la fila `clave='publico'` de
+`settings` trae los datos de Blink — `support@blink.com.ve`, Pago Móvil
+`34201580 / 0424-6603660 / BNC`, sin titular (0032, que con esto cierra la B-20
+de BLINK-DOC-09). `0030`, `0033` y `0034` conservan su aviso: ninguna tiene una huella visible desde la
+API. En `0034` hay evidencia en contra de haberse aplicado — la proyección
+`bt_tarjeta_cuenta_json` devuelve `titular` pero no `disponible` — así que su
+«Pendiente» es cierto y el portal sigue usando el respaldo al saldo.
+
 ### Estado de publicación (2026-11-12)
 
 Lo de abajo sigue en `## [No publicado]` porque todavía no se le dio su propio

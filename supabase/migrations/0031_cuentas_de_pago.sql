@@ -2,7 +2,8 @@
 --
 -- En el repo TARJETA se escribió como 0029; aquí es 0031 por el orden real de
 -- esta historia (0030_sin_tope_recarga). Mismo cuerpo, verificada en la
--- simulación con prueba-0031. Pendiente de aplicar en Supabase.
+-- simulación con prueba-0031. Aplicada en Supabase: el 2026-11-14 se confirmó
+-- leyendo la producción, `public.pago_cuentas` existe y tiene filas.
 --
 -- Orden del 2026-11-11: «que se puedan añadir varias cuentas de pago». Hasta
 -- hoy la cuenta tenía UN Pago Móvil guardado en cuatro columnas planas

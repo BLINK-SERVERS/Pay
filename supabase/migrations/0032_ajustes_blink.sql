@@ -1,7 +1,11 @@
 -- BLINK PAY · 0032 · los ajustes públicos dicen Blink, no los datos de prueba
 --
--- Pendiente de aplicar en Supabase (BLINK-DOC-09 B-20). En el repo TARJETA esta
--- misma migración se escribió como 0030: la serie canónica es la de aquí.
+-- Aplicada en Supabase (cierra BLINK-DOC-09 B-20): el 2026-11-14 se leyó la
+-- producción y la fila `clave='publico'` de `settings` ya trae los datos de
+-- Blink — atención support@blink.com.ve, Pago Móvil 34201580 / 04246603660 /
+-- BNC, sin titular.
+-- En el repo TARJETA esta misma migración se escribió como 0030: la serie
+-- canónica es la de aquí.
 --
 -- Orden del 2026-11-11: «el pagomovil es 34201580 04246603660 Banco nacional de
 -- Crédito (BNC), sin titular» y «atención al cliente solo será
