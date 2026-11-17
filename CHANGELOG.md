@@ -7,41 +7,57 @@ y versionado [SemVer 2.0.0](https://semver.org/lang/es/). Las fechas usan ISO 86
 
 ## [No publicado]
 
-### Estado de publicación (2026-11-15)
+### Estado de publicación (2026-11-17)
 
 Lo de abajo sigue en `## [No publicado]` porque todavía no se le dio su propio
 encabezado de versión, pero **sí está en producción**:
 
-- **La 2.5.2 está desplegada** en `pay.blink.com.ve` desde el push `b54e3c9`
-  (run `43675594724` de *Publicar en Pages*, verde). El armazón sirve
-  `index-B5l0nyNA.js` y `index-DscmR-0W.css` —antes `index-BwUPw3Ax.js`— y el
-  `sw.js` vivo anuncia la caché `v16` (antes `v14`). Verificado sobre los
-  archivos servidos, no sobre el repo: «Blink Pay no pudo cargar esta parte de
-  la app» y «Actualizar esta pestaña» están en el chunk principal (#156 y #157)
-  y `Transferir-CaL7pc_4.js` trae `disponible` (#158). El #159 es lógica de
-  `App.tsx` y no deja cadena nueva que lo delate; su evidencia es el diff de
-  `255cd3a`. Ojo: `__APP_VERSION__` se define en `vite.config.ts` pero ningún
-  archivo de `src/` lo consume, así que la versión no viaja en el bundle — la
-  evidencia de qué está publicado son el hash del asset y esas cadenas.
-- **El canal OTA sigue en el firmware 17**, y desde hoy eso ya no es estar al
-  día: `public/firmware/manifest.json` apunta al binario de `1 380 672 B`,
-  SHA-256
-  `aa670145ff57aa2038b841eb3fac440a44e5271b3bfee5895e90e02f41aee417`, que la
-  unidad arrancó como `READY,BLINK,17,0,0` con la NVS intacta (`placa=A12BC3D`,
-  `SYNC,ok=1`). El push de la 2.5.2 tocó `public/sw.js` pero no
-  `public/firmware/`, así que el manifiesto vivo sigue anunciando
-  `{"version":17,…}`. En el banco hay una unidad con la **23** flasheada por
-  USB el 2026-11-17 —`1 409 847 B` medidos por el compilador; el binario no está
-  publicado ni se generó su SHA, la unidad se actualizó por cable—: las
-  versiones 18 a 23 no tienen camino por aire todavía, y la descarga e
-  instalación por aire (`OTA,disponible` → ranura pasiva → reinicio) no se ha
-  ejercitado con ninguna de ellas. Ojo con el orden: la 23 necesita la 0035 en la
-  base para cerrar la puerta al cobro perdido; contra una base sin 0035 avisa
-  `cuentas=no` y conserva la conducta vieja a propósito.
+- **La 2.5.3 está desplegada** en `pay.blink.com.ve` desde el push `6389a80`
+  (run `44093768988` de *Publicar en Pages*, verde, 2026-11-17T13:33Z). El
+  armazón sirve `index-Irn1hbFw.js` y `index-d6GvZati.css` —antes
+  `index-B5l0nyNA.js` de la 2.5.2, desplegada el 2026-11-15 desde `b54e3c9` con
+  el run `43675594724`—. Verificado sobre los archivos servidos, no sobre el
+  repo: `Inicio-Y3sPc3od.js` trae «En tu tarjeta física» y «se cargan al pasarla
+  por un validador» (#183). `sw.js` se sirve idéntico al repo y sigue anunciando
+  la caché `v16`, y eso no deja portal viejo porque la navegación es
+  `redPrimero`: el armazón se pide a la red y el chunk nuevo entra con nombre
+  nuevo. Ojo con el hash: el `dist/` local de este mismo commit produce
+  `index-lWfbYJ9h.js`, y solo coinciden `dominio-yLYBl-Ra.js`,
+  `formato-D_XuY4qS.js` e `Inspector-CqWFLzs4.js`; la evidencia de qué está
+  publicado es la del servidor, no la de la máquina de desarrollo.
+- **El canal OTA pasa al firmware 23** con este push:
+  `public/firmware/manifest.json` anuncia `{"version":23,…}` sobre un binario de
+  `1 410 096 B` (el compilador reporta `1 409 847 B` de sketch; el `.bin` suma la
+  cabecera) con SHA-256
+  `645856303c87f37312e47c81a216c9ee894fd610965f13a02d16fbb630d7c897`, compilado
+  el 2026-11-17 desde el árbol `c35c94a` del validador. El binario anterior era
+  la 17: `1 380 672 B`, SHA-256 `aa670145…`, que la unidad del banco arrancó
+  como `READY,BLINK,17,0,0` con la NVS intacta.
+  - Lo que **no** se ha probado: la descarga e instalación por aire de la 18 a
+    la 23 (`OTA,disponible` → SHA verificado bloque a bloque en `ota.cpp:463` →
+    ranura pasiva → reinicio) no se ha ejercitado con ninguna de esas
+    versiones, así que el primer salto real por aire sería 17 → 23 de golpe. La
+    rama de reversión (`fallo` en NVS y `OTA,reversion`) está escrita pero
+    tampoco tiene corrida en el cristal.
+  - Alcance de hoy: `validator_secrets` tiene **0 filas** en producción, o sea
+    que no hay ningún validador enrolado que vaya a bajar esto solo; la unidad
+    del banco ya corre la 23, pero por cable.
+- **La base queda al día**: `0033_toques_resilientes`, `0034_sesion_disponible`
+  y `0035_vincula_saldos` aplicadas el 2026-11-17 por el pooler con
+  `--single-transaction` y `ON_ERROR_STOP=1`, en ese orden y después de respaldar
+  las definiciones previas. Releídas en la base viva: el chequeo de
+  `card_events_evento_check` admite `CHIP_BAJO`, `bt_validador_sincronizar`
+  devolvió `duplicadas` y `acuses_malos` (12 033 caracteres de cuerpo), y
+  `bt_tarjeta_cuenta_json` —que pasó a `security definer`— devuelve
+  `chip`, `por_entregar`, `por_descontar` y `disponible`. Sobre una tarjeta real
+  la proyección salió `app=5 000 · chip=4 000 · pendiente 0/0 · disponible
+  4 000`. Los permitos: `bt_sesion` sigue ejecutable por `anon` y
+  `authenticated`, `bt_tarjeta_cuenta_json` y `bt_validador_sincronizar` quedan
+  solo para `service_role`, como estaban.
 
 ### Base de datos
 
-- **`0035_vincula_saldos.sql`**, **pendiente de aplicar en Supabase**. Nace del
+- **`0035_vincula_saldos.sql`**, **aplicada en Supabase el 2026-11-17**. Nace del
   reclamo del 2026-11-15: «en la app me sale que tengo 8.500 y en el validador me
   quedan 6mil». Eran dos cifras ciertas que ninguna pantalla relacionaba. Son dos
   defectos distintos y esta migración cierra los dos (#181):
@@ -82,7 +98,7 @@ encabezado de versión, pero **sí está en producción**:
   entero, `proc 0, rech 1, dup 3`. En los tres, `proc + rech + dup` cuadra con
   `enviados`, quedan 3 viajes y `bt_conciliacion_saldos()` sale vacío. Control
   negativo: con la proyección de 0034 no aparece ninguna de las claves nuevas.
-- **`0034_sesion_disponible.sql`**, **pendiente de aplicar en Supabase**. Dos
+- **`0034_sesion_disponible.sql`**, **aplicada en Supabase el 2026-11-17**. Dos
   cosas, las dos del hallazgo #158:
   - La sesión pasa a traer el tope real. `bt_tarjeta_cuenta_json()` —la
     proyección que arman `bt_entrar`, `bt_sesion`, `bt_registrar`, `bt_vincular`
@@ -108,7 +124,7 @@ encabezado de versión, pero **sí está en producción**:
   Prueba: `simulacion/prueba-0034.sql` (9 pasos, dos corridas en verde).
   Control negativo: sin 0034 ninguna de las dos tarjetas de la billetera trae la
   clave, y con la función vieja el rechazo dice `.00 Bs`.
-- **`0033_toques_resilientes.sql`**, **pendiente de aplicar en Supabase**.
+- **`0033_toques_resilientes.sql`**, **aplicada en Supabase el 2026-11-17**.
   Re-crea `bt_validador_sincronizar()` con `create or replace` y la misma
   firma, así que los permisos y las llamadas del validador siguen valiendo;
   `0025_escudo_validador.sql` (aplicada el 2026-11-11) no se toca, porque la

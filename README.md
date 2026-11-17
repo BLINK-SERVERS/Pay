@@ -8,8 +8,7 @@ la tarjeta de transporte de **Blink**. React 19 + Vite 8 + TypeScript estricto.
   nombre ya no resuelve (verificado el 2026-11-15), así que este portal es la
   única entrada del pasajero
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 2.5.3 en el repo, sin publicar · **2.5.2 publicada** el
-  2026-11-15 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** **2.5.3 publicada** el 2026-11-17 (run `44093768988`) · [CHANGELOG](CHANGELOG.md)
 
 Este repositorio nació como **Blink Tarjeta** y conserva íntegro su historial,
 su esquema de datos y sus flujos. Desde `QODER-BLINK-HIG-2026` el producto se
