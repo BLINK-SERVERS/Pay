@@ -8,7 +8,8 @@ la tarjeta de transporte de **Blink**. React 19 + Vite 8 + TypeScript estricto.
   nombre ya no resuelve (verificado el 2026-11-15), así que este portal es la
   única entrada del pasajero
 - **Comercio:** https://www.blink.com.ve/
-- **Versión:** 2.5.2, publicada el 2026-11-15 · [CHANGELOG](CHANGELOG.md)
+- **Versión:** 2.5.3 en el repo, sin publicar · **2.5.2 publicada** el
+  2026-11-15 · [CHANGELOG](CHANGELOG.md)
 
 Este repositorio nació como **Blink Tarjeta** y conserva íntegro su historial,
 su esquema de datos y sus flujos. Desde `QODER-BLINK-HIG-2026` el producto se
@@ -20,6 +21,10 @@ llama **Blink Pay** y reúne toda la tarjeta en una sola cartera.
   Pago Móvil (propia o de un familiar).
 - Billetera con **varias tarjetas** por cuenta, vinculadas por el serial del reverso.
 - Saldo, movimientos, tarjeta virtual con giro 3D y código de barras Code 128.
+  La tarjeta distingue el saldo de la cuenta de lo que ya está **escrito en el
+  plástico**: si hay plata aprobada que un validador todavía no graba, lo dice y
+  cuenta los pasajes sobre la cifra del plástico, que es la que se puede gastar
+  hoy en el bus (BLINK-DOC-28).
 - Recarga reportada por Pago Móvil con comprobante en revisión.
 - **Transferencia de saldo entre tarjetas** de la misma cuenta o de otra
   persona, con PIN del titular, tope por operación y por día, y comprobante con
@@ -55,6 +60,13 @@ cd simulacion
 ./backoffice.sh   # panel en http://127.0.0.1:5173
 ./detener.sh      # apaga y borra la base efímera
 ```
+
+Las baterías `prueba-00NN.sql` prueban cada migración sobre la base recién
+levantada y se pueden correr repetidas veces (se fabrican su propio pasajero y
+sus plásticos, y se borran antes de empezar). `escena-desglose.sql` no prueba
+nada: deja el escenario del reclamo —8.500 en la cuenta, 6.000 escritos en el
+plástico y 2.500 por grabar— para mirar la tarjeta a mano o para
+`npm run verificar:plastico`.
 
 ## Usar en el celular y sin conexión
 
@@ -96,6 +108,7 @@ npm run typecheck
 npm test
 npm run verificar:hig   # capturas y comprobaciones HIG en Chromium
 npm run verificar:movimiento  # cascada NFC y reensamblado del isotipo
+npm run verificar:plastico    # pantalla contra la sesión: plástico, pendientes y pasajes
 npm run build
 npm run lote       # genera un lote de seriales y la hoja de impresión
 ```

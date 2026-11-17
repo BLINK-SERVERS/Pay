@@ -1,8 +1,8 @@
 import { memo, useId, useState } from "react";
 import { Icon } from "./Icon";
 import { SimboloSinContacto } from "./SimboloSinContacto";
-import { partesBs } from "../lib/formato";
-import { pasajesEquivalentes } from "../lib/dominio";
+import { formatearBs, partesBs } from "../lib/formato";
+import { pasajesEquivalentes, saldoEnPlastico, saldoPorCargar } from "../lib/dominio";
 import { useNumeroAnimado, vibrar } from "../lib/hooks";
 import type { Tarjeta } from "../lib/tipos";
 
@@ -28,7 +28,16 @@ export const TarjetaVirtual = memo(function TarjetaVirtual({ tarjeta }: Props) {
   const tarjetaId = useId();
   const saldo = useNumeroAnimado(tarjeta.saldo);
   const { entero, decimal } = partesBs(saldo);
-  const pasajes = pasajesEquivalentes(tarjeta.saldo, tarjeta.tarifa);
+  const enPlastico = saldoEnPlastico(tarjeta);
+  const porCargar = saldoPorCargar(tarjeta);
+  const porDescontar =
+    typeof tarjeta.por_descontar === "number" ? Math.max(0, tarjeta.por_descontar) : 0;
+  /* Los pasajes que se pueden usar hoy son los escritos en el plástico; la
+     recarga pendiente aún no viaja al chip hasta el próximo toque. */
+  const utilizable = enPlastico ?? tarjeta.saldo;
+  const pasajes = pasajesEquivalentes(utilizable, tarjeta.tarifa);
+  const hayDesglose =
+    enPlastico !== null && enPlastico !== tarjeta.saldo && (porCargar > 0 || porDescontar > 0);
 
   return (
     <div className="tarjeta-caja">
@@ -59,6 +68,19 @@ export const TarjetaVirtual = memo(function TarjetaVirtual({ tarjeta }: Props) {
           </div>
         </div>
       </div>
+
+      {hayDesglose && (
+        <p className="tarjeta__desglose">
+          <strong>En tu tarjeta física: {formatearBs(enPlastico!)}</strong>
+          <span className="tarjeta__desglose-detalle">
+            {porCargar > 0 && porDescontar > 0
+              ? ` · ${formatearBs(porCargar)} se cargan y ${formatearBs(porDescontar)} se descuentan al pasarla por un validador`
+              : porCargar > 0
+                ? ` · ${formatearBs(porCargar)} se cargan al pasarla por un validador`
+                : ` · ${formatearBs(porDescontar)} se descuentan al pasarla por un validador`}
+          </span>
+        </p>
+      )}
 
       <div className="tarjeta__herramientas">
         <button

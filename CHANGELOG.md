@@ -30,15 +30,58 @@ encabezado de versión, pero **sí está en producción**:
   unidad arrancó como `READY,BLINK,17,0,0` con la NVS intacta (`placa=A12BC3D`,
   `SYNC,ok=1`). El push de la 2.5.2 tocó `public/sw.js` pero no
   `public/firmware/`, así que el manifiesto vivo sigue anunciando
-  `{"version":17,…}`. En el banco hay una unidad con la **21** flasheada por
-  USB —`1 409 471 B`, SHA-256
-  `b4858322da495a120116daa939380b5ae01a9998855779b43aed391687fc2dbc`—: las
-  versiones 18 a 21 no tienen camino por aire todavía, y la descarga e
+  `{"version":17,…}`. En el banco hay una unidad con la **23** flasheada por
+  USB el 2026-11-17 —`1 409 847 B` medidos por el compilador; el binario no está
+  publicado ni se generó su SHA, la unidad se actualizó por cable—: las
+  versiones 18 a 23 no tienen camino por aire todavía, y la descarga e
   instalación por aire (`OTA,disponible` → ranura pasiva → reinicio) no se ha
-  ejercitado con ninguna de ellas.
+  ejercitado con ninguna de ellas. Ojo con el orden: la 23 necesita la 0035 en la
+  base para cerrar la puerta al cobro perdido; contra una base sin 0035 avisa
+  `cuentas=no` y conserva la conducta vieja a propósito.
 
 ### Base de datos
 
+- **`0035_vincula_saldos.sql`**, **pendiente de aplicar en Supabase**. Nace del
+  reclamo del 2026-11-15: «en la app me sale que tengo 8.500 y en el validador me
+  quedan 6mil». Eran dos cifras ciertas que ninguna pantalla relacionaba. Son dos
+  defectos distintos y esta migración cierra los dos (#181):
+  - **El veredicto de la sincronización pasa a ser exhaustivo.**
+    `bt_validador_sincronizar()` devuelve ahora `duplicadas`, `acuses` y
+    `acuses_malos` además de `procesadas`/`rechazadas`, de modo que
+    `procesadas + rechazadas + duplicadas` cubre **cada** toque enviado y
+    `acuses + acuses_malos` cada acuse. Antes, los toques que caían en la rama de
+    idempotencia (0033) no sumaban en ningún contador: un lote de cobros ya
+    liquidados respondía `procesadas=0, rechazadas=0`, que es exactamente lo que
+    responde un lote ignorado. El validador no podía distinguir uno de otro y
+    borraba la cola igual —el chip ya estaba cobrado y el libro mayor nunca vio
+    ese viaje, así que el saldo de la app quedaba por encima del plástico **para
+    siempre**, que es el desfase que se reportó—.
+  - **La sesión trae el desglose, no un número suelto.**
+    `bt_tarjeta_cuenta_json()` añade `chip` (espejo del plástico), `por_entregar`
+    y `por_descontar` junto al `disponible` que ya venía de 0034. Con eso la
+    pantalla puede decir «8.500 en tu cuenta, 6.000 escritos en la tarjeta, 2.500
+    esperando un validador» en vez de mostrar una sola cifra que parece mentira.
+    Va en la proyección de cuenta —que desde 0034 es `security definer`— y no en
+    `bt_tarjeta_json`, porque `bt_creditos_pendientes` y `bt_debitos_pendientes`
+    están revocadas a `anon`/`authenticated`. Se revoca al final, igual que 0034.
+  - Lo que a propósito **no** hace: mover dinero sola cuando el chip lee por
+    debajo de lo esperable. `CHIP_BAJO` (0033) se detecta y se registra, pero la
+    diferencia puede ser un cobro de otro autobús que todavía no sincroniza;
+    ajustar el libro contra el plástico en ese caso cobraría dos veces el mismo
+    pasaje. Lo cierra una persona con `bt_conciliar_tarjeta` (0027).
+  - **Orden de despliegue obligatorio: primero la migración, después el firmware
+    23.** Un validador 23 contra una base sin 0035 conserva la conducta vieja a
+    propósito y lo avisa (`cuentas=no` en el `SYNC`); un 23 con 0035 ya no pierde
+    ningún cobro.
+  Prueba: `simulacion/prueba-0035.sql` (9 pasos, `EXIT=0` en dos corridas
+  separadas —la segunda sobre una base rehecha de cero—). Sobre el escenario del
+  reclamo (8.500 en la cuenta / 6.000 en el plástico / recarga `PRUEBA-0035` de
+  2.500): los acuses `[uuid, 'esto-no-es-un-uuid', uuid]` responden
+  `acuses=2, acuses_malos=1`; el lote A (dos toques nuevos) `proc 2`; el lote B,
+  que reenvía A y agrega dos, `proc 1, rech 1, dup 2`; el lote C, reenviado
+  entero, `proc 0, rech 1, dup 3`. En los tres, `proc + rech + dup` cuadra con
+  `enviados`, quedan 3 viajes y `bt_conciliacion_saldos()` sale vacío. Control
+  negativo: con la proyección de 0034 no aparece ninguna de las claves nuevas.
 - **`0034_sesion_disponible.sql`**, **pendiente de aplicar en Supabase**. Dos
   cosas, las dos del hallazgo #158:
   - La sesión pasa a traer el tope real. `bt_tarjeta_cuenta_json()` —la
@@ -634,6 +677,56 @@ Cuarto hallazgo del repaso, en `src/App.tsx`.
   carga perezosa—, con el servidor apagado de verdad la pestaña que pulsa
   «Actualizar» se dibuja y las demás se quedan «pendiente» hasta que cada una lo
   pide, y si falta un chunk el límite de error ofrece «Volver a intentarlo».
+
+### Corregido (2.5.3, la tarjeta dice qué plata está en el plástico)
+
+La otra mitad del reclamo del 2026-11-15 (#183). Con 0035 el servidor ya rendía
+cuentas del desglose; faltaba que la pantalla lo dijera, porque hasta ahora
+«Te quedan 17 pasajes» se contaba sobre un saldo que el validador no puede
+cobrar y el pasajero leía una mentira en la cara de la app.
+
+- `saldoEnPlastico(tarjeta)` y `saldoPorCargar(tarjeta)` en `src/lib/dominio.ts`
+  son el único sitio donde se arma la cifra del plástico:
+  `saldo − por_entregar + por_descontar`, con los dos pendientes recortados a
+  positivo. Devuelven `null` y `0` si la sesión no trae `chip` ni `por_entregar`,
+  que es el caso de una base sin 0035 y del modo local: la tarjeta conserva
+  entonces la conducta de siempre en vez de inventar un desglose.
+- `src/lib/tipos.ts` añade `chip?`, `por_entregar?` y `por_descontar?` a
+  `Tarjeta`, opcionales por lo mismo.
+- `TarjetaVirtual.tsx`: **los pasajes se cuentan sobre lo que está en el
+  plástico** (`pasajesEquivalentes(saldoEnPlastico ?? saldo, tarifa)`), y cuando
+  hay plata atrapada en el camino aparece `.tarjeta__desglose` debajo del número
+  grande —«En tu tarjeta física: Bs 6.000 · Bs 2.500 se cargan al pasarla por un
+  validador»—, con la variante de descuento y la de las dos cosas a la vez. El
+  número grande sigue siendo el saldo de la cuenta: es lo que la línea explica, no
+  lo que reemplaza.
+- `app.css`: la línea nueva va centrada bajo el saldo, en `--fs-sm`, en gris
+  secundario y con `tabular-nums`; el importe en primario para que se lea antes
+  que la explicación.
+
+### Verificación de la 2.5.3
+
+- `npm run typecheck` sin errores y `npm test`: **146 pruebas en 12 archivos**
+  (se suman 6 en `dominio.test.ts`, `describe("saldoEnPlastico")`: cuadra con el
+  escenario del reclamo, ignora pendientes negativos, no pasa de cero, distingue
+  débito pendiente de crédito y devuelve `null` sin 0035).
+- Nuevo `npm run verificar:plastico` (`scripts/verificar-plastico.mjs`) y su
+  escena `simulacion/escena-desglose.sql`, que deja la base en el estado del
+  reclamo y se queda ahí (a diferencia de la batería 0035, que lo liquida).
+  Chromium real a 393×852: **9 comprobaciones en verde**. La comparación es
+  contra la sesión que el propio portal recibió por HTTP —se intercepta la
+  respuesta, no se recalcula a mano—, así que prueba acuerdo entre pantalla y
+  servidor, no dos cuentas independientes que coinciden: el número grande sigue
+  siendo `saldo`, la línea dice el plástico, anuncia los 2.500 que faltan, los
+  pasajes son 12 y no 17, la fórmula cuadra con el espejo del chip, la línea no
+  desborda la tarjeta y el reverso sigue mostrando el serial.
+- **Control negativo** sobre el `TarjetaVirtual.tsx` de HEAD, mismo arnés y misma
+  escena: caen 3 de las 9, y caen exactamente las tres que importan —sin línea y
+  «Te quedan 17 pasajes»—. Devuelto el archivo, la corrida vuelve a 9/9 y el
+  `md5sum` confirma que es el mismo que antes del cambio.
+- **No publicado**: el portal en producción (`pay.blink.com.ve`) corre la 2.5.2 y
+  su base no tiene 0033, 0034 ni 0035, así que allí la tarjeta sigue mostrando
+  una sola cifra. El orden obligatorio es migración → portal → firmware 23.
 
 ### Pruebas de la 2.5.0
 

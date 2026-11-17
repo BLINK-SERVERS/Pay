@@ -162,6 +162,33 @@ export function pasajesEquivalentes(saldo: number, tarifa: number): number {
   return Math.max(0, Math.floor(saldo / tarifa));
 }
 
+/**
+ * Lo que hay físicamente en el plástico. `saldo` es el libro mayor de la
+ * tarjeta y puede incluir recargas aprobadas que ningún validador ha escrito
+ * todavía; esos bolívares no se cobran en el bus hasta la próxima pasada.
+ * `null` cuando la base aún no manda el desglose (antes de 0035).
+ */
+export function saldoEnPlastico(tarjeta: Tarjeta): number | null {
+  if (typeof tarjeta.chip !== "number" || typeof tarjeta.por_entregar !== "number") {
+    return null;
+  }
+  const porCargar = Math.max(0, tarjeta.por_entregar);
+  const porDescontar = Math.max(0, tarjeta.por_descontar ?? 0);
+  return Math.max(0, tarjeta.saldo - porCargar + porDescontar);
+}
+
+/**
+ * Bs aprobados que faltan por escribirse en el chip. Es la diferencia entre el
+ * número de la pantalla y el que lee el validador, y mientras exista el
+ * pasajero tiene que poder verla: sin ella parece que la app miente.
+ */
+export function saldoPorCargar(tarjeta: Tarjeta): number {
+  if (typeof tarjeta.chip !== "number" || typeof tarjeta.por_entregar !== "number") {
+    return 0;
+  }
+  return Math.max(0, tarjeta.por_entregar);
+}
+
 export type PerfilTarifa = "GENERAL" | "ESTUDIANTE";
 
 /**

@@ -7,7 +7,9 @@ import {
   letraLuhn,
   pasajesEquivalentes,
   perfilTarifa,
+  saldoEnPlastico,
   saldoParaPasajes,
+  saldoPorCargar,
   validarCedula,
   validarCorreo,
   validarNombre,
@@ -16,7 +18,7 @@ import {
   validarTelefono,
   type BorradorRecarga,
 } from "./dominio";
-import type { Movimiento } from "./tipos";
+import type { Movimiento, Tarjeta } from "./tipos";
 
 const BUENO: BorradorRecarga = {
   pasajes: "1",
@@ -202,6 +204,39 @@ describe("disponibleTransferencia", () => {
   it("no devuelve negativos", () => {
     expect(disponibleTransferencia({ saldo: 0, disponible: 0 }, 5000)).toBe(0);
     expect(disponibleTransferencia({ saldo: 100, disponible: -400 }, 5000)).toBe(0);
+  });
+});
+
+describe("saldoEnPlastico", () => {
+  // El reclamo: la app decía 8.500 y el plástico tenía 6.000. La cifra del
+  // bus es la del chip, no la de la cuenta.
+  const tarjeta = (p: Partial<Tarjeta>): Tarjeta =>
+    ({ saldo: 8500, tarifa: 500, chip: 6000, por_entregar: 2500, por_descontar: 0, ...p }) as Tarjeta;
+
+  it("descuenta lo que aún no está escrito en el chip", () => {
+    expect(saldoEnPlastico(tarjeta({}))).toBe(6000);
+  });
+
+  it("suma de vuelta lo que el validador todavía no ha descontado", () => {
+    expect(saldoEnPlastico(tarjeta({ por_entregar: 0, por_descontar: 500 }))).toBe(9000);
+  });
+
+  it("con la recarga ya escrita vuelve a ser el saldo de la cuenta", () => {
+    expect(saldoEnPlastico(tarjeta({ chip: 8500, por_entregar: 0 }))).toBe(8500);
+  });
+
+  it("no devuelve negativos", () => {
+    expect(saldoEnPlastico(tarjeta({ saldo: 500, por_entregar: 900 }))).toBe(0);
+  });
+
+  it("con una base vieja sin desglose no afirma nada", () => {
+    expect(saldoEnPlastico(tarjeta({ chip: undefined, por_entregar: undefined }))).toBeNull();
+    expect(saldoPorCargar(tarjeta({ chip: undefined, por_entregar: undefined }))).toBe(0);
+  });
+
+  it("los pasajes que se pueden usar hoy salen del plástico", () => {
+    expect(pasajesEquivalentes(saldoEnPlastico(tarjeta({}))!, 500)).toBe(12);
+    expect(pasajesEquivalentes(tarjeta({}).saldo, 500)).toBe(17);
   });
 });
 

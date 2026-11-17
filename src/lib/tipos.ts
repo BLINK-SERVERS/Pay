@@ -29,6 +29,15 @@ export interface Tarjeta {
    * partir de 0034; si la base todavía no la tiene, falta y se usa `saldo`.
    */
   disponible?: number;
+  /**
+   * Bs que quedaron escritos en el plástico en la última sincronización del
+   * validador (0035). Es el espejo del chip, no el saldo de la cuenta.
+   */
+  chip?: number;
+  /** Bs aprobados que aún no se han cargado al plástico (0035). */
+  por_entregar?: number;
+  /** Bs debitados que aún no se han descontado del plástico (0035). */
+  por_descontar?: number;
 }
 
 export type TipoMovimiento =

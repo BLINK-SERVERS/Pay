@@ -754,6 +754,23 @@ body {
   letter-spacing: 0.08em;
 }
 
+.tarjeta__desglose {
+  margin: 0.65rem 0 0;
+  padding: 0 0.25rem;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tarjeta__desglose strong {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.tarjeta__desglose-detalle { font-weight: 500; }
+
 .tarjeta__herramientas {
   display: flex;
   align-items: center;
