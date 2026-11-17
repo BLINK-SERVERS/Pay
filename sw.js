@@ -11,7 +11,7 @@ const PREFIJO = "blink-pay-";
 // Las cachés de la etapa «Blink Tarjeta» se borran una vez al activar esta
 // versión; sin esto quedarían huérfanas al cambiar el prefijo.
 const PREFIJO_LEGADO = "blink-tarjeta-";
-const CACHE = PREFIJO + "v11";
+const CACHE = PREFIJO + "v16";
 const RAIZ = new URL("./", self.location).href;
 const ARMAZON = [
   RAIZ,
@@ -40,9 +40,89 @@ function cacheable(url) {
 // La versión nueva se instala pero NO toma el control: queda en espera
 // hasta que la página pida activarla. Así el aviso de actualización puede
 // aparecer sin recargar la app en medio de una recarga o de un cobro.
+//
+// `cache.addAll` era todo o nada: si un solo archivo del armazón fallaba (un
+// 404 de Pages mientras se sube el despliegue, o la red cortada a medias),
+// la instalación se abortaba, el worker nunca quedaba en espera y el aviso de
+// actualización no volvía hasta la próxima apertura. Ahora cada archivo se
+// guarda por separado y lo que falta se pide al navegar.
 self.addEventListener("install", (evento) => {
-  evento.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ARMAZON)));
+  evento.waitUntil(instalar());
 });
+
+async function guardar(cache, url) {
+  try {
+    // `reload`: al instalar la versión nueva hay que leer la que acaba de
+    // subir Pages, no la que quedó en la caché HTTP del navegador.
+    const respuesta = await fetch(url, { cache: "reload" });
+    if (respuesta && respuesta.ok) await cache.put(url, respuesta);
+  } catch {
+    // Seguir con el resto: una falta parcial es mejor que ninguna instalación.
+  }
+}
+
+function referenciasDe(html) {
+  const urls = new Set();
+  for (const coincidencia of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
+    try {
+      const url = new URL(coincidencia[1], RAIZ);
+      if (cacheable(url)) urls.add(url.href);
+    } catch {
+      // Un href relativo raro no puede tumbar la instalación.
+    }
+  }
+  return urls;
+}
+
+// Vite escribe el grafo de dependencias dentro del propio arranque, como
+// cadenas `assets/Nombre-hash.js`: las pestañas de carga perezosa y sus hojas
+// no aparecen en el index.html. Si solo se guarda lo que enumera el index,
+// «Actualizar» y perder la red deja la ruta sin su chunk.
+function referenciasInternas(texto) {
+  const urls = new Set();
+  const tokens = texto.matchAll(/["'(](\/?assets\/[^"'\s)]+?\.(?:js|css|woff2))["')]/g);
+  for (const coincidencia of tokens) {
+    try {
+      const url = new URL(coincidencia[1].replace(/^\//, ""), RAIZ);
+      if (cacheable(url)) urls.add(url.href);
+    } catch {
+      // Un literal parecido a una ruta pero inservible se ignora.
+    }
+  }
+  return urls;
+}
+
+async function leer(cache, url) {
+  try {
+    const respuesta = await cache.match(url);
+    return respuesta ? await respuesta.text() : "";
+  } catch {
+    return "";
+  }
+}
+
+async function instalar() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(ARMAZON.map((url) => guardar(cache, url)));
+
+  const html = await leer(cache, RAIZ + "index.html");
+  let nuevas = referenciasDe(html);
+
+  // Se repite hasta agotar el grafo: de las tres rondas reales suele sobrar
+  // la primera, y el tope evita que un bucle de importaciones congele la
+  // instalación del worker.
+  for (let ronda = 0; ronda < 3 && nuevas.size > 0; ronda += 1) {
+    await Promise.all([...nuevas].map((url) => guardar(cache, url)));
+    const siguientes = new Set();
+    for (const url of nuevas) {
+      if (!url.endsWith(".js")) continue;
+      for (const referencia of referenciasInternas(await leer(cache, url))) {
+        if (!(await cache.match(referencia))) siguientes.add(referencia);
+      }
+    }
+    nuevas = siguientes;
+  }
+}
 
 self.addEventListener("activate", (evento) => {
   evento.waitUntil(
